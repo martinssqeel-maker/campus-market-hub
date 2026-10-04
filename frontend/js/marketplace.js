@@ -784,9 +784,17 @@
 
     var grid = document.getElementById("event-grid");
     if (grid) {
+      // Clicking an event card opens the details modal in place, so filters and
+      // scroll position are preserved instead of reloading the page with ?id=.
       grid.addEventListener("click", function (event) {
         var button = event.target.closest("[data-event]");
-        if (button) openEventModal(button.dataset.event);
+        if (button) { openEventModal(button.dataset.event); return; }
+
+        var card = event.target.closest('.listing-card[data-type="event"]');
+        if (card) {
+          event.preventDefault();
+          openEventModal(card.dataset.id);
+        }
       });
     }
 
@@ -833,7 +841,13 @@
     if (grid) {
       grid.addEventListener("click", function (event) {
         var button = event.target.closest("[data-service]");
-        if (button) openServiceModal(button.dataset.service);
+        if (button) { openServiceModal(button.dataset.service); return; }
+
+        var card = event.target.closest('.listing-card[data-type="service"]');
+        if (card) {
+          event.preventDefault();
+          openServiceModal(card.dataset.id);
+        }
       });
     }
 
