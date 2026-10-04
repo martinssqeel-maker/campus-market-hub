@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f766e">
+  <meta name="description" content="Log in to Campus Marketplace – Federal University of Lafia student marketplace.">
+  <title>Log in · Campus Marketplace</title>
+
+  <link rel="icon" type="image/svg+xml" href="../assets/images/logo.svg">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/responsive.css">
+</head>
+<body data-page="login">
+
+  <header id="site-header"></header>
+
+  <main>
+    <div class="container">
+      <div class="auth-shell">
+        <!-- Marketing column (desktop only) -->
+        <aside class="auth-side">
+          <h2>Welcome back to Campus Marketplace</h2>
+          <p>Everything you need to buy, sell and live better on campus.</p>
+          <ul>
+            <li><span>🛍</span><span>Trade books, gadgets and hostel essentials with verified students</span></li>
+            <li><span>🏠</span><span>Compare hostel and self-contain prices around Lafia</span></li>
+            <li><span>📅</span><span>Never miss a career fair, match or campus party</span></li>
+            <li><span>🛡</span><span>Every listing is reviewed by an administrator before it goes live</span></li>
+          </ul>
+        </aside>
+
+        <!-- Login form -->
+        <section class="auth-card form-card">
+          <div class="auth-head">
+            <img class="logo" src="../assets/images/logo.svg" alt="Campus Marketplace">
+            <h1>Log in</h1>
+            <p class="text-muted mb-0">Access your listings, wishlist and messages.</p>
+          </div>
+
+          <form id="login-form" novalidate>
+            <div class="form-group">
+              <label for="login-email">Email address <span class="req">*</span></label>
+              <input id="login-email" name="email" type="email" autocomplete="email"
+                     placeholder="you@unilafia.edu.ng" required>
+              <span class="field-error"></span>
+            </div>
+
+            <div class="form-group">
+              <label for="login-password">Password <span class="req">*</span></label>
+              <div class="password-wrap">
+                <input id="login-password" name="password" type="password"
+                       autocomplete="current-password" placeholder="Your password" required>
+                <button class="password-toggle" type="button" data-toggle-password="login-password">Show</button>
+              </div>
+              <span class="field-error"></span>
+            </div>
+
+            <button class="btn btn-primary btn-block btn-lg" type="submit">Log in</button>
+          </form>
+
+          <div class="divider">or</div>
+
+          <p class="text-center mb-2">
+            New to Campus Marketplace?
+            <a href="signup.html"><strong>Create a free account</strong></a>
+          </p>
+
+          <!-- Demo credentials: handy during the project defence -->
+          <div class="demo-accounts">
+            <strong>Demo accounts (click to fill)</strong>
+            <button type="button" data-demo-email="admin@unilafia.edu.ng" data-demo-password="Admin@1234">
+              🛡 Admin – admin@unilafia.edu.ng
+            </button>
+            <button type="button" data-demo-email="aisha.bello@unilafia.edu.ng" data-demo-password="Student@123">
+              🎓 Student – aisha.bello@unilafia.edu.ng
+            </button>
+            <button type="button" data-demo-email="danjuma.attah@gmail.com" data-demo-password="Landlord@123">
+              🏠 Landlord – danjuma.attah@gmail.com
+            </button>
+            <button type="button" data-demo-email="blessing.uche@unilafia.edu.ng" data-demo-password="Provider@123">
+              🧰 Service – blessing.uche@unilafia.edu.ng
+            </button>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <footer id="site-footer"></footer>
+  <nav id="bottom-nav" aria-label="Mobile navigation"></nav>
+
+  <script src="../js/api.js"></script>
+  <script src="../js/ui.js"></script>
+  <script src="../js/auth.js"></script>
+</body>
+</html>

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f766e">
+  <meta name="description" content="Create your free Campus Marketplace account – Federal University of Lafia.">
+  <title>Sign up · Campus Marketplace</title>
+
+  <link rel="icon" type="image/svg+xml" href="../assets/images/logo.svg">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/responsive.css">
+</head>
+<body data-page="signup">
+
+  <header id="site-header"></header>
+
+  <main>
+    <div class="container">
+      <div class="auth-shell">
+        <aside class="auth-side">
+          <h2>Join the student marketplace</h2>
+          <p>Create one account to buy, sell, advertise accommodation and hire services.</p>
+          <ul>
+            <li><span>✅</span><span>Free forever for UNILAFIA students</span></li>
+            <li><span>🔒</span><span>Passwords are hashed with bcrypt – never stored in plain text</span></li>
+            <li><span>⭐</span><span>Build a reputation with reviews from other students</span></li>
+            <li><span>💬</span><span>Contact sellers instantly on WhatsApp or by phone</span></li>
+          </ul>
+        </aside>
+
+        <section class="auth-card form-card">
+          <div class="auth-head">
+            <img class="logo" src="../assets/images/logo.svg" alt="Campus Marketplace">
+            <h1>Create your account</h1>
+            <p class="text-muted mb-0">It takes less than a minute.</p>
+          </div>
+
+          <form id="signup-form" novalidate>
+            <div class="form-group">
+              <label for="su-name">Full name <span class="req">*</span></label>
+              <input id="su-name" name="name" type="text" autocomplete="name"
+                     placeholder="e.g. Martins Moses" required>
+              <span class="field-error"></span>
+            </div>
+
+            <div class="form-row form-row-2">
+              <div class="form-group">
+                <label for="su-email">Email address <span class="req">*</span></label>
+                <input id="su-email" name="email" type="email" autocomplete="email"
+                       placeholder="you@unilafia.edu.ng" required>
+                <span class="field-error"></span>
+              </div>
+              <div class="form-group">
+                <label for="su-phone">Phone number <span class="req">*</span></label>
+                <input id="su-phone" name="phone" type="tel" autocomplete="tel"
+                       placeholder="08031234567" required>
+                <span class="field-error"></span>
+                <span class="field-hint">Used by buyers to call or WhatsApp you.</span>
+              </div>
+            </div>
+
+            <div class="form-row form-row-2">
+              <div class="form-group">
+                <label for="su-password">Password <span class="req">*</span></label>
+                <div class="password-wrap">
+                  <input id="su-password" name="password" type="password"
+                         autocomplete="new-password" placeholder="At least 6 characters" required>
+                  <button class="password-toggle" type="button" data-toggle-password="su-password">Show</button>
+                </div>
+                <span class="field-error"></span>
+              </div>
+              <div class="form-group">
+                <label for="su-confirm">Confirm password <span class="req">*</span></label>
+                <input id="su-confirm" name="confirm_password" type="password"
+                       autocomplete="new-password" placeholder="Repeat your password" required>
+                <span class="field-error"></span>
+              </div>
+            </div>
+
+            <div class="form-row form-row-2">
+              <div class="form-group">
+                <label for="su-type">I am a… <span class="req">*</span></label>
+                <select id="su-type" name="user_type">
+                  <option value="student">Student – buy &amp; sell on campus</option>
+                  <option value="landlord">Landlord / agent – advertise rooms</option>
+                  <option value="service_provider">Service provider – offer services</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="su-level">Level (optional)</label>
+                <select id="su-level" name="level">
+                  <option value="">Not applicable</option>
+                  <option>100 Level</option>
+                  <option>200 Level</option>
+                  <option>300 Level</option>
+                  <option>400 Level</option>
+                  <option>500 Level</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="su-dept">Department / Faculty (optional)</label>
+              <input id="su-dept" name="department" type="text"
+                     placeholder="e.g. Computer Science">
+            </div>
+
+            <div class="checkbox-row form-group">
+              <input id="su-terms" type="checkbox" checked required>
+              <label for="su-terms">
+                I agree to trade responsibly and confirm I am a member of the university community.
+                Fake adverts are removed and accounts suspended.
+              </label>
+            </div>
+
+            <button class="btn btn-primary btn-block btn-lg" type="submit">Create account</button>
+          </form>
+
+          <div class="divider">or</div>
+
+          <p class="text-center mb-0">
+            Already have an account? <a href="login.html"><strong>Log in</strong></a>
+          </p>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <footer id="site-footer"></footer>
+  <nav id="bottom-nav" aria-label="Mobile navigation"></nav>
+
+  <script src="../js/api.js"></script>
+  <script src="../js/ui.js"></script>
+  <script src="../js/auth.js"></script>
+</body>
+</html>
