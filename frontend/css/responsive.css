@@ -1,0 +1,187 @@
+/* ==========================================================================
+   Campus Marketplace – responsive enhancements
+   Mobile-first strategy: base = 320px phones, then progressive enhancement.
+   Breakpoints: 480 (large phone) · 640 (phablet) · 768 (tablet) ·
+                1024 (laptop) · 1280 (desktop)
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Small phones (>= 480px)
+   -------------------------------------------------------------------------- */
+@media (min-width: 480px) {
+  .grid-cards { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+  .hero-stats { grid-template-columns: repeat(2, 1fr); }
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .contact-actions { grid-template-columns: repeat(2, 1fr); }
+  .toast-stack { left: auto; right: 16px; width: 340px; }
+}
+
+/* --------------------------------------------------------------------------
+   Phablets (>= 640px)
+   -------------------------------------------------------------------------- */
+@media (min-width: 640px) {
+  body { font-size: 15.5px; }
+  h1 { font-size: 2rem; }
+  h2 { font-size: 1.55rem; }
+
+  .section { padding: 34px 0; }
+  .grid-2 { grid-template-columns: repeat(2, 1fr); }
+  .grid-3 { grid-template-columns: repeat(2, 1fr); }
+  .grid-4 { grid-template-columns: repeat(4, 1fr); }
+  .form-row-2 { grid-template-columns: repeat(2, 1fr); gap: 0 14px; }
+  .filter-grid { grid-template-columns: repeat(2, 1fr); }
+  .hero { padding: 56px 0 46px; }
+  .hero h1 { font-size: 2.4rem; }
+  .hero-stats { grid-template-columns: repeat(4, 1fr); }
+  .auth-card { max-width: 520px; }
+  .detail-media img { aspect-ratio: 16 / 11; }
+  .modal { max-width: 560px; }
+}
+
+/* --------------------------------------------------------------------------
+   Tablets (>= 768px)
+   -------------------------------------------------------------------------- */
+@media (min-width: 768px) {
+  /* Switch to a horizontal desktop-style nav */
+  .nav-toggle { display: none; }
+  .main-nav {
+    display: flex !important;
+    flex-direction: row;
+    align-items: center;
+    gap: 2px;
+    padding: 0;
+    border-top: none;
+    flex-wrap: wrap;
+  }
+  .main-nav a { padding: 8px 12px; font-size: .88rem; }
+  .nav-actions { margin-top: 0; }
+  .header-inner { flex-wrap: nowrap; }
+  .header-shell { display: flex; align-items: center; gap: 18px; flex: 1; justify-content: flex-end; }
+
+  /* Bottom nav is redundant on tablets+ */
+  .bottom-nav { display: none; }
+  .site-footer { padding-bottom: 34px; }
+  .sticky-action { position: static; border: none; padding: 0; box-shadow: none; }
+
+  /* Filters are always displayed from tablet size upwards */
+  #toggle-filters { display: none; }
+  .filter-panel { display: block !important; }
+
+  .grid-cards { grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); }
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .filter-grid { grid-template-columns: repeat(4, 1fr); }
+  .toolbar { flex-direction: row; align-items: flex-start; }
+  .toolbar > * { flex: 1; }
+  .stat-grid { grid-template-columns: repeat(4, 1fr); }
+  .detail-grid { grid-template-columns: 1.1fr 1fr; align-items: start; }
+  .grid-sidebar { grid-template-columns: 280px 1fr; align-items: start; }
+  .footer-grid { grid-template-columns: 1.4fr 1fr 1fr; }
+  .auth-shell { padding-bottom: 40px; }
+}
+
+/* --------------------------------------------------------------------------
+   Laptops (>= 1024px)
+   -------------------------------------------------------------------------- */
+@media (min-width: 1024px) {
+  body { font-size: 16px; }
+  h1 { font-size: 2.3rem; }
+  .hero { padding: 68px 0 58px; }
+  .hero h1 { font-size: 2.9rem; }
+  .hero p.lead { font-size: 1.08rem; }
+  .grid-cards { grid-template-columns: repeat(auto-fill, minmax(235px, 1fr)); }
+  .grid-4 { grid-template-columns: repeat(4, 1fr); }
+  .section { padding: 44px 0; }
+  .card-pad { padding: 22px; }
+  .table-wrap table { min-width: 100%; }
+  .auth-shell { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; max-width: 1000px; margin: 0 auto; align-items: center; }
+  .auth-side {
+    display: flex; flex-direction: column; gap: 16px;
+    background: linear-gradient(150deg, #04302c, #14b8a6);
+    color: #eafffb; border-radius: var(--radius-lg); padding: 32px; min-height: 460px; justify-content: center;
+  }
+  .auth-side h2 { color: #fff; }
+  .auth-side ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+  .auth-side li { display: flex; gap: 10px; align-items: flex-start; font-size: .92rem; }
+}
+
+/* --------------------------------------------------------------------------
+   Large desktops (>= 1280px)
+   -------------------------------------------------------------------------- */
+@media (min-width: 1280px) {
+  .grid-cards { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+  .hero h1 { font-size: 3.1rem; }
+}
+
+/* --------------------------------------------------------------------------
+   Very small phones (<= 360px) – keep everything usable down to 320px
+   -------------------------------------------------------------------------- */
+@media (max-width: 360px) {
+  body { font-size: 14px; }
+  .container { padding-inline: 12px; }
+  .grid-cards { grid-template-columns: 1fr; }
+  .brand-text small { display: none; }
+  .brand img { width: 32px; height: 32px; }
+  .btn { padding: 10px 14px; font-size: .86rem; }
+  .btn-lg { padding: 12px 16px; font-size: .92rem; }
+  .hero-stats { grid-template-columns: 1fr 1fr; }
+  .stat-grid { grid-template-columns: 1fr; }
+  .bottom-nav a { font-size: .62rem; padding: 8px 2px 9px; }
+  .bottom-nav .icon { font-size: 1rem; }
+  .search-bar { border-radius: var(--radius); flex-direction: column; }
+  .search-bar .btn { width: 100%; }
+  .price-tag { font-size: 1.4rem; }
+  .listing-title { font-size: .9rem; }
+}
+
+/* --------------------------------------------------------------------------
+   Landscape phones – reduce vertical padding
+   -------------------------------------------------------------------------- */
+@media (max-height: 460px) and (orientation: landscape) {
+  .hero { padding: 28px 0 24px; }
+  .hero-stats { display: none; }
+  .bottom-nav { display: none; }
+  .site-footer { padding-bottom: 30px; }
+}
+
+/* --------------------------------------------------------------------------
+   Dark mode – respects the device setting (nice-to-have, keeps contrast AA)
+   -------------------------------------------------------------------------- */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #e8eef5;
+    --body: #c3ceda;
+    --muted: #93a2b3;
+    --line: #263449;
+    --surface: #16202e;
+    --canvas: #0e1725;
+    --chip: #1e2a3b;
+    --brand-light: #103c37;
+  }
+  .site-header, .card, .listing-card, .filter-panel, .table-wrap, .modal,
+  .search-bar, .form-card, .stat-tile { background: var(--surface); }
+  th { background: #1b2637; }
+  tbody tr:hover { background: #1b2637; }
+  input, select, textarea { background: #131d2b; color: var(--ink); }
+  input.invalid, select.invalid, textarea.invalid { background: #2a1720; }
+  .skeleton { background: linear-gradient(90deg, #1b2637 25%, #223045 37%, #1b2637 63%); background-size: 400% 100%; }
+  .listing-thumb { background: linear-gradient(135deg, #16202e, #1b2637); }
+  .badge-published, .badge-approved { background: #14361f; color: #86efac; }
+  .badge-pending { background: #3a2c10; color: #fcd34d; }
+  .badge-rejected, .badge-flagged { background: #3a1720; color: #fca5a5; }
+  .badge-sold, .badge-archived { background: #263449; color: #cbd5e1; }
+  .badge-verified { background: #16283f; color: #93c5fd; }
+  .badge-admin { background: #27193f; color: #c4b5fd; }
+  .empty-state .icon { filter: none; }
+}
+
+/* --------------------------------------------------------------------------
+   Reduced motion
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
