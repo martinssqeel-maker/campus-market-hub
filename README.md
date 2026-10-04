@@ -174,7 +174,9 @@ campus-market-hub/
 │   │   ├── helpers.py          # response envelopes, pagination, filtering, sorting
 │   │   └── validators.py       # email / phone / password / price / image validation
 │   ├── tests/
-│   │   └── test_api.py         # 23 automated API tests
+│   │   ├── test_api.py         # 23 automated API tests (unittest)
+│   │   ├── browser_smoke.js    # 66 jsdom checks across every page
+│   │   └── browser_filters.js  # 20 jsdom checks that filters match the API
 │   └── logs/                   # Rotating log files (created at runtime)
 ├── frontend/
 │   ├── index.html              # Landing page (hero, stats, featured, events, CTA)
@@ -361,6 +363,20 @@ python -m unittest discover -s tests -t . -v
 ```
 
 Covers auth (including token revocation and suspension), the full moderation workflow, CRUD permissions, every filter, pagination, search, reviews, wishlist toggling, image upload and error envelopes. Uses an in-memory SQLite database — your real data is untouched.
+
+### Browser-level tests (jsdom)
+
+These load the **real pages**, run the **real frontend JavaScript** against a running server and check what the user actually sees — including live interactions (wishlist heart, admin approve button, filter chips):
+
+```bash
+# with the API running on http://localhost:5000
+npm install jsdom
+
+node backend/tests/browser_smoke.js     # 66 checks: every page renders, no JS errors
+node backend/tests/browser_filters.js   # 20 checks: UI counts match API filter results
+```
+
+`browser_smoke.js` asserts that each page renders its content and that the console stays clean; `browser_filters.js` drives the search boxes, category chips and filter forms and compares the number of listings shown with the number the API returns for the same query, proving the filters really filter.
 
 ### Manual smoke test checklist
 
