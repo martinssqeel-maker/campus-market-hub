@@ -33,7 +33,10 @@ BACKEND_DIR = os.path.abspath(os.path.dirname(__file__))
 if BACKEND_DIR not in sys.path:
     sys.path.insert(0, BACKEND_DIR)
 
+# Accept either a backend-local secret file or a repository-root .env file.
+# Load backend/.env first so it keeps precedence if both files are present.
 load_dotenv(os.path.join(BACKEND_DIR, ".env"))
+load_dotenv(os.path.join(os.path.dirname(BACKEND_DIR), ".env"))
 
 from config import Config, get_config            # noqa: E402
 from extensions import cors, db, jwt            # noqa: E402

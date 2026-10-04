@@ -115,14 +115,7 @@ Useful URLs:
 
 ### 6. (Optional) run the frontend separately
 
-The frontend is plain HTML/CSS/JS, so it also works from any static server — handy when you want to edit files without restarting Flask:
-
-```bash
-cd frontend
-python -m http.server 5500          # or use the VS Code Live Server extension
-```
-
-`js/api.js` automatically points to `http://localhost:5000/api` when the frontend is opened on a different port, and to `/api` when served by Flask.
+The recommended setup is Flask serving the frontend and API together. If you use a separate static frontend server, configure it to proxy `/api` to Flask on the server side (or set `window.CAMPUS_API_BASE` to a reachable HTTPS API URL before `js/api.js` loads). The browser client defaults to the relative `/api` path and never hard-codes a localhost backend.
 
 ---
 

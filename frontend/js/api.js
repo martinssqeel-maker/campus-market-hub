@@ -19,21 +19,11 @@
      Configuration
      ----------------------------------------------------------------------- */
 
-  // When the frontend is served by Flask the API lives on the same origin.
-  // Opening the HTML files directly (file://) or via Live Server (:5500)
-  // falls back to 127.0.0.1:5000 – override with:
-  //   <script>window.CAMPUS_API_BASE = "https://my-host/api";</script>
-  var FILE_PROTOCOL = window.location.protocol === "file:";
-  var LIVE_SERVER_PORTS = ["5500", "5501", "3000", "8080", "5173", "4200", "8000"];
-
+  // The Flask app serves the API and frontend on one origin, so use a relative
+  // URL by default. A separately hosted frontend may set this to its same-origin
+  // reverse-proxy path before api.js loads; no backend host is hard-coded here.
   function resolveBaseUrl() {
     if (window.CAMPUS_API_BASE) return window.CAMPUS_API_BASE.replace(/\/$/, "");
-
-    var port = window.location.port;
-    var isLiveServer = LIVE_SERVER_PORTS.indexOf(port) !== -1;
-    if (FILE_PROTOCOL || isLiveServer) {
-      return window.location.protocol + "//" + window.location.hostname + ":5000/api";
-    }
     return "/api";
   }
 
