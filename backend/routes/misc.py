@@ -8,11 +8,13 @@ GET /api/meta            categories, room types and sort options for the UI
 GET /api/popular         trending searches / popular categories
 """
 
-from flask import Blueprint, request
+from flask import Blueprint, current_app, request
 from sqlalchemy import func, or_
 
+from config import secret_warnings
 from extensions import db
 from models import Accommodation, Event, Product, Service, User
+from storage import get_storage
 from utils.decorators import current_user
 from utils.helpers import api_success, parse_int
 from routes.accommodation import ROOM_TYPES
@@ -25,21 +27,35 @@ misc_bp = Blueprint("misc", __name__)
 
 @misc_bp.get("/health")
 def health():
-    """Uptime probe – also verifies the database connection works."""
+    """Uptime probe – verifies the database and reports the upload backend."""
     try:
         db.session.execute(db.text("SELECT 1"))
         database = "connected"
     except Exception as exc:                        # pragma: no cover - infra issue
         database = f"error: {exc}"
 
-    return api_success(
-        {
-            "service": "Campus Marketplace API",
-            "version": "1.0.0",
-            "status": "ok" if database == "connected" else "degraded",
-            "database": database,
-        }
-    )
+    storage = get_storage(current_app).describe()
+
+    warnings = []
+    if not current_app.config.get("DEBUG"):
+        # In production, missing secrets are a real problem worth surfacing.
+        warnings.extend(secret_warnings())
+    if storage.get("warning"):
+        warnings.append(storage["warning"])
+    if storage.get("error"):
+        warnings.append(storage["error"])
+
+    healthy = database == "connected" and storage.get("configured", True)
+    payload = {
+        "service": "Campus Marketplace API",
+        "version": "1.0.0",
+        "status": "ok" if healthy else "degraded",
+        "database": database,
+        "storage": storage,
+    }
+    if warnings:
+        payload["warnings"] = warnings
+    return api_success(payload)
 
 
 @misc_bp.get("/stats")

@@ -1,0 +1,21 @@
+# ---------------------------------------------------------------------------
+# Ruff lint configuration – Campus Marketplace
+#
+# Ruff 0.16 changed its built-in default rule set, which re-flags long-standing
+# code (import ordering, noqa directives). Pinning the rules here keeps
+# `ruff check` identical on every machine and in CI.
+#
+# Selected set – the classic core:
+#   E4/E7/E9  pycodestyle import + statement errors
+#   F         pyflakes (unused names, undefined names, …)
+#
+# E402 (import not at top of file) is expected in the two entrypoints
+# (app.py, backend/app.py): they load .env before importing the application
+# package, so the `# noqa: E402` comments next to those imports are real.
+# ---------------------------------------------------------------------------
+
+target-version = "py311"
+line-length = 100
+
+[lint]
+select = ["E4", "E7", "E9", "F"]

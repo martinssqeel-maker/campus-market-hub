@@ -14,16 +14,29 @@ Run (development)
 The app also serves the static frontend (``../frontend``) so that a single
 ``python app.py`` gives you a working website at http://localhost:5000 –
 no separate web server needed (and no CORS problems in production).
+
+Deploy (Vercel)
+---------------
+The repository-root ``app.py`` imports this module and exposes the same ``app``
+to Vercel's Flask preset (see ``docs/DEPLOYMENT.md``). On Vercel the static
+files are served from the generated ``public/`` directory and uploaded images
+go to an S3-compatible bucket (``UPLOAD_STORAGE=s3``); administrator accounts
+are created explicitly with ``flask --app app create-admin`` – the app never
+seeds demo data or a default admin on its own.
 """
 
 import argparse
 import logging
 import os
+import secrets
 import sys
 from logging.handlers import RotatingFileHandler
 
+import click
+
 from dotenv import load_dotenv
 from flask import Flask, jsonify, redirect, request, send_from_directory
+from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.exceptions import HTTPException
 
 # ---------------------------------------------------------------------------
@@ -38,10 +51,22 @@ if BACKEND_DIR not in sys.path:
 load_dotenv(os.path.join(BACKEND_DIR, ".env"))
 load_dotenv(os.path.join(os.path.dirname(BACKEND_DIR), ".env"))
 
-from config import Config, get_config            # noqa: E402
+from config import (                            # noqa: E402
+    DEFAULT_ADMIN_PHONE,
+    Config,
+    get_config,
+    secret_warnings,
+)
 from extensions import cors, db, jwt            # noqa: E402
 from models import TokenBlocklist, User         # noqa: E402
 from routes import register_blueprints          # noqa: E402
+from storage import get_storage                 # noqa: E402
+from utils.validators import (                  # noqa: E402
+    ValidationError,
+    validate_email,
+    validate_password,
+    validate_phone,
+)
 
 FRONTEND_DIR = os.path.join(Config.PROJECT_ROOT, "frontend")
 
@@ -51,16 +76,36 @@ FRONTEND_DIR = os.path.join(Config.PROJECT_ROOT, "frontend")
 # ---------------------------------------------------------------------------
 def configure_logging(app: Flask) -> None:
     """Console logging + a rotating file log in ``backend/logs``."""
+    logger = app.logger
+    # ``create_app`` can run several times per process (the test-suite, the
+    # Werkzeug reloader, preview deployments) and those apps share one logger –
+    # never stack duplicate handlers, which would print every line N times.
+    if getattr(logger, "_campus_market_configured", False):
+        return
+
     level = logging.DEBUG if app.config.get("DEBUG") else logging.INFO
     formatter = logging.Formatter(
         "[%(asctime)s] %(levelname)s in %(module)s: %(message)s", "%Y-%m-%d %H:%M:%S"
     )
 
+    # Flask installs a fallback handler the first time ``app.logger`` is used;
+    # drop it so each record is emitted exactly once.
+    from flask.logging import default_handler
+
+    if default_handler in logger.handlers:
+        logger.removeHandler(default_handler)
+
     stream = logging.StreamHandler(sys.stdout)
     stream.setFormatter(formatter)
     stream.setLevel(level)
-    app.logger.addHandler(stream)
-    app.logger.setLevel(level)
+    logger.addHandler(stream)
+    logger.setLevel(level)
+    logger._campus_market_configured = True
+
+    if app.config.get("RUNNING_ON_VERCEL"):
+        # Serverless filesystems are read-only apart from /tmp, and Vercel
+        # already captures stdout as the deployment log – skip the file handler.
+        return
 
     try:
         log_dir = os.path.join(BACKEND_DIR, "logs")
@@ -100,12 +145,14 @@ def create_app(config_object=None) -> Flask:
         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     )
 
-    os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+    prepare_upload_folder(app)
     configure_logging(app)
     register_blueprints(app)
     register_error_handlers(app)
     register_static_routes(app)
     register_jwt_handlers(app)
+    register_cli_commands(app)
+    report_configuration(app)
 
     # --- health check + index ---------------------------------------------
     @app.route("/api")
@@ -149,14 +196,162 @@ def create_app(config_object=None) -> Flask:
             }
         )
 
+    return app
+
+
+# ---------------------------------------------------------------------------
+# Startup helpers
+# ---------------------------------------------------------------------------
+def prepare_upload_folder(app: Flask) -> None:
+    """Create the local upload directory when the ``local`` backend is active.
+
+    Wrapped in ``try/except`` because serverless filesystems (Vercel, some PaaS
+    hosts) are read-only – the ``s3`` backend does not need a local folder at
+    all.
+    """
+    if app.config.get("UPLOAD_STORAGE") != "local":
+        return
+    try:
+        os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+    except OSError as exc:
+        app.logger.warning(
+            "Local upload folder %s is not writable (%s)",
+            app.config.get("UPLOAD_FOLDER"), exc,
+        )
+
+
+def report_configuration(app: Flask) -> None:
+    """Log deployment-critical configuration problems once, at startup.
+
+    Nothing here raises: a misconfigured deployment still boots, and the
+    ``/api/health`` endpoint reports the same findings so the problem is
+    visible instead of silent.
+    """
+    for message in secret_warnings():
+        if not app.config.get("DEBUG"):
+            app.logger.warning("Insecure default in use: %s", message)
+
+    storage = get_storage(app)
+    info = storage.describe()
+    if info.get("warning"):
+        app.logger.warning("%s", info["warning"])
+    if info.get("error"):
+        app.logger.error("Upload storage misconfigured: %s", info["error"])
+    elif app.config.get("RUNNING_ON_VERCEL"):
+        app.logger.info(
+            "Running on Vercel – upload storage: %s", info.get("backend")
+        )
+
+
+# ---------------------------------------------------------------------------
+# CLI commands (``flask --app app <command>``)
+# ---------------------------------------------------------------------------
+def _random_password() -> str:
+    """Generate a strong password that satisfies ``validate_password``."""
+    return f"{secrets.token_urlsafe(12)}a1"
+
+
+def register_cli_commands(app: Flask) -> None:
+    """Attach ``init-db`` and ``create-admin`` to the Flask CLI."""
+
     @app.cli.command("init-db")
     def init_db_command():                 # pragma: no cover - manual helper
-        """``flask init-db`` – create the database tables."""
+        """Create the database tables (safe to run more than once)."""
         with app.app_context():
             db.create_all()
         print("Database tables created.")
+        print("Next: create an administrator with `flask --app app create-admin`.")
 
-    return app
+    @app.cli.command("create-admin")
+    @click.option("--name", default=None,
+                  help="Full name (default: ADMIN_NAME or 'Campus Marketplace Admin').")
+    @click.option("--email", default=None,
+                  help="Login email (default: the ADMIN_EMAIL environment variable).")
+    @click.option("--phone", default=None,
+                  help="Contact phone (default: ADMIN_PHONE or a placeholder number).")
+    @click.option("--password", default=None,
+                  help="Password (default: ADMIN_PASSWORD, or a random one is generated).")
+    @click.option("--reset-password", is_flag=True,
+                  help="Also reset the password when the account already exists.")
+    def create_admin_command(name, email, phone, password, reset_password):
+        """Create (or promote) the first administrator.
+
+        No demo data and no default account are ever created automatically –
+        this command is the only way an admin account comes into existence.
+        """
+        email = (email or os.getenv("ADMIN_EMAIL") or "").strip().lower()
+        if not email:
+            raise click.UsageError(
+                "Provide --email (or set the ADMIN_EMAIL environment variable) "
+                "so the account has a login."
+            )
+
+        try:
+            email = validate_email(email)
+        except ValidationError as exc:
+            raise click.BadParameter(exc.message, param_hint="--email")
+
+        provided_password = password or os.getenv("ADMIN_PASSWORD")
+        if provided_password:
+            try:
+                validate_password(provided_password)
+            except ValidationError as exc:
+                raise click.BadParameter(exc.message, param_hint="--password")
+
+        try:
+            phone = validate_phone(phone or os.getenv("ADMIN_PHONE") or DEFAULT_ADMIN_PHONE)
+        except ValidationError as exc:
+            raise click.BadParameter(exc.message, param_hint="--phone")
+
+        generated_password = None
+        with app.app_context():
+            db.create_all()
+            user = User.query.filter_by(email=email).first()
+
+            if user is None:
+                if not provided_password:
+                    generated_password = _random_password()
+                password_to_set = provided_password or generated_password
+                user = User(
+                    name=name or os.getenv("ADMIN_NAME") or "Campus Marketplace Admin",
+                    email=email,
+                    phone=phone,
+                    user_type="admin",
+                    verified=True,
+                )
+                user.set_password(password_to_set)
+                db.session.add(user)
+                try:
+                    db.session.commit()
+                except SQLAlchemyError as exc:      # pragma: no cover - DB issue
+                    db.session.rollback()
+                    raise click.ClickException(f"Could not create the account: {exc}")
+                print(f"Administrator created: {email}")
+                if generated_password:
+                    print(f"Generated password (store it somewhere safe): {generated_password}")
+                return
+
+            promoted = user.user_type != "admin"
+            if promoted:
+                user.user_type = "admin"
+            user.verified = True
+            if provided_password or reset_password:
+                if not provided_password:
+                    generated_password = _random_password()
+                user.set_password(provided_password or generated_password)
+            try:
+                db.session.commit()
+            except SQLAlchemyError as exc:          # pragma: no cover - DB issue
+                db.session.rollback()
+                raise click.ClickException(f"Could not update the account: {exc}")
+
+            print(f"Administrator updated: {email}")
+            if promoted:
+                print("The existing account was promoted to admin.")
+            if generated_password:
+                print(f"Generated password (store it somewhere safe): {generated_password}")
+            elif not (provided_password or reset_password):
+                print("Password unchanged – pass --password or --reset-password to change it.")
 
 
 # ---------------------------------------------------------------------------
@@ -327,44 +522,26 @@ def register_error_handlers(app: Flask) -> None:
 # Bootstrap helpers
 # ---------------------------------------------------------------------------
 def bootstrap(app: Flask, reset: bool = False, seed: bool = False) -> None:
-    """Create tables (and optionally demo data) inside an app context."""
+    """Create tables – and optionally demo data – inside an app context.
+
+    Nothing is inserted by default: administrators are created explicitly with
+    ``flask --app app create-admin`` and demo content only when ``--seed`` is
+    passed (a development convenience).
+    """
     with app.app_context():
         if reset:
             db.drop_all()
             print("Dropped all tables.")
         db.create_all()
-        _ensure_admin(app)
         if seed:
             from seed_data import seed_database
 
             seed_database(app)
-
-
-def _ensure_admin(app: Flask) -> None:
-    """Make sure at least one administrator exists (needed for moderation)."""
-    email = os.getenv("ADMIN_EMAIL", "admin@unilafia.edu.ng").lower()
-    password = os.getenv("ADMIN_PASSWORD", "Admin@1234")
-
-    admin = User.query.filter_by(email=email).first()
-    if admin:
-        if admin.user_type != "admin":
-            admin.user_type = "admin"
-            db.session.commit()
-        return
-
-    admin = User(
-        name=os.getenv("ADMIN_NAME", "Campus Marketplace Admin"),
-        email=email,
-        phone=os.getenv("ADMIN_PHONE", "08030000000"),
-        user_type="admin",
-        verified=True,
-        department="Student Affairs",
-        location="Federal University of Lafia",
-    )
-    admin.set_password(password)
-    db.session.add(admin)
-    db.session.commit()
-    app.logger.info("Created default administrator: %s", email)
+        elif User.query.filter_by(user_type="admin").first() is None:
+            print(
+                "No administrator account yet – create one with:\n"
+                "    flask --app app create-admin --email you@example.com"
+            )
 
 
 #: Module-level app so ``flask --app app run`` and gunicorn both work.
@@ -378,10 +555,22 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Campus Marketplace API server")
     parser.add_argument("--host", default=os.getenv("HOST", "0.0.0.0"))
     parser.add_argument("--port", type=int, default=int(os.getenv("PORT", "5000")))
-    parser.add_argument("--seed", action="store_true", help="insert demo data on start")
-    parser.add_argument("--reset", action="store_true", help="drop and recreate all tables")
+    parser.add_argument("--seed", action="store_true",
+                        help="insert demo data on start (development only)")
+    parser.add_argument("--reset", action="store_true",
+                        help="drop and recreate all tables (development only)")
+    parser.add_argument("--force", action="store_true",
+                        help="allow --seed/--reset while FLASK_ENV=production")
     parser.add_argument("--debug", action="store_true", default=os.getenv("FLASK_ENV") != "production")
     args = parser.parse_args()
+
+    if (args.reset or args.seed) and app.config.get("ENV") == "production" and not args.force:
+        print(
+            "Refusing to run --reset/--seed with FLASK_ENV=production – these flags "
+            "drop tables and insert demo data.\n"
+            "Set FLASK_ENV=development, or pass --force if you really mean it."
+        )
+        sys.exit(1)
 
     # The Werkzeug reloader re-executes this script in a child process, so run
     # the database bootstrap only once (in the parent) – otherwise every file
