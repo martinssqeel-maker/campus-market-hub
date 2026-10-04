@@ -22,9 +22,8 @@ test suite) runs without the dependency when only local storage is used.
 
 import os
 
-from flask import current_app
-
 from config import Config
+from flask import current_app
 
 #: Relative public prefix used by the ``local`` backend.  Flask's static
 #: routing serves ``frontend/assets/uploads`` at this path, and the
@@ -83,7 +82,7 @@ def public_base_url() -> str:
 # ---------------------------------------------------------------------------
 def _s3_client():
     """Create a boto3 S3 client from the current app configuration."""
-    import boto3  # noqa: PLC0415 – lazy on purpose (see module docstring)
+    import boto3
 
     endpoint = current_app.config.get("S3_ENDPOINT_URL")
     bucket = current_app.config.get("S3_BUCKET")
@@ -149,6 +148,10 @@ def save_image(filename: str, file_storage, content_type: str | None = None) -> 
             Key=_s3_key(filename),
             Body=body,
             ContentType=content_type or "application/octet-stream",
+            # Mirror the local backend's 7-day cache header (see the
+            # /assets/uploads rule in backend/app.py) so browsers cache
+            # listing photos instead of re-downloading them.
+            CacheControl="public, max-age=604800",
         )
         size_kb = round(len(body) / 1024, 1)
     else:
@@ -230,7 +233,7 @@ def list_user_images(user_id: int) -> list:
 def delete_image(filename: str) -> bool:
     """Remove one uploaded image.  Returns ``False`` when it does not exist."""
     if storage_mode() == "s3":
-        from botocore.exceptions import ClientError  # noqa: PLC0415 – lazy
+        from botocore.exceptions import ClientError
 
         client = _s3_client()
         bucket = current_app.config["S3_BUCKET"]

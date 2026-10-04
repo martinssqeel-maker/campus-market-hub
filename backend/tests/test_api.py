@@ -951,9 +951,14 @@ class FakeS3Client:
 
     def __init__(self):
         self.objects = {}  # key -> (body, content_type, last_modified)
+        self.cache_controls = {}  # key -> CacheControl header (if any)
 
-    def put_object(self, Bucket, Key, Body, ContentType):
+    def put_object(self, Bucket, Key, Body, ContentType, **extra):
+        # ``extra`` absorbs options like CacheControl that the real client
+        # accepts but the in-memory fake only needs to record.
         self.objects[Key] = (bytes(Body), ContentType, datetime.now(timezone.utc))
+        if extra.get("CacheControl"):
+            self.cache_controls[Key] = extra["CacheControl"]
 
     def list_objects_v2(self, Bucket, Prefix=None, MaxKeys=None,
                         ContinuationToken=None):
@@ -1060,6 +1065,9 @@ class UploadS3StorageTestCase(unittest.TestCase):
         body, content_type, _mtime = self.fake_bucket.objects[key]
         self.assertEqual(body, PNG_BYTES)
         self.assertEqual(content_type, "image/png")
+        self.assertEqual(
+            self.fake_bucket.cache_controls[key], "public, max-age=604800"
+        )
 
         # nothing may land on the local disk when the S3 backend is active
         self.assertFalse(
