@@ -1,192 +1,306 @@
-"""Accommodation listing endpoints."""
-from decimal import Decimal, InvalidOperation
+"""
+Accommodation routes – ``/api/accommodation``
 
-from flask import Blueprint, jsonify, request
-from flask_jwt_extended import get_jwt_identity, jwt_required, verify_jwt_in_request
-from sqlalchemy import or_
+GET    /api/accommodation            list with filters (price, type, location…)
+GET    /api/accommodation/types      room-type options + published counts
+GET    /api/accommodation/locations  popular areas around campus
+GET    /api/accommodation/<id>       single listing (increments views)
+POST   /api/accommodation            create (auth, moderation applies)
+PUT    /api/accommodation/<id>       edit (owner or admin)
+DELETE /api/accommodation/<id>       delete (owner or admin)
+"""
 
-from ..extensions import db
-from ..models import Accommodation, Favorite, User
-from .common import (
+from flask import Blueprint, request
+from sqlalchemy import func, or_
+
+from config import Config
+from extensions import db
+from models import Accommodation
+from utils.decorators import current_user, login_required
+from utils.helpers import (
     api_error,
-    clean_text,
-    listing_response,
-    pagination_args,
-    payload_data,
-    positive_price,
-    remove_uploaded_image,
-    save_uploaded_image,
+    api_success,
+    apply_price_range,
+    apply_search,
+    apply_sort,
+    owner_or_admin,
+    paginate,
+    parse_bool,
+    parse_float,
+    parse_int,
+    request_data,
 )
+from utils.validators import ValidationError, clean_text
 
-bp = Blueprint("accommodation", __name__)
-ROOM_TYPES = {"room", "self_contain", "hostel", "shared"}
+accommodation_bp = Blueprint("accommodation", __name__)
 
-
-def _user():
-    try:
-        return db.session.get(User, int(get_jwt_identity()))
-    except (TypeError, ValueError):
-        return None
+#: Canonical room types (matches the filter chips on the frontend).
+ROOM_TYPES = ["single", "self-contain", "hostel", "flat", "shared"]
 
 
-@bp.get("")
+@accommodation_bp.get("/accommodation")
 def list_accommodation():
-    query = Accommodation.query.filter_by(status="published")
-    search = request.args.get("q", request.args.get("search", "")).strip()
-    location = request.args.get("location", "").strip()
-    room_type = request.args.get("room_type", "").strip().lower()
-    if search:
-        term = f"%{search[:100]}%"
-        query = query.filter(or_(Accommodation.title.ilike(term), Accommodation.description.ilike(term), Accommodation.location.ilike(term)))
-    if location:
-        query = query.filter(Accommodation.location.ilike(f"%{location[:160]}%"))
+    """Public accommodation feed with price / type / gender / location filters."""
+    viewer = current_user(optional=True)
+    query = Accommodation.query
+
+    # Moderation visibility (published + own drafts; admins see all).
+    status = (request.args.get("status") or "").strip().lower()
+    if viewer and viewer.is_admin:
+        query = query.filter(Accommodation.status == status) if status else query
+    elif status and status != "published" and viewer:
+        query = query.filter(
+            Accommodation.landlord_id == viewer.id, Accommodation.status == status
+        )
+    else:
+        conditions = [Accommodation.status == "published"]
+        if viewer:
+            conditions.append(Accommodation.landlord_id == viewer.id)
+        query = query.filter(or_(*conditions))
+
+    # --- filters ----------------------------------------------------------
+    room_type = (request.args.get("room_type") or request.args.get("type") or "").lower().strip()
+    if room_type in {"all", ""}:
+        room_type = None
     if room_type:
         query = query.filter(Accommodation.room_type == room_type)
-    try:
-        if request.args.get("min_price") not in (None, ""):
-            minimum = Decimal(request.args["min_price"])
-            if not minimum.is_finite() or minimum < 0:
-                raise InvalidOperation
-            query = query.filter(Accommodation.price >= minimum)
-        if request.args.get("max_price") not in (None, ""):
-            maximum = Decimal(request.args["max_price"])
-            if not maximum.is_finite() or maximum < 0:
-                raise InvalidOperation
-            query = query.filter(Accommodation.price <= maximum)
-    except (InvalidOperation, ValueError):
-        return api_error("Price filters must be valid amounts greater than or equal to zero.", 400)
 
-    sort = request.args.get("sort", "newest")
-    if sort == "price_low":
-        query = query.order_by(Accommodation.price.asc())
-    elif sort == "price_high":
-        query = query.order_by(Accommodation.price.desc())
-    else:
-        query = query.order_by(Accommodation.created_at.desc())
-    page, per_page = pagination_args()
-    result = query.paginate(page=page, per_page=per_page, error_out=False)
-    return jsonify(listing_response(result, lambda item: item.to_dict()))
+    location = (request.args.get("location") or "").strip()
+    if location:
+        query = query.filter(Accommodation.location.ilike(f"%{location}%"))
 
+    gender = (request.args.get("gender") or "").strip().lower()
+    if gender and gender != "any":
+        query = query.filter(or_(Accommodation.gender == gender, Accommodation.gender == "any"))
 
-@bp.post("")
-@jwt_required()
-def create_accommodation():
-    data = payload_data()
-    try:
-        title = clean_text(data.get("title"), "Title", maximum=140)
-        description = clean_text(data.get("description"), "Description", maximum=5000, minimum=10)
-        location = clean_text(data.get("location"), "Location", maximum=160)
-        price = positive_price(data.get("price"))
-        try:
-            rooms = int(data.get("rooms", 1))
-        except (TypeError, ValueError):
-            raise ValueError("Rooms must be a whole number greater than zero.")
-        if rooms < 1 or rooms > 1000:
-            raise ValueError("Rooms must be a whole number greater than zero.")
-        room_type = str(data.get("room_type", "room")).strip().lower()
-        if room_type not in ROOM_TYPES:
-            raise ValueError("Choose a valid accommodation type.")
-        image_url = save_uploaded_image(request.files.get("image")) if request.files.get("image") else ""
-    except ValueError as exc:
-        return api_error(str(exc), 400)
+    if parse_bool(request.args.get("furnished")):
+        query = query.filter(Accommodation.furnished.is_(True))
 
-    landlord = _user()
-    if landlord is None:
-        return api_error("Account not found.", 401)
-    listing = Accommodation(
-        landlord_id=landlord.id,
-        title=title,
-        description=description,
-        location=location,
-        price=price,
-        rooms=rooms,
-        room_type=room_type,
-        image_url=image_url,
-        status="pending",
+    rooms = parse_int(request.args.get("rooms"))
+    if rooms:
+        query = query.filter(Accommodation.rooms >= rooms)
+
+    landlord_id = parse_int(request.args.get("landlord_id"))
+    if landlord_id:
+        query = query.filter(Accommodation.landlord_id == landlord_id)
+
+    query = apply_search(
+        query,
+        Accommodation,
+        request.args.get("q"),
+        ("title", "description", "location", "room_type", "amenities"),
     )
-    db.session.add(listing)
-    db.session.commit()
-    return jsonify({"message": "Accommodation submitted for review.", "accommodation": listing.to_dict()}), 201
+    query = apply_price_range(
+        query,
+        Accommodation,
+        parse_float(request.args.get("min_price")),
+        parse_float(request.args.get("max_price")),
+    )
+    query = apply_sort(query, Accommodation, request.args.get("sort"))
+
+    result = paginate(query, lambda row: row.to_dict(viewer=viewer))
+    result["room_types"] = ROOM_TYPES
+    result["filters"] = {
+        "q": request.args.get("q") or "",
+        "room_type": room_type or "all",
+        "min_price": request.args.get("min_price") or "",
+        "max_price": request.args.get("max_price") or "",
+        "location": location,
+        "gender": gender or "any",
+        "furnished": parse_bool(request.args.get("furnished")),
+    }
+    return api_success(result)
 
 
-@bp.get("/<int:listing_id>")
-def get_accommodation(listing_id):
+@accommodation_bp.get("/accommodation/types")
+def accommodation_types():
+    """Room types with the number of published listings in each."""
+    rows = (
+        db.session.query(Accommodation.room_type, func.count(Accommodation.id))
+        .filter(Accommodation.status == "published")
+        .group_by(Accommodation.room_type)
+        .all()
+    )
+    counts = {room_type: count for room_type, count in rows}
+    return api_success(
+        {
+            "types": [
+                {"name": name, "count": counts.get(name, 0), "label": name.replace("-", " ").title()}
+                for name in ROOM_TYPES
+            ],
+            "total": sum(counts.values()),
+        }
+    )
+
+
+@accommodation_bp.get("/accommodation/locations")
+def accommodation_locations():
+    """Most popular areas (used for the location filter and quick chips)."""
+    rows = (
+        db.session.query(Accommodation.location, func.count(Accommodation.id))
+        .filter(Accommodation.status == "published")
+        .group_by(Accommodation.location)
+        .order_by(func.count(Accommodation.id).desc())
+        .limit(12)
+        .all()
+    )
+    return api_success([{"location": row[0], "count": row[1]} for row in rows])
+
+
+@accommodation_bp.get("/accommodation/<int:listing_id>")
+def get_accommodation(listing_id: int):
+    """Single accommodation listing."""
+    viewer = current_user(optional=True)
     listing = db.session.get(Accommodation, listing_id)
     if listing is None:
-        return api_error("Accommodation listing not found.", 404)
-    if listing.status != "published":
-        verify_jwt_in_request(optional=True)
-        viewer = _user()
-        if viewer is None or (viewer.id != listing.landlord_id and not viewer.is_admin):
-            return api_error("Accommodation listing not found.", 404)
-    return jsonify({"accommodation": listing.to_dict()})
+        return api_error("Accommodation listing not found", 404)
+    if listing.status != "published" and not owner_or_admin(viewer, listing):
+        return api_error("This listing is not available", 403)
+
+    if not owner_or_admin(viewer, listing):
+        listing.views = (listing.views or 0) + 1
+        db.session.commit()
+
+    data = listing.to_dict(viewer=viewer)
+    data["similar"] = [
+        row.to_dict()
+        for row in Accommodation.query.filter(
+            Accommodation.status == "published",
+            Accommodation.id != listing.id,
+            Accommodation.room_type == listing.room_type,
+        )
+        .limit(3)
+        .all()
+    ]
+    return api_success(data)
 
 
-@bp.put("/<int:listing_id>")
-@jwt_required()
-def update_accommodation(listing_id):
-    listing = db.session.get(Accommodation, listing_id)
-    user = _user()
-    if listing is None:
-        return api_error("Accommodation listing not found.", 404)
-    if user is None or (listing.landlord_id != user.id and not user.is_admin):
-        return api_error("You can only edit your own listing.", 403)
-    data = payload_data()
-    changed = False
+@accommodation_bp.post("/accommodation")
+@login_required
+def create_accommodation():
+    """Create an accommodation listing (authentication required)."""
+    user = current_user()
+    payload = request_data()
     try:
-        for key, maximum in (("title", 140), ("description", 5000), ("location", 160)):
-            if key in data:
-                value = clean_text(data[key], key.title(), maximum=maximum, minimum=10 if key == "description" else 1)
-                if getattr(listing, key) != value:
-                    setattr(listing, key, value)
-                    changed = True
-        if "price" in data:
-            value = positive_price(data["price"])
-            if listing.price != value:
-                listing.price = value
-                changed = True
-        if "rooms" in data:
-            try:
-                value = int(data["rooms"])
-            except (ValueError, TypeError):
-                raise ValueError("Rooms must be a whole number greater than zero.")
-            if value < 1 or value > 1000:
-                raise ValueError("Rooms must be a whole number greater than zero.")
-            if listing.rooms != value:
-                listing.rooms = value
-                changed = True
-        if "room_type" in data:
-            value = str(data["room_type"]).strip().lower()
-            if value not in ROOM_TYPES:
-                raise ValueError("Choose a valid accommodation type.")
-            if listing.room_type != value:
-                listing.room_type = value
-                changed = True
-        image = request.files.get("image")
-        if image and image.filename:
-            new_url = save_uploaded_image(image)
-            remove_uploaded_image(listing.image_url)
-            listing.image_url = new_url
-            changed = True
-    except ValueError as exc:
-        return api_error(str(exc), 400)
-    if changed and listing.status == "published":
-        listing.status = "pending"
-    db.session.commit()
-    return jsonify({"message": "Accommodation updated. Published changes are reviewed again.", "accommodation": listing.to_dict()})
+        title = clean_text(payload.get("title"), 160)
+        if len(title) < 3:
+            raise ValidationError("Title is too short", {"title": "At least 3 characters"})
+        location = clean_text(payload.get("location"), 160)
+        if not location:
+            raise ValidationError("Location is required", {"location": "Required"})
+
+        from utils.validators import validate_price
+
+        price = validate_price(payload.get("price"), required=True)
+        room_type = clean_text(payload.get("room_type"), 40).lower() or "single"
+        if room_type not in ROOM_TYPES:
+            room_type = "single"
+
+        listing = Accommodation(
+            landlord_id=user.id,
+            title=title,
+            description=clean_text(payload.get("description"), 4000) or title,
+            location=location,
+            price=price,
+            rooms=parse_int(payload.get("rooms"), 1, minimum=1, maximum=50),
+            room_type=room_type,
+            gender=clean_text(payload.get("gender"), 20).lower() or "any",
+            furnished=parse_bool(payload.get("furnished")),
+            amenities=", ".join(
+                filter(None, [clean_text(a, 40) for a in _as_list(payload.get("amenities"))])
+            ),
+            image_url=clean_text(payload.get("image_url"), 300) or None,
+            status="published" if (Config.AUTO_PUBLISH or user.is_admin) else "pending",
+        )
+        db.session.add(listing)
+        db.session.commit()
+        return api_success(
+            listing.to_dict(viewer=user),
+            message="Room submitted for review."
+            if listing.status == "pending"
+            else "Room published!",
+            status=201,
+        )
+    except ValidationError as exc:
+        return api_error(exc.message, 422, exc.errors)
 
 
-@bp.delete("/<int:listing_id>")
-@jwt_required()
-def delete_accommodation(listing_id):
+@accommodation_bp.put("/accommodation/<int:listing_id>")
+@login_required
+def update_accommodation(listing_id: int):
+    """Edit an accommodation listing (owner or admin)."""
+    viewer = current_user()
     listing = db.session.get(Accommodation, listing_id)
-    user = _user()
     if listing is None:
-        return api_error("Accommodation listing not found.", 404)
-    if user is None or (listing.landlord_id != user.id and not user.is_admin):
-        return api_error("You can only delete your own listing.", 403)
-    remove_uploaded_image(listing.image_url)
-    Favorite.query.filter_by(listing_type="accommodation", listing_id=listing.id).delete(synchronize_session=False)
+        return api_error("Accommodation listing not found", 404)
+    if not owner_or_admin(viewer, listing):
+        return api_error("You can only edit your own listings", 403)
+
+    payload = request_data()
+    try:
+        from utils.validators import validate_price
+
+        # Partial updates: only the fields actually sent are validated.
+        if payload.get("title") is not None:
+            title = clean_text(payload["title"], 160)
+            if len(title) < 3:
+                raise ValidationError("Title is too short", {"title": "At least 3 characters"})
+            listing.title = title
+        if payload.get("description"):
+            listing.description = clean_text(payload["description"], 4000)
+        if payload.get("location"):
+            listing.location = clean_text(payload["location"], 160)
+        if payload.get("price") is not None:
+            listing.price = validate_price(payload["price"], required=True)
+        if payload.get("rooms") is not None:
+            listing.rooms = parse_int(payload["rooms"], listing.rooms, minimum=1, maximum=50)
+        if payload.get("room_type"):
+            room_type = clean_text(payload["room_type"], 40).lower()
+            listing.room_type = room_type if room_type in ROOM_TYPES else listing.room_type
+        if payload.get("gender"):
+            listing.gender = clean_text(payload["gender"], 20).lower()
+        if "furnished" in payload:
+            listing.furnished = parse_bool(payload["furnished"])
+        if "amenities" in payload:
+            listing.amenities = ", ".join(
+                filter(None, [clean_text(a, 40) for a in _as_list(payload["amenities"])])
+            )
+        if "image_url" in payload:
+            listing.image_url = clean_text(payload["image_url"], 300) or None
+
+        new_status = (payload.get("status") or "").lower()
+        if new_status in {"archived", "sold"}:
+            listing.status = new_status
+        elif viewer.is_admin and new_status == "published":
+            listing.status = "published"
+        elif not viewer.is_admin and listing.status == "published":
+            listing.status = "pending"
+
+        db.session.commit()
+        return api_success(listing.to_dict(viewer=viewer), message="Listing updated")
+    except ValidationError as exc:
+        return api_error(exc.message, 422, exc.errors)
+
+
+@accommodation_bp.delete("/accommodation/<int:listing_id>")
+@login_required
+def delete_accommodation(listing_id: int):
+    """Delete an accommodation listing (owner or admin)."""
+    viewer = current_user()
+    listing = db.session.get(Accommodation, listing_id)
+    if listing is None:
+        return api_error("Accommodation listing not found", 404)
+    if not owner_or_admin(viewer, listing):
+        return api_error("You can only delete your own listings", 403)
     db.session.delete(listing)
     db.session.commit()
-    return jsonify({"message": "Accommodation listing deleted."})
+    return api_success(message="Listing deleted")
+
+
+def _as_list(value):
+    """Accept a comma-separated string *or* a real list for multi-value fields."""
+    if value is None:
+        return []
+    if isinstance(value, (list, tuple)):
+        return list(value)
+    return [part.strip() for part in str(value).split(",") if part.strip()]

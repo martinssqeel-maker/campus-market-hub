@@ -1,13 +1,37 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Student seller profile, ratings and listings."><meta name="api-base" content="/api"><meta name="theme-color" content="#176c57">
-  <title>Student profile — Campus Marketplace</title><link rel="icon" type="image/svg+xml" href="/assets/images/campus-logo.svg"><link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/responsive.css">
-  <script src="/js/api.js" defer></script><script src="/js/marketplace.js" defer></script><script src="/js/auth.js" defer></script><script src="/js/admin.js" defer></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f766e">
+  <meta name="description" content="Your Campus Marketplace profile – your listings, status, reviews and ratings.">
+  <title>Profile · Campus Marketplace</title>
+
+  <link rel="icon" type="image/svg+xml" href="../assets/images/logo.svg">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/responsive.css">
 </head>
-<body data-page="profile"><div id="site-header"></div>
-  <main class="page-main page-main--soft"><div class="container" data-profile-root>
-    <div class="loading-message">Loading student profile…</div>
-  </div></main><div id="site-footer"></div><div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
+<body data-page="profile">
+
+  <header id="site-header"></header>
+
+  <main>
+    <section class="section">
+      <div class="container">
+        <!-- Profile header, stats, tabs and forms are rendered by marketplace.js -->
+        <div id="profile-root">
+          <div class="skeleton" style="height:220px"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer id="site-footer"></footer>
+  <nav id="bottom-nav" aria-label="Mobile navigation"></nav>
+
+  <script src="../js/api.js"></script>
+  <script src="../js/ui.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/marketplace.js"></script>
 </body>
 </html>

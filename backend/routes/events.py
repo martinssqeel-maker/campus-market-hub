@@ -1,129 +1,279 @@
-"""Campus event and notice endpoints."""
+"""
+Campus events & adverts – ``/api/events``
+
+GET    /api/events             list with date / category / location filters
+GET    /api/events/upcoming    next N upcoming events (home page widget)
+GET    /api/events/<id>        single event
+POST   /api/events             create (auth, moderation applies)
+PUT    /api/events/<id>        edit (owner or admin)
+DELETE /api/events/<id>        delete (owner or admin)
+"""
+
 from datetime import datetime, timezone
-from zoneinfo import ZoneInfo
 
-from flask import Blueprint, jsonify, request
-from flask_jwt_extended import get_jwt_identity, jwt_required, verify_jwt_in_request
-from sqlalchemy import or_
+from flask import Blueprint, request
+from sqlalchemy import func, or_
 
-from ..extensions import db
-from ..models import Event, Favorite, User
-from .common import (
+from config import Config
+from extensions import db
+from models import Event
+from utils.decorators import current_user, login_required
+from utils.helpers import (
     api_error,
-    clean_text,
-    listing_response,
-    pagination_args,
-    payload_data,
-    remove_uploaded_image,
-    save_uploaded_image,
+    api_success,
+    apply_search,
+    apply_sort,
+    owner_or_admin,
+    paginate,
+    parse_bool,
+    parse_float,
+    parse_int,
+    request_data,
 )
+from utils.validators import ValidationError, clean_text
 
-bp = Blueprint("events", __name__)
+events_bp = Blueprint("events", __name__)
 
-
-def _user():
-    try:
-        return db.session.get(User, int(get_jwt_identity()))
-    except (TypeError, ValueError):
-        return None
+EVENT_CATEGORIES = [
+    "academic",
+    "social",
+    "sports",
+    "religious",
+    "career",
+    "entertainment",
+    "advert",
+    "others",
+]
 
 
 def _parse_datetime(value):
-    try:
-        parsed = datetime.fromisoformat(str(value).strip().replace("Z", "+00:00"))
-    except (TypeError, ValueError):
-        raise ValueError("Enter a valid event date and time.")
-    if parsed.tzinfo is None:
-        # datetime-local fields contain no offset; interpret them in campus time.
-        parsed = parsed.replace(tzinfo=ZoneInfo("Africa/Lagos"))
-    return parsed.astimezone(timezone.utc).replace(tzinfo=None)
-
-
-@bp.get("")
-def list_events():
-    query = Event.query.filter_by(status="published")
-    search = request.args.get("q", request.args.get("search", "")).strip()
-    location = request.args.get("location", "").strip()
-    category = request.args.get("category", "").strip()
-    if search:
-        term = f"%{search[:100]}%"
-        query = query.filter(or_(Event.title.ilike(term), Event.description.ilike(term), Event.location.ilike(term)))
-    if location:
-        query = query.filter(Event.location.ilike(f"%{location[:160]}%"))
-    if category:
-        query = query.filter(Event.category.ilike(category[:60]))
-    if request.args.get("from"):
+    """Accept ISO strings (``2026-03-14``, ``2026-03-14T10:00``) or datetimes."""
+    if isinstance(value, datetime):
+        return value
+    if not value:
+        raise ValidationError("Event date is required", {"date": "Required"})
+    raw = str(value).strip().replace("Z", "+00:00")
+    for fmt in (None, "%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M", "%Y-%m-%d", "%d/%m/%Y"):
         try:
-            query = query.filter(Event.date >= _parse_datetime(request.args["from"]))
-        except ValueError as exc:
-            return api_error(str(exc), 400)
-    if request.args.get("to"):
-        try:
-            query = query.filter(Event.date <= _parse_datetime(request.args["to"]))
-        except ValueError as exc:
-            return api_error(str(exc), 400)
-
-    query = query.order_by(Event.date.asc(), Event.created_at.desc())
-    page, per_page = pagination_args()
-    result = query.paginate(page=page, per_page=per_page, error_out=False)
-    return jsonify(listing_response(result, lambda item: item.to_dict()))
-
-
-@bp.post("")
-@jwt_required()
-def create_event():
-    data = payload_data()
-    try:
-        title = clean_text(data.get("title"), "Title", maximum=140)
-        description = clean_text(data.get("description"), "Description", maximum=5000, minimum=10)
-        location = clean_text(data.get("location"), "Location", maximum=160)
-        category = clean_text(data.get("category") or "Campus event", "Category", maximum=60)
-        event_date = _parse_datetime(data.get("date"))
-        image_url = save_uploaded_image(request.files.get("image")) if request.files.get("image") else ""
-    except ValueError as exc:
-        return api_error(str(exc), 400)
-    creator = _user()
-    if creator is None:
-        return api_error("Account not found.", 401)
-    event = Event(
-        creator_id=creator.id,
-        title=title,
-        description=description,
-        date=event_date,
-        location=location,
-        category=category,
-        image_url=image_url,
-        status="pending",
+            parsed = datetime.fromisoformat(raw) if fmt is None else datetime.strptime(raw, fmt)
+            return parsed.replace(tzinfo=None)
+        except ValueError:
+            continue
+    raise ValidationError(
+        "Use a valid date, e.g. 2026-03-14 or 2026-03-14T10:00", {"date": "Invalid date"}
     )
-    db.session.add(event)
-    db.session.commit()
-    return jsonify({"message": "Event submitted for review.", "event": event.to_dict()}), 201
 
 
-@bp.get("/<int:event_id>")
-def get_event(event_id):
+@events_bp.get("/events")
+def list_events():
+    """Public event feed with date range, category and location filters."""
+    viewer = current_user(optional=True)
+    query = Event.query
+
+    status = (request.args.get("status") or "").strip().lower()
+    if viewer and viewer.is_admin:
+        query = query.filter(Event.status == status) if status else query
+    elif status and status != "published" and viewer:
+        query = query.filter(Event.creator_id == viewer.id, Event.status == status)
+    else:
+        conditions = [Event.status == "published"]
+        if viewer:
+            conditions.append(Event.creator_id == viewer.id)
+        query = query.filter(or_(*conditions))
+
+    category = (request.args.get("category") or "").strip().lower()
+    if category in {"all", ""}:
+        category = None
+    if category and category in EVENT_CATEGORIES:
+        query = query.filter(Event.category == category)
+
+    location = (request.args.get("location") or "").strip()
+    if location:
+        query = query.filter(Event.location.ilike(f"%{location}%"))
+
+    if parse_bool(request.args.get("upcoming"), default=False):
+        query = query.filter(Event.date >= datetime.now(timezone.utc).replace(tzinfo=None))
+
+    if request.args.get("date") or request.args.get("date_from"):
+        query = query.filter(Event.date >= _parse_datetime(request.args.get("date")
+                                                          or request.args.get("date_from")))
+    if request.args.get("date_to"):
+        query = query.filter(Event.date <= _parse_datetime(request.args["date_to"]))
+
+    max_price = parse_float(request.args.get("max_price"))
+    if max_price is not None:
+        query = query.filter(Event.ticket_price <= max_price)
+    if parse_bool(request.args.get("free")):
+        query = query.filter(Event.ticket_price == 0)
+
+    creator_id = parse_int(request.args.get("creator_id"))
+    if creator_id:
+        query = query.filter(Event.creator_id == creator_id)
+
+    query = apply_search(
+        query, Event, request.args.get("q"), ("title", "description", "category", "location")
+    )
+    # Default ordering for events is chronological (soonest first).
+    query = apply_sort(query, Event, request.args.get("sort"), default="date")
+
+    result = paginate(query, lambda row: row.to_dict(viewer=viewer))
+    result["categories"] = EVENT_CATEGORIES
+    result["filters"] = {
+        "q": request.args.get("q") or "",
+        "category": category or "all",
+        "location": location,
+        "date_from": request.args.get("date_from") or "",
+        "date_to": request.args.get("date_to") or "",
+        "upcoming": parse_bool(request.args.get("upcoming")),
+    }
+    return api_success(result)
+
+
+@events_bp.get("/events/upcoming")
+def upcoming_events():
+    """The next few events – powers the home-page "What's happening" strip."""
+    limit = parse_int(request.args.get("limit"), 4, minimum=1, maximum=20)
+    rows = (
+        Event.query.filter(
+            Event.status == "published",
+            Event.date >= datetime.now(timezone.utc).replace(tzinfo=None),
+        )
+        .order_by(Event.date.asc())
+        .limit(limit)
+        .all()
+    )
+    return api_success([row.to_dict() for row in rows])
+
+
+@events_bp.get("/events/stats")
+def event_stats():
+    """Counts by category for the events page summary cards."""
+    rows = (
+        db.session.query(Event.category, func.count(Event.id))
+        .filter(Event.status == "published")
+        .group_by(Event.category)
+        .all()
+    )
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    return api_success(
+        {
+            "by_category": [{"category": row[0], "count": row[1]} for row in rows],
+            "upcoming": Event.query.filter(Event.status == "published", Event.date >= now).count(),
+            "total": Event.query.filter(Event.status == "published").count(),
+        }
+    )
+
+
+@events_bp.get("/events/<int:event_id>")
+def get_event(event_id: int):
+    """Single event details."""
+    viewer = current_user(optional=True)
     event = db.session.get(Event, event_id)
     if event is None:
-        return api_error("Event not found.", 404)
-    if event.status != "published":
-        verify_jwt_in_request(optional=True)
-        viewer = _user()
-        if viewer is None or (viewer.id != event.creator_id and not viewer.is_admin):
-            return api_error("Event not found.", 404)
-    return jsonify({"event": event.to_dict()})
+        return api_error("Event not found", 404)
+    if event.status != "published" and not owner_or_admin(viewer, event):
+        return api_error("This event is not available", 403)
+    if not owner_or_admin(viewer, event):
+        event.views = (event.views or 0) + 1
+        db.session.commit()
+    return api_success(event.to_dict(viewer=viewer))
 
 
-@bp.delete("/<int:event_id>")
-@jwt_required()
-def delete_event(event_id):
+@events_bp.post("/events")
+@login_required
+def create_event():
+    """Create an event / campus advert."""
+    user = current_user()
+    payload = request_data()
+    try:
+        title = clean_text(payload.get("title"), 160)
+        if len(title) < 3:
+            raise ValidationError("Title is too short", {"title": "At least 3 characters"})
+        description = clean_text(payload.get("description"), 4000)
+        if len(description) < 10:
+            raise ValidationError(
+                "Please describe the event (at least 10 characters)",
+                {"description": "Too short"},
+            )
+        category = clean_text(payload.get("category"), 60).lower() or "social"
+        if category not in EVENT_CATEGORIES:
+            category = "others"
+
+        event = Event(
+            creator_id=user.id,
+            title=title,
+            description=description,
+            date=_parse_datetime(payload.get("date")),
+            location=clean_text(payload.get("location"), 160) or "UNILAFIA Campus",
+            category=category,
+            ticket_price=parse_float(payload.get("ticket_price"), 0.0, minimum=0.0) or 0.0,
+            image_url=clean_text(payload.get("image_url"), 300) or None,
+            status="published" if (Config.AUTO_PUBLISH or user.is_admin) else "pending",
+        )
+        db.session.add(event)
+        db.session.commit()
+        return api_success(
+            event.to_dict(viewer=user),
+            message="Event submitted for review."
+            if event.status == "pending"
+            else "Event published!",
+            status=201,
+        )
+    except ValidationError as exc:
+        return api_error(exc.message, 422, exc.errors)
+
+
+@events_bp.put("/events/<int:event_id>")
+@login_required
+def update_event(event_id: int):
+    """Edit an event (owner or admin)."""
+    viewer = current_user()
     event = db.session.get(Event, event_id)
-    user = _user()
     if event is None:
-        return api_error("Event not found.", 404)
-    if user is None or (event.creator_id != user.id and not user.is_admin):
-        return api_error("You can only delete your own event.", 403)
-    remove_uploaded_image(event.image_url)
-    Favorite.query.filter_by(listing_type="event", listing_id=event.id).delete(synchronize_session=False)
+        return api_error("Event not found", 404)
+    if not owner_or_admin(viewer, event):
+        return api_error("You can only edit your own events", 403)
+
+    payload = request_data()
+    try:
+        if payload.get("title"):
+            event.title = clean_text(payload["title"], 160)
+        if payload.get("description"):
+            event.description = clean_text(payload["description"], 4000)
+        if payload.get("date"):
+            event.date = _parse_datetime(payload["date"])
+        if payload.get("location"):
+            event.location = clean_text(payload["location"], 160)
+        if payload.get("category"):
+            category = clean_text(payload["category"], 60).lower()
+            event.category = category if category in EVENT_CATEGORIES else event.category
+        if payload.get("ticket_price") is not None:
+            event.ticket_price = parse_float(payload["ticket_price"], 0.0, minimum=0.0) or 0.0
+        if "image_url" in payload:
+            event.image_url = clean_text(payload["image_url"], 300) or None
+
+        new_status = (payload.get("status") or "").lower()
+        if viewer.is_admin and new_status in {"published", "archived"}:
+            event.status = new_status
+        elif not viewer.is_admin and event.status == "published":
+            event.status = "pending"
+
+        db.session.commit()
+        return api_success(event.to_dict(viewer=viewer), message="Event updated")
+    except ValidationError as exc:
+        return api_error(exc.message, 422, exc.errors)
+
+
+@events_bp.delete("/events/<int:event_id>")
+@login_required
+def delete_event(event_id: int):
+    """Delete an event (owner or admin)."""
+    viewer = current_user()
+    event = db.session.get(Event, event_id)
+    if event is None:
+        return api_error("Event not found", 404)
+    if not owner_or_admin(viewer, event):
+        return api_error("You can only delete your own events", 403)
     db.session.delete(event)
     db.session.commit()
-    return jsonify({"message": "Event deleted."})
+    return api_success(message="Event deleted")

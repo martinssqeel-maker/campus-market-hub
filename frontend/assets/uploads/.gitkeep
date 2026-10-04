@@ -1,0 +1,2 @@
+# Uploaded listing photos are stored in this folder at runtime.
+# The folder is kept in Git (this file) but the images are ignored.

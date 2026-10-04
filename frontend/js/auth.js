@@ -1,209 +1,297 @@
-/* Authentication, session navigation and listing submission forms. */
-(() => {
-  'use strict';
-  const api = window.CampusAPI;
-  const ui = window.CampusUI;
+/* ==========================================================================
+   auth.js – registration, login, session guards and the auth forms.
 
-  function showFormMessage(form, message, success = false) {
-    const box = form?.querySelector('[data-form-alert]') || document.querySelector('[data-form-alert]');
-    if (!box) return;
-    box.textContent = message;
-    box.classList.toggle('success', success);
-    box.classList.add('is-visible');
-  }
+   Depends on: api.js, ui.js
+   Exposed globally as `Auth`.
+   ========================================================================== */
 
-  function clearFormMessage(form) {
-    const box = form?.querySelector('[data-form-alert]') || document.querySelector('[data-form-alert]');
-    if (box) { box.textContent = ''; box.classList.remove('is-visible', 'success'); }
-  }
+(function (window, document) {
+  "use strict";
 
-  function safeNext() {
-    const next = new URLSearchParams(location.search).get('next');
-    if (!next) return '/';
-    try {
-      const parsed = new URL(next, location.origin);
-      return parsed.origin === location.origin && !parsed.pathname.startsWith('//')
-        ? `${parsed.pathname}${parsed.search}${parsed.hash}`
-        : '/';
-    } catch (_) { return '/'; }
-  }
+  var Auth = {
+    /* ---------------------------------------------------------------------
+       Session state
+       --------------------------------------------------------------------- */
+    user: function () {
+      return API.currentUser();
+    },
 
-  function setBusy(form, busy, label) {
-    const button = form.querySelector('button[type="submit"]');
-    if (!button) return;
-    if (busy) {
-      button.dataset.originalText = button.innerHTML;
-      button.disabled = true;
-      button.textContent = label || 'Please wait…';
-    } else {
-      button.disabled = false;
-      if (button.dataset.originalText) button.innerHTML = button.dataset.originalText;
-    }
-  }
+    isLoggedIn: function () {
+      return API.isLoggedIn();
+    },
 
-  async function submitLogin(form) {
-    clearFormMessage(form);
-    if (!form.checkValidity()) { form.reportValidity(); return; }
-    setBusy(form, true, 'Signing in…');
-    try {
-      const data = await api.post('auth/login', Object.fromEntries(new FormData(form).entries()));
-      api.setSession(data.access_token, data.user);
-      location.replace(safeNext());
-    } catch (error) {
-      showFormMessage(form, error.message || 'Sign in failed. Please try again.');
-    } finally { setBusy(form, false); }
-  }
+    isAdmin: function () {
+      var user = API.currentUser();
+      return !!(user && user.user_type === "admin");
+    },
 
-  async function submitSignup(form) {
-    clearFormMessage(form);
-    if (!form.checkValidity()) { form.reportValidity(); return; }
-    const values = Object.fromEntries(new FormData(form).entries());
-    if (String(values.password || '').length < 8) {
-      showFormMessage(form, 'Choose a password with at least 8 characters.');
-      return;
-    }
-    setBusy(form, true, 'Creating account…');
-    try {
-      const data = await api.post('auth/signup', values);
-      api.setSession(data.access_token, data.user);
-      location.replace('/');
-    } catch (error) {
-      showFormMessage(form, error.message || 'Could not create your account. Please try again.');
-    } finally { setBusy(form, false); }
-  }
+    /** Redirect to the login page (remembering where the user was headed). */
+    requireLogin: function (message) {
+      if (API.isLoggedIn()) return true;
+      UI.toast(message || "Please log in to continue", "info");
+      var next = encodeURIComponent(window.location.pathname + window.location.search);
+      window.setTimeout(function () {
+        window.location.href = UI.pageUrl("login.html") + "?next=" + next;
+      }, 700);
+      return false;
+    },
 
-  function setupAuthForms() {
-    const login = document.querySelector('#login-form');
-    const signup = document.querySelector('#signup-form');
-    login?.addEventListener('submit', (event) => { event.preventDefault(); submitLogin(login); });
-    signup?.addEventListener('submit', (event) => { event.preventDefault(); submitSignup(signup); });
+    requireAdmin: function () {
+      if (!Auth.requireLogin()) return false;
+      if (!Auth.isAdmin()) {
+        UI.toast("Administrator access is required for that page", "error");
+        window.setTimeout(function () { window.location.href = UI.pageUrl("home.html"); }, 900);
+        return false;
+      }
+      return true;
+    },
 
-    document.addEventListener('click', (event) => {
-      const toggle = event.target.closest('[data-toggle-password]');
-      if (toggle) {
-        const input = document.getElementById(toggle.dataset.togglePassword);
-        if (!input) return;
-        const showing = input.type === 'password';
-        input.type = showing ? 'text' : 'password';
-        toggle.setAttribute('aria-label', showing ? 'Hide password' : 'Show password');
+    /* ---------------------------------------------------------------------
+       Login / signup / logout
+       --------------------------------------------------------------------- */
+    login: function (email, password) {
+      return API.auth.login(email, password).then(function (payload) {
+        API.tokens.setSession(payload.data);
+        UI.renderHeader();
+        return payload.data.user;
+      });
+    },
+
+    signup: function (payload) {
+      return API.auth.signup(payload).then(function (response) {
+        API.tokens.setSession(response.data);
+        UI.renderHeader();
+        return response.data.user;
+      });
+    },
+
+    logout: function () {
+      return API.auth.logout()
+        .catch(function () { /* token already invalid – clear locally anyway */ })
+        .then(function () {
+          API.tokens.clear();
+          UI.toast("You have been logged out", "success");
+          window.setTimeout(function () { window.location.href = UI.root + "index.html"; }, 600);
+        });
+    },
+
+    updateProfile: function (payload) {
+      return API.auth.updateMe(payload).then(function (response) {
+        API.tokens.setUser(response.data);
+        UI.renderHeader();
+        return response.data;
+      });
+    },
+
+    /* ---------------------------------------------------------------------
+       Form helpers
+       --------------------------------------------------------------------- */
+    fieldError: function (input, message) {
+      if (!input) return;
+      var holder = input.parentElement.querySelector(".field-error") ||
+        input.closest(".form-group") && input.closest(".form-group").querySelector(".field-error");
+      input.classList.toggle("invalid", !!message);
+      if (holder) holder.textContent = message || "";
+    },
+
+    clearErrors: function (form) {
+      form.querySelectorAll(".field-error").forEach(function (node) { node.textContent = ""; });
+      form.querySelectorAll(".invalid").forEach(function (node) { node.classList.remove("invalid"); });
+    },
+
+    /** Paint server-side validation errors returned by the API. */
+    paintErrors: function (form, errors) {
+      Object.keys(errors || {}).forEach(function (field) {
+        var input = form.querySelector('[name="' + field + '"]');
+        Auth.fieldError(input, errors[field]);
+      });
+    },
+
+    setLoading: function (button, loading, label) {
+      if (!button) return;
+      if (loading) {
+        button.dataset.original = button.dataset.original || button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = label || "Please wait…";
+      } else {
+        button.disabled = false;
+        if (button.dataset.original) button.innerHTML = button.dataset.original;
+      }
+    },
+
+    /** Client-side validation rules shared by the login & signup forms. */
+    validate: {
+      name: function (value) {
+        if (!value || value.trim().length < 3) return "Enter your full name (at least 3 letters)";
+        return "";
+      },
+      email: function (value) {
+        if (!value) return "Email is required";
+        if (!/^[^@\s]+@[^@\s]+\.[A-Za-z]{2,}$/.test(value.trim())) return "Enter a valid email address";
+        return "";
+      },
+      phone: function (value) {
+        var digits = String(value || "").replace(/[\s\-()]/g, "");
+        if (!digits) return "Phone number is required";
+        if (!/^(\+?234|0)[789][01]\d{8}$/.test(digits)) {
+          return "Enter a valid Nigerian number, e.g. 08031234567";
+        }
+        return "";
+      },
+      password: function (value) {
+        if (!value || value.length < 6) return "Password must be at least 6 characters";
+        if (!/[A-Za-z]/.test(value) || !/\d/.test(value)) {
+          return "Password must contain a letter and a number";
+        }
+        return "";
+      },
+      confirm: function (value, other) {
+        if (value !== other) return "Passwords do not match";
+        return "";
+      }
+    },
+
+    /* ---------------------------------------------------------------------
+       Page initialisers
+       --------------------------------------------------------------------- */
+    initLoginPage: function () {
+      var form = document.getElementById("login-form");
+      if (!form) return;
+
+      // Already logged in? go straight to the dashboard.
+      if (API.isLoggedIn()) {
+        UI.toast("You are already logged in", "info");
+        window.setTimeout(function () { window.location.href = UI.pageUrl("home.html"); }, 700);
       }
 
-      const logout = event.target.closest('[data-logout]');
-      if (logout) {
+      var emailInput = form.querySelector('[name="email"]');
+      var passwordInput = form.querySelector('[name="password"]');
+      var submit = form.querySelector('button[type="submit"]');
+
+      form.addEventListener("submit", function (event) {
         event.preventDefault();
-        signOut(logout);
-      }
-    });
-  }
+        Auth.clearErrors(form);
 
-  async function signOut(button) {
-    if (button) button.disabled = true;
-    try {
-      if (api.getToken()) await api.post('auth/logout', {});
-    } catch (_) { /* Clear the local session even if the device is offline. */ }
-    api.clearSession();
-    location.replace('/');
-  }
+        var emailError = Auth.validate.email(emailInput.value);
+        var passwordError = passwordInput.value ? "" : "Password is required";
+        Auth.fieldError(emailInput, emailError);
+        Auth.fieldError(passwordInput, passwordError);
+        if (emailError || passwordError) return;
 
-  const API_ROUTES = {
-    product: 'products',
-    accommodation: 'accommodation',
-    event: 'events',
-    service: 'services',
+        Auth.setLoading(submit, true, "Logging in…");
+        Auth.login(emailInput.value.trim(), passwordInput.value)
+          .then(function (user) {
+            UI.toast("Welcome back, " + user.name.split(" ")[0] + "!", "success");
+            var next = UI.queryParam("next");
+            window.setTimeout(function () {
+              window.location.href = next ? decodeURIComponent(next)
+                : (user.user_type === "admin" ? UI.pageUrl("admin-dashboard.html") : UI.pageUrl("home.html"));
+            }, 700);
+          })
+          .catch(function (error) {
+            Auth.setLoading(submit, false);
+            Auth.paintErrors(form, error.errors);
+            UI.toast(error.message, "error");
+          });
+      });
+
+      // Demo credentials helper (handy during the project presentation).
+      document.querySelectorAll("[data-demo-email]").forEach(function (button) {
+        button.addEventListener("click", function () {
+          emailInput.value = button.dataset.demoEmail;
+          passwordInput.value = button.dataset.demoPassword;
+          emailInput.dispatchEvent(new Event("input"));
+          passwordInput.dispatchEvent(new Event("input"));
+          UI.toast("Demo credentials filled in – press Log in", "info");
+        });
+      });
+    },
+
+    initSignupPage: function () {
+      var form = document.getElementById("signup-form");
+      if (!form) return;
+
+      var nameInput = form.querySelector('[name="name"]');
+      var emailInput = form.querySelector('[name="email"]');
+      var phoneInput = form.querySelector('[name="phone"]');
+      var passwordInput = form.querySelector('[name="password"]');
+      var confirmInput = form.querySelector('[name="confirm_password"]');
+      var typeSelect = form.querySelector('[name="user_type"]');
+      var submit = form.querySelector('button[type="submit"]');
+
+      // Live email availability check (debounced).
+      var checkEmail = UI.debounce(function () {
+        var value = emailInput.value.trim();
+        if (Auth.validate.email(value)) return;
+        API.auth.checkEmail(value).then(function (payload) {
+          Auth.fieldError(emailInput, payload.data.available ? "" : "That email is already registered");
+        }).catch(function () { /* ignore – server will validate on submit anyway */ });
+      }, 600);
+      emailInput.addEventListener("blur", checkEmail);
+
+      form.addEventListener("submit", function (event) {
+        event.preventDefault();
+        Auth.clearErrors(form);
+
+        var errors = {
+          name: Auth.validate.name(nameInput.value),
+          email: Auth.validate.email(emailInput.value),
+          phone: Auth.validate.phone(phoneInput.value),
+          password: Auth.validate.password(passwordInput.value),
+          confirm_password: Auth.validate.confirm(confirmInput.value, passwordInput.value)
+        };
+        var hasError = Object.keys(errors).some(function (key) {
+          Auth.fieldError(form.querySelector('[name="' + key + '"]'), errors[key]);
+          return !!errors[key];
+        });
+        if (hasError) {
+          UI.toast("Please fix the highlighted fields", "error");
+          return;
+        }
+
+        Auth.setLoading(submit, true, "Creating your account…");
+        Auth.signup({
+          name: nameInput.value.trim(),
+          email: emailInput.value.trim(),
+          phone: phoneInput.value.trim(),
+          password: passwordInput.value,
+          confirm_password: confirmInput.value,
+          user_type: typeSelect ? typeSelect.value : "student",
+          department: (form.querySelector('[name="department"]') || {}).value || "",
+          level: (form.querySelector('[name="level"]') || {}).value || ""
+        })
+          .then(function (user) {
+            UI.toast("Welcome to Campus Marketplace, " + user.name.split(" ")[0] + "!", "success");
+            window.setTimeout(function () { window.location.href = UI.pageUrl("home.html"); }, 900);
+          })
+          .catch(function (error) {
+            Auth.setLoading(submit, false);
+            Auth.paintErrors(form, error.errors);
+            UI.toast(error.message, "error");
+          });
+      });
+    },
+
+    /** Show/hide password buttons. */
+    initPasswordToggles: function () {
+      document.querySelectorAll("[data-toggle-password]").forEach(function (button) {
+        button.addEventListener("click", function () {
+          var input = document.getElementById(button.dataset.togglePassword);
+          if (!input) return;
+          var showing = input.type === "text";
+          input.type = showing ? "password" : "text";
+          button.textContent = showing ? "Show" : "Hide";
+        });
+      });
+    },
+
+    init: function () {
+      Auth.initLoginPage();
+      Auth.initSignupPage();
+      Auth.initPasswordToggles();
+    }
   };
 
-  function setupListingForm() {
-    const form = document.querySelector('#listing-form');
-    if (!form) return;
-    const tabs = [...document.querySelectorAll('[data-listing-type]')];
-    const fileInput = form.querySelector('input[type="file"]');
-    const preview = form.querySelector('[data-upload-preview]');
-    const allowedTypes = new Set(['product', 'accommodation', 'event', 'service']);
-    let type = new URLSearchParams(location.search).get('type') || 'product';
-    if (!allowedTypes.has(type)) type = 'product';
-
-    function chooseType(newType) {
-      if (!allowedTypes.has(newType)) return;
-      type = newType;
-      tabs.forEach((tab) => {
-        const active = tab.dataset.listingType === type;
-        tab.classList.toggle('is-active', active);
-        tab.setAttribute('aria-selected', String(active));
-      });
-      form.querySelectorAll('[data-show-for]').forEach((field) => {
-        const shown = field.dataset.showFor.split(',').map((value) => value.trim()).includes(type);
-        field.hidden = !shown;
-        field.querySelectorAll('input, select, textarea').forEach((input) => { input.disabled = !shown; });
-      });
-
-      const category = form.elements.namedItem('category');
-      const price = form.elements.namedItem('price');
-      const locationField = form.elements.namedItem('location');
-      const rooms = form.elements.namedItem('rooms');
-      const roomType = form.elements.namedItem('room_type');
-      const eventDate = form.elements.namedItem('date');
-      if (category) category.required = ['product', 'event', 'service'].includes(type);
-      if (price) price.required = ['product', 'accommodation'].includes(type);
-      if (price) price.placeholder = type === 'service' ? 'Leave blank if negotiable' : 'e.g. 12000';
-      if (form.querySelector('[data-price-hint]')) form.querySelector('[data-price-hint]').textContent = type === 'service' ? 'Optional — leave blank if negotiable.' : 'Use a fair, clear price.';
-      if (locationField) locationField.required = true;
-      if (rooms) rooms.required = type === 'accommodation';
-      if (roomType) roomType.required = type === 'accommodation';
-      if (eventDate) eventDate.required = type === 'event';
-      clearFormMessage(form);
-    }
-
-    tabs.forEach((tab) => tab.addEventListener('click', () => chooseType(tab.dataset.listingType)));
-    chooseType(type);
-
-    fileInput?.addEventListener('change', () => {
-      const file = fileInput.files?.[0];
-      if (!file) { if (preview) { preview.removeAttribute('src'); preview.style.display = 'none'; } return; }
-      if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) {
-        fileInput.value = '';
-        showFormMessage(form, 'Choose a JPG, PNG, WEBP or GIF image.');
-        return;
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        fileInput.value = '';
-        showFormMessage(form, 'Images must be 5 MiB or smaller.');
-        return;
-      }
-      clearFormMessage(form);
-      if (preview) {
-        preview.src = URL.createObjectURL(file);
-        preview.style.display = 'block';
-      }
-    });
-
-    form.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      clearFormMessage(form);
-      if (!api.getToken() || !api.getUser()) {
-        location.href = `/pages/login.html?next=${encodeURIComponent(location.pathname + location.search)}`;
-        return;
-      }
-      if (!form.checkValidity()) { form.reportValidity(); return; }
-      const route = API_ROUTES[type];
-      setBusy(form, true, 'Sending for review…');
-      try {
-        const result = await api.post(route, new FormData(form));
-        showFormMessage(form, `${result.message || 'Your listing was submitted.'} Moderators review new posts before they are published.`, true);
-        form.reset();
-        if (preview) { preview.removeAttribute('src'); preview.style.display = 'none'; }
-        chooseType(type);
-        ui?.toast('Listing submitted for review.');
-      } catch (error) {
-        showFormMessage(form, error.message || 'Could not submit your listing. Please try again.');
-      } finally { setBusy(form, false); }
-    });
-  }
-
-  function init() {
-    setupAuthForms();
-    setupListingForm();
-    window.addEventListener('campus:session-change', () => window.CampusUI?.renderHeader());
-  }
-
-  document.addEventListener('DOMContentLoaded', init);
-})();
+  window.Auth = Auth;
+  document.addEventListener("DOMContentLoaded", function () { Auth.init(); });
+})(window, document);

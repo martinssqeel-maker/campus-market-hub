@@ -1,112 +1,229 @@
-"""Student-to-student services directory endpoints."""
-from decimal import Decimal, InvalidOperation
+"""
+Student services – ``/api/services``
 
-from flask import Blueprint, jsonify, request
-from flask_jwt_extended import get_jwt_identity, jwt_required, verify_jwt_in_request
-from sqlalchemy import or_
+GET    /api/services          list with filters
+GET    /api/services/<id>     single service
+POST   /api/services          create (auth, moderation applies)
+PUT    /api/services/<id>     edit (owner or admin)
+DELETE /api/services/<id>     delete (owner or admin)
+"""
 
-from ..extensions import db
-from ..models import Favorite, Service, User
-from .common import (
+from flask import Blueprint, request
+from sqlalchemy import func, or_
+
+from config import Config
+from extensions import db
+from models import Service
+from utils.decorators import current_user, login_required
+from utils.helpers import (
     api_error,
-    clean_text,
-    listing_response,
-    pagination_args,
-    payload_data,
-    positive_price,
-    remove_uploaded_image,
-    save_uploaded_image,
+    api_success,
+    apply_price_range,
+    apply_search,
+    apply_sort,
+    owner_or_admin,
+    paginate,
+    parse_float,
+    parse_int,
+    request_data,
 )
+from utils.validators import ValidationError, clean_text, validate_price
 
-bp = Blueprint("services", __name__)
+services_bp = Blueprint("services", __name__)
+
+SERVICE_CATEGORIES = [
+    "laundry",
+    "printing",
+    "tutoring",
+    "barbing",
+    "cleaning",
+    "delivery",
+    "photography",
+    "tech-repair",
+    "catering",
+    "others",
+]
 
 
-def _user():
-    try:
-        return db.session.get(User, int(get_jwt_identity()))
-    except (TypeError, ValueError):
-        return None
-
-
-@bp.get("")
+@services_bp.get("/services")
 def list_services():
-    query = Service.query.filter_by(status="published")
-    search = request.args.get("q", request.args.get("search", "")).strip()
-    category = request.args.get("category", "").strip()
-    location = request.args.get("location", "").strip()
-    if search:
-        term = f"%{search[:100]}%"
-        query = query.filter(or_(Service.title.ilike(term), Service.description.ilike(term), Service.category.ilike(term)))
-    if category:
-        query = query.filter(Service.category.ilike(category[:60]))
+    """Public service feed with search, category and price filters."""
+    viewer = current_user(optional=True)
+    query = Service.query
+
+    status = (request.args.get("status") or "").strip().lower()
+    if viewer and viewer.is_admin:
+        query = query.filter(Service.status == status) if status else query
+    elif status and status != "published" and viewer:
+        query = query.filter(Service.provider_id == viewer.id, Service.status == status)
+    else:
+        conditions = [Service.status == "published"]
+        if viewer:
+            conditions.append(Service.provider_id == viewer.id)
+        query = query.filter(or_(*conditions))
+
+    category = (request.args.get("category") or "").strip().lower()
+    if category in {"all", ""}:
+        category = None
+    if category and category in SERVICE_CATEGORIES:
+        query = query.filter(Service.category == category)
+
+    location = (request.args.get("location") or "").strip()
     if location:
-        query = query.filter(Service.location.ilike(f"%{location[:120]}%"))
-    try:
-        if request.args.get("min_price") not in (None, ""):
-            minimum = Decimal(request.args["min_price"])
-            if not minimum.is_finite() or minimum < 0:
-                raise InvalidOperation
-            query = query.filter(Service.price >= minimum)
-        if request.args.get("max_price") not in (None, ""):
-            maximum = Decimal(request.args["max_price"])
-            if not maximum.is_finite() or maximum < 0:
-                raise InvalidOperation
-            query = query.filter(Service.price <= maximum)
-    except (InvalidOperation, ValueError):
-        return api_error("Price filters must be valid amounts greater than or equal to zero.", 400)
-    query = query.order_by(Service.created_at.desc())
-    page, per_page = pagination_args()
-    result = query.paginate(page=page, per_page=per_page, error_out=False)
-    return jsonify(listing_response(result, lambda item: item.to_dict()))
+        query = query.filter(Service.location.ilike(f"%{location}%"))
+
+    provider_id = parse_int(request.args.get("provider_id"))
+    if provider_id:
+        query = query.filter(Service.provider_id == provider_id)
+
+    query = apply_search(
+        query, Service, request.args.get("q"), ("title", "description", "category", "location")
+    )
+    query = apply_price_range(
+        query,
+        Service,
+        parse_float(request.args.get("min_price")),
+        parse_float(request.args.get("max_price")),
+    )
+    query = apply_sort(query, Service, request.args.get("sort"))
+
+    result = paginate(query, lambda row: row.to_dict(viewer=viewer))
+    result["categories"] = SERVICE_CATEGORIES
+    return api_success(result)
 
 
-@bp.post("")
-@jwt_required()
+@services_bp.get("/services/categories")
+def service_categories():
+    """Service categories with live counts."""
+    rows = (
+        db.session.query(Service.category, func.count(Service.id))
+        .filter(Service.status == "published")
+        .group_by(Service.category)
+        .all()
+    )
+    counts = {category: count for category, count in rows}
+    return api_success(
+        {
+            "categories": [
+                {"name": name, "count": counts.get(name, 0)} for name in SERVICE_CATEGORIES
+            ],
+            "total": sum(counts.values()),
+        }
+    )
+
+
+@services_bp.get("/services/<int:service_id>")
+def get_service(service_id: int):
+    """Single service details."""
+    viewer = current_user(optional=True)
+    service = db.session.get(Service, service_id)
+    if service is None:
+        return api_error("Service not found", 404)
+    if service.status != "published" and not owner_or_admin(viewer, service):
+        return api_error("This service is not available", 403)
+    if not owner_or_admin(viewer, service):
+        service.views = (service.views or 0) + 1
+        db.session.commit()
+    return api_success(service.to_dict(viewer=viewer))
+
+
+@services_bp.post("/services")
+@login_required
 def create_service():
-    data = payload_data()
+    """Create a service offering."""
+    user = current_user()
+    payload = request_data()
     try:
-        title = clean_text(data.get("title"), "Title", maximum=140)
-        description = clean_text(data.get("description"), "Description", maximum=5000, minimum=10)
-        category = clean_text(data.get("category") or "Other", "Category", maximum=60)
-        location = clean_text(data.get("location") or "Federal University of Lafia", "Location", maximum=120)
-        price = positive_price(data.get("price"), required=False)
-        image_url = save_uploaded_image(request.files.get("image")) if request.files.get("image") else ""
-    except ValueError as exc:
-        return api_error(str(exc), 400)
-    provider = _user()
-    if provider is None:
-        return api_error("Account not found.", 401)
-    service = Service(provider_id=provider.id, title=title, description=description, category=category,
-                      location=location, price=price, image_url=image_url, status="pending")
-    db.session.add(service)
-    db.session.commit()
-    return jsonify({"message": "Service submitted for review.", "service": service.to_dict()}), 201
+        title = clean_text(payload.get("title"), 160)
+        if len(title) < 3:
+            raise ValidationError("Title is too short", {"title": "At least 3 characters"})
+        description = clean_text(payload.get("description"), 4000)
+        if len(description) < 10:
+            raise ValidationError(
+                "Please describe your service (at least 10 characters)",
+                {"description": "Too short"},
+            )
+        category = clean_text(payload.get("category"), 60).lower() or "others"
+        if category not in SERVICE_CATEGORIES:
+            category = "others"
+
+        service = Service(
+            provider_id=user.id,
+            title=title,
+            description=description,
+            category=category,
+            price=validate_price(payload.get("price"), required=False),
+            price_unit=clean_text(payload.get("price_unit"), 40) or "per job",
+            location=clean_text(payload.get("location"), 160) or "UNILAFIA Campus",
+            image_url=clean_text(payload.get("image_url"), 300) or None,
+            status="published" if (Config.AUTO_PUBLISH or user.is_admin) else "pending",
+        )
+        db.session.add(service)
+        db.session.commit()
+        return api_success(
+            service.to_dict(viewer=user),
+            message="Service submitted for review."
+            if service.status == "pending"
+            else "Service published!",
+            status=201,
+        )
+    except ValidationError as exc:
+        return api_error(exc.message, 422, exc.errors)
 
 
-@bp.get("/<int:service_id>")
-def get_service(service_id):
+@services_bp.put("/services/<int:service_id>")
+@login_required
+def update_service(service_id: int):
+    """Edit a service (owner or admin)."""
+    viewer = current_user()
     service = db.session.get(Service, service_id)
     if service is None:
-        return api_error("Service not found.", 404)
-    if service.status != "published":
-        verify_jwt_in_request(optional=True)
-        viewer = _user()
-        if viewer is None or (viewer.id != service.provider_id and not viewer.is_admin):
-            return api_error("Service not found.", 404)
-    return jsonify({"service": service.to_dict()})
+        return api_error("Service not found", 404)
+    if not owner_or_admin(viewer, service):
+        return api_error("You can only edit your own services", 403)
+
+    payload = request_data()
+    try:
+        if payload.get("title"):
+            service.title = clean_text(payload["title"], 160)
+        if payload.get("description"):
+            service.description = clean_text(payload["description"], 4000)
+        if payload.get("category"):
+            category = clean_text(payload["category"], 60).lower()
+            service.category = category if category in SERVICE_CATEGORIES else service.category
+        if payload.get("price") is not None:
+            service.price = validate_price(payload["price"])
+        if payload.get("price_unit"):
+            service.price_unit = clean_text(payload["price_unit"], 40)
+        if payload.get("location"):
+            service.location = clean_text(payload["location"], 160)
+        if "image_url" in payload:
+            service.image_url = clean_text(payload["image_url"], 300) or None
+
+        new_status = (payload.get("status") or "").lower()
+        if new_status in {"archived", "sold"}:
+            service.status = new_status
+        elif viewer.is_admin and new_status == "published":
+            service.status = "published"
+        elif not viewer.is_admin and service.status == "published":
+            service.status = "pending"
+
+        db.session.commit()
+        return api_success(service.to_dict(viewer=viewer), message="Service updated")
+    except ValidationError as exc:
+        return api_error(exc.message, 422, exc.errors)
 
 
-@bp.delete("/<int:service_id>")
-@jwt_required()
-def delete_service(service_id):
+@services_bp.delete("/services/<int:service_id>")
+@login_required
+def delete_service(service_id: int):
+    """Delete a service (owner or admin)."""
+    viewer = current_user()
     service = db.session.get(Service, service_id)
-    user = _user()
     if service is None:
-        return api_error("Service not found.", 404)
-    if user is None or (service.provider_id != user.id and not user.is_admin):
-        return api_error("You can only delete your own service.", 403)
-    remove_uploaded_image(service.image_url)
-    Favorite.query.filter_by(listing_type="service", listing_id=service.id).delete(synchronize_session=False)
+        return api_error("Service not found", 404)
+    if not owner_or_admin(viewer, service):
+        return api_error("You can only delete your own services", 403)
     db.session.delete(service)
     db.session.commit()
-    return jsonify({"message": "Service deleted."})
+    return api_success(message="Service deleted")

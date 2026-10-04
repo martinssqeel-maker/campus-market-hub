@@ -1,32 +1,65 @@
-# Python
+# ---------------------------------------------------------------------------
+# Campus Marketplace – files that should never be committed
+# ---------------------------------------------------------------------------
+
+# --- Python -----------------------------------------------------------------
 __pycache__/
 *.py[cod]
-*.pyo
-*.pyd
+*$py.class
+*.so
 .Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# --- Virtual environments ---------------------------------------------------
 .venv/
 venv/
 env/
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.coverage
-htmlcov/
+ENV/
 
-# Local secrets and environment
+# --- Databases --------------------------------------------------------------
+# The SQLite file is generated with:  python app.py --seed
+*.db
+*.sqlite
+*.sqlite3
+
+# --- Environment / secrets --------------------------------------------------
+# Copy .env.example to .env and fill in your own values.
 .env
 .env.*
 !.env.example
 
-# Local application data (SQLite DBs and user uploads)
-instance/*
-!instance/.gitkeep
-backend/*.db
-backend/*.sqlite
-backend/*.sqlite3
+# --- Logs -------------------------------------------------------------------
+*.log
+backend/logs/*
+!backend/logs/.gitkeep
 
-# Build/editor/OS files
-.DS_Store
-Thumbs.db
+# --- User uploads -----------------------------------------------------------
+# Keep the folder (with .gitkeep) but not the images students upload.
+frontend/assets/uploads/*
+!frontend/assets/uploads/.gitkeep
+
+# --- Editors & OS -----------------------------------------------------------
 .vscode/
 .idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Test / coverage output -------------------------------------------------
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- Node (only used for optional frontend tooling) -------------------------
+node_modules/
+package-lock.json
+
+# --- Deploy artefacts -------------------------------------------------------
+*.tar.gz
+*.zip

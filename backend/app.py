@@ -1,182 +1,397 @@
-"""Campus Marketplace Flask application and local development commands."""
+"""
+Campus Marketplace – Flask application entry point.
+
+Federal University of Lafia student marketplace:
+products, accommodation, events and services with admin moderation.
+
+Run (development)
+-----------------
+    cd backend
+    python app.py                     # http://127.0.0.1:5000
+    python app.py --seed              # create tables + demo data
+    python app.py --reset             # drop everything and start clean
+
+The app also serves the static frontend (``../frontend``) so that a single
+``python app.py`` gives you a working website at http://localhost:5000 –
+no separate web server needed (and no CORS problems in production).
+"""
+
+import argparse
 import logging
 import os
-from datetime import timedelta
-from pathlib import Path
+import sys
+from logging.handlers import RotatingFileHandler
 
-import click
 from dotenv import load_dotenv
-from flask import Flask, jsonify, send_from_directory
-from flask_cors import CORS
-from flask_migrate import Migrate
-from sqlalchemy import event
+from flask import Flask, jsonify, redirect, request, send_from_directory
+from werkzeug.exceptions import HTTPException
 
-ROOT_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(ROOT_DIR / ".env")
+# ---------------------------------------------------------------------------
+# Path setup – allows ``python backend/app.py`` from the project root too.
+# ---------------------------------------------------------------------------
+BACKEND_DIR = os.path.abspath(os.path.dirname(__file__))
+if BACKEND_DIR not in sys.path:
+    sys.path.insert(0, BACKEND_DIR)
 
-from .config import Config
-from .extensions import bcrypt, db, jwt
-from .models import Accommodation, Event, Product, TokenBlocklist, User, utcnow
+# Accept either a backend-local secret file or a repository-root .env file.
+# Load backend/.env first so it keeps precedence if both files are present.
+load_dotenv(os.path.join(BACKEND_DIR, ".env"))
+load_dotenv(os.path.join(os.path.dirname(BACKEND_DIR), ".env"))
 
-FRONTEND_DIR = ROOT_DIR / "frontend"
+from config import Config, get_config            # noqa: E402
+from extensions import cors, db, jwt            # noqa: E402
+from models import TokenBlocklist, User         # noqa: E402
+from routes import register_blueprints          # noqa: E402
+
+FRONTEND_DIR = os.path.join(Config.PROJECT_ROOT, "frontend")
 
 
-def create_app(config_object=None):
-    """Create and configure the Flask app. The same factory is used by tests."""
-    app = Flask(__name__, static_folder=str(FRONTEND_DIR), static_url_path="")
-    app.config.from_object(Config)
-    if config_object:
-        if isinstance(config_object, dict):
-            app.config.update(config_object)
-        else:
-            app.config.from_object(config_object)
-
-    Path(app.config["UPLOAD_FOLDER"]).mkdir(parents=True, exist_ok=True)
-    Path(ROOT_DIR / "instance").mkdir(parents=True, exist_ok=True)
-
-    db.init_app(app)
-    bcrypt.init_app(app)
-    jwt.init_app(app)
-    Migrate(app, db)
-    CORS(app, resources={r"/api/*": {"origins": app.config.get("CORS_ORIGINS", ["*"])}})
-
-    # Import only after extensions have been initialized to keep route imports simple.
-    from .routes import (
-        accommodation,
-        admin,
-        auth,
-        events,
-        favorites,
-        products,
-        services,
-        users,
+# ---------------------------------------------------------------------------
+# Logging
+# ---------------------------------------------------------------------------
+def configure_logging(app: Flask) -> None:
+    """Console logging + a rotating file log in ``backend/logs``."""
+    level = logging.DEBUG if app.config.get("DEBUG") else logging.INFO
+    formatter = logging.Formatter(
+        "[%(asctime)s] %(levelname)s in %(module)s: %(message)s", "%Y-%m-%d %H:%M:%S"
     )
-    app.register_blueprint(auth.bp, url_prefix="/api/auth")
-    app.register_blueprint(products.bp, url_prefix="/api/products")
-    app.register_blueprint(accommodation.bp, url_prefix="/api/accommodation")
-    app.register_blueprint(events.bp, url_prefix="/api/events")
-    app.register_blueprint(services.bp, url_prefix="/api/services")
-    app.register_blueprint(users.bp, url_prefix="/api/users")
-    app.register_blueprint(favorites.bp, url_prefix="/api/favorites")
-    app.register_blueprint(admin.bp, url_prefix="/api/admin")
 
-    @jwt.token_in_blocklist_loader
-    def is_token_revoked(_jwt_header, jwt_payload):
-        return TokenBlocklist.query.filter_by(jti=jwt_payload["jti"]).first() is not None
+    stream = logging.StreamHandler(sys.stdout)
+    stream.setFormatter(formatter)
+    stream.setLevel(level)
+    app.logger.addHandler(stream)
+    app.logger.setLevel(level)
 
-    @jwt.unauthorized_loader
-    def missing_token(reason):
-        return jsonify({"error": "Authentication required.", "details": reason}), 401
+    try:
+        log_dir = os.path.join(BACKEND_DIR, "logs")
+        os.makedirs(log_dir, exist_ok=True)
+        file_handler = RotatingFileHandler(
+            os.path.join(log_dir, "campus-market.log"), maxBytes=1_000_000, backupCount=3
+        )
+        file_handler.setFormatter(formatter)
+        file_handler.setLevel(logging.INFO)
+        app.logger.addHandler(file_handler)
+    except OSError:                       # read-only filesystem (some hosts)
+        app.logger.warning("File logging disabled (cannot create logs directory)")
 
-    @jwt.invalid_token_loader
-    def invalid_token(reason):
-        return jsonify({"error": "Invalid authentication token.", "details": reason}), 401
 
-    @jwt.expired_token_loader
-    def expired_token(_jwt_header, _jwt_payload):
-        return jsonify({"error": "Your session has expired. Please sign in again."}), 401
+# ---------------------------------------------------------------------------
+# Application factory
+# ---------------------------------------------------------------------------
+def create_app(config_object=None) -> Flask:
+    """Build and configure the Flask application."""
+    app = Flask(
+        __name__,
+        static_folder=FRONTEND_DIR if os.path.isdir(FRONTEND_DIR) else None,
+        static_url_path="",
+    )
+    app.config.from_object(config_object or get_config())
 
-    @jwt.revoked_token_loader
-    def revoked_token(_jwt_header, _jwt_payload):
-        return jsonify({"error": "This session has been signed out. Please sign in again."}), 401
+    # --- extensions --------------------------------------------------------
+    db.init_app(app)
+    jwt.init_app(app)
 
-    @app.get("/")
-    def index():
-        return send_from_directory(app.static_folder, "index.html")
+    origins = app.config["CORS_ORIGINS"]
+    cors.init_app(
+        app,
+        resources={r"/api/*": {"origins": origins if origins != "*" else "*"}},
+        supports_credentials=False,
+        allow_headers=["Content-Type", "Authorization"],
+        methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    )
 
-    @app.get("/uploads/<path:filename>")
-    def uploaded_file(filename):
-        return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
+    os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+    configure_logging(app)
+    register_blueprints(app)
+    register_error_handlers(app)
+    register_static_routes(app)
+    register_jwt_handlers(app)
 
-    @app.get("/api/health")
-    def health():
-        return jsonify({"status": "ok", "service": "Campus Marketplace API"})
+    # --- health check + index ---------------------------------------------
+    @app.route("/api")
+    def api_index():
+        """Small self-documenting landing page for the API root."""
+        return jsonify(
+            {
+                "success": True,
+                "message": "Campus Marketplace API v1.0.0 – Federal University of Lafia",
+                "docs": {
+                    "auth": [
+                        "POST   /api/auth/signup",
+                        "POST   /api/auth/login",
+                        "POST   /api/auth/refresh",
+                        "POST   /api/auth/logout",
+                        "GET    /api/auth/me",
+                    ],
+                    "products": [
+                        "GET    /api/products",
+                        "POST   /api/products",
+                        "GET    /api/products/<id>",
+                        "PUT    /api/products/<id>",
+                        "DELETE /api/products/<id>",
+                    ],
+                    "accommodation": [
+                        "GET    /api/accommodation",
+                        "POST   /api/accommodation",
+                        "GET    /api/accommodation/<id>",
+                    ],
+                    "events": ["GET    /api/events", "POST   /api/events"],
+                    "services": ["GET    /api/services", "POST   /api/services"],
+                    "users": ["GET    /api/users/<id>", "PUT    /api/users/<id>"],
+                    "admin": [
+                        "GET    /api/admin/pending",
+                        "POST   /api/admin/approve/<id>",
+                        "POST   /api/admin/reject/<id>",
+                        "GET    /api/admin/users",
+                    ],
+                    "misc": ["GET /api/health", "GET /api/stats", "GET /api/search?q="],
+                },
+            }
+        )
 
-    @app.errorhandler(413)
-    def file_too_large(_error):
-        return jsonify({"error": "Upload too large. Requests are limited to 8 MiB."}), 413
+    @app.cli.command("init-db")
+    def init_db_command():                 # pragma: no cover - manual helper
+        """``flask init-db`` – create the database tables."""
+        with app.app_context():
+            db.create_all()
+        print("Database tables created.")
 
-    @app.errorhandler(404)
-    def not_found(error):
-        if app.request_class and getattr(error, "name", None) == "Not Found":
-            from flask import request
-            if request.path.startswith("/api/"):
-                return jsonify({"error": "API endpoint not found."}), 404
-        return error
-
-    @app.errorhandler(500)
-    def server_error(_error):
-        db.session.rollback()
-        app.logger.exception("Unhandled server error")
-        return jsonify({"error": "An unexpected server error occurred."}), 500
-
-    @app.cli.command("create-admin")
-    @click.option("--email", prompt=True, help="Administrator email address")
-    @click.option("--name", prompt="Administrator name")
-    @click.option("--phone", prompt="Contact phone")
-    @click.password_option(confirmation_prompt=True)
-    def create_admin(email, name, phone, password):
-        """Create an administrator account without exposing admin signup publicly."""
-        normalized_email = email.strip().lower()
-        if User.query.filter_by(email=normalized_email).first():
-            raise click.ClickException("A user with that email already exists.")
-        if len(password) < 8:
-            raise click.ClickException("Password must be at least 8 characters.")
-        user = User(email=normalized_email, name=name.strip(), phone=phone.strip(), user_type="admin", verified=True)
-        user.set_password(password)
-        db.session.add(user)
-        db.session.commit()
-        click.echo(f"Administrator created: {normalized_email}")
-
-    @app.cli.command("seed-demo")
-    def seed_demo():
-        """Add clearly labelled sample campus listings for a local demonstration."""
-        email = "demo.student@fulafia.edu.ng"
-        user = User.query.filter_by(email=email).first()
-        if user is None:
-            user = User(name="Amina Yusuf", email=email, phone="+234 801 234 5678", verified=True,
-                        bio="FULafia student and campus essentials seller.")
-            user.set_password("Student123!")
-            db.session.add(user)
-            db.session.flush()
-        if Product.query.filter_by(seller_id=user.id).count() == 0:
-            db.session.add_all([
-                Product(seller_id=user.id, title="Scientific calculator", description="Clean, fully working calculator. Ideal for lectures and exams.", price=18500, category="Electronics", location="Take-off Campus", status="published"),
-                Product(seller_id=user.id, title="Campus reading desk", description="Compact study desk in good condition. Easy to move between rooms.", price=22000, category="Home & living", location="Permanent Site", status="published"),
-                Product(seller_id=user.id, title="Organic chemistry textbook", description="A well-kept copy with clear notes and no missing pages.", price=9500, category="Books", location="Take-off Campus", status="published"),
-                Product(seller_id=user.id, title="Wireless headphones", description="Comfortable Bluetooth headphones with a long-lasting battery.", price=27000, category="Electronics", location="Permanent Site", status="published"),
-            ])
-        if Accommodation.query.filter_by(landlord_id=user.id).count() == 0:
-            db.session.add_all([
-                Accommodation(landlord_id=user.id, title="Bright room near Take-off Campus", description="Secure student room with water access and a short walk to campus.", location="Take-off Campus", price=180000, rooms=1, room_type="room", status="published"),
-                Accommodation(landlord_id=user.id, title="Shared student apartment", description="Two available rooms in a tidy shared apartment near local shops.", location="Lafia town", price=150000, rooms=2, room_type="shared", status="published"),
-            ])
-        if Event.query.filter_by(creator_id=user.id).count() == 0:
-            db.session.add_all([
-                Event(creator_id=user.id, title="FULafia founders' week meetup", description="Meet student founders, share ideas and connect with other builders.", date=utcnow() + timedelta(days=9), location="University Auditorium", category="Networking", status="published"),
-                Event(creator_id=user.id, title="Saturday campus clean-up", description="Join fellow students for a friendly, one-hour campus clean-up.", date=utcnow() + timedelta(days=4), location="Take-off Campus", category="Community", status="published"),
-            ])
-        db.session.commit()
-        click.echo("Demo listings are ready. Demo login: demo.student@fulafia.edu.ng / Student123!")
-
-    # create_all makes a fresh development checkout immediately runnable. Production
-    # schema changes should be managed with `flask --app backend.app db migrate`.
-    with app.app_context():
-        engine = db.engine
-        if engine.dialect.name == "sqlite":
-            @event.listens_for(engine, "connect")
-            def enable_sqlite_foreign_keys(connection, _record):
-                cursor = connection.cursor()
-                cursor.execute("PRAGMA foreign_keys=ON")
-                cursor.close()
-        db.create_all()
-
-    app.logger.setLevel(logging.INFO)
     return app
 
 
+# ---------------------------------------------------------------------------
+# Static frontend (single-server deployment)
+# ---------------------------------------------------------------------------
+def register_static_routes(app: Flask) -> None:
+    """Serve the vanilla frontend straight from the Flask app."""
+
+    @app.route("/")
+    def index():
+        index_file = os.path.join(FRONTEND_DIR, "index.html")
+        if os.path.isfile(index_file):
+            return send_from_directory(FRONTEND_DIR, "index.html")
+        return redirect("/api")
+
+    @app.route("/<path:path>")
+    def static_files(path: str):
+        """Serve any static asset; unknown paths fall back to the API 404."""
+        if path.startswith("api/"):
+            return jsonify({"success": False, "message": "Endpoint not found"}), 404
+        candidate = os.path.join(FRONTEND_DIR, path)
+        if os.path.isfile(candidate):
+            return send_from_directory(FRONTEND_DIR, path)
+        # Friendly fallback: try ``<path>.html`` inside ``pages/``
+        for fallback in (f"pages/{path}", f"pages/{path}.html", f"{path}.html"):
+            if os.path.isfile(os.path.join(FRONTEND_DIR, fallback)):
+                return send_from_directory(FRONTEND_DIR, fallback)
+        return jsonify({"success": False, "message": f"Not found: /{path}"}), 404
+
+
+# ---------------------------------------------------------------------------
+# JWT callbacks
+# ---------------------------------------------------------------------------
+def register_jwt_handlers(app: Flask) -> None:
+    """Custom JWT error payloads + revocation check."""
+
+    @jwt.token_in_blocklist_loader
+    def is_token_revoked(_jwt_header, jwt_payload) -> bool:
+        jti = jwt_payload.get("jti")
+        return (
+            db.session.query(TokenBlocklist.id).filter_by(jti=jti).first() is not None
+        )
+
+    @jwt.revoked_token_loader
+    def revoked_token(_jwt_header, _jwt_payload):
+        return jsonify(
+            {"success": False, "message": "This session has ended – please log in again"}
+        ), 401
+
+    @jwt.expired_token_loader
+    def expired_token(_jwt_header, _jwt_payload):
+        return jsonify(
+            {"success": False, "message": "Your session has expired – please log in again",
+             "code": "token_expired"}
+        ), 401
+
+    @jwt.invalid_token_loader
+    def invalid_token(reason):
+        return jsonify(
+            {"success": False, "message": "Invalid authentication token", "reason": reason}
+        ), 422
+
+    @jwt.unauthorized_loader
+    def missing_token(reason):
+        return jsonify(
+            {"success": False, "message": "Please log in to continue", "reason": reason}
+        ), 401
+
+    @jwt.user_lookup_loader
+    def user_lookup(_jwt_header, jwt_payload):
+        identity = jwt_payload.get("sub")
+        try:
+            return db.session.get(User, int(identity))
+        except (TypeError, ValueError):
+            return None
+
+    @jwt.additional_claims_loader
+    def add_claims(identity):
+        """Attach role/name claims so the frontend can render the right UI."""
+        try:
+            user = db.session.get(User, int(identity))
+        except (TypeError, ValueError):
+            return {}
+        if user is None:
+            return {}
+        return {"role": user.user_type, "name": user.name, "verified": user.verified}
+
+
+# ---------------------------------------------------------------------------
+# Error handling
+# ---------------------------------------------------------------------------
+def register_error_handlers(app: Flask) -> None:
+    """Every error returns clean JSON – the frontend never receives HTML."""
+
+    @app.errorhandler(400)
+    def bad_request(error):
+        return jsonify({"success": False, "message": getattr(error, "description", "Bad request")}), 400
+
+    @app.errorhandler(401)
+    def unauthorized(error):
+        return jsonify(
+            {"success": False, "message": getattr(error, "description", "Please log in")}
+        ), 401
+
+    @app.errorhandler(403)
+    def forbidden(error):
+        return jsonify(
+            {"success": False, "message": getattr(error, "description", "Access denied")}
+        ), 403
+
+    @app.errorhandler(404)
+    def not_found(error):
+        if request.path.startswith("/api"):
+            return jsonify(
+                {"success": False, "message": getattr(error, "description", "Resource not found")}
+            ), 404
+        # Non-API 404 → let the SPA-style fallback handle it.
+        return jsonify({"success": False, "message": "Page not found"}), 404
+
+    @app.errorhandler(405)
+    def method_not_allowed(error):
+        return jsonify(
+            {"success": False, "message": f"Method {request.method} is not allowed on {request.path}"}
+        ), 405
+
+    @app.errorhandler(413)
+    def payload_too_large(_error):
+        limit_mb = app.config["MAX_CONTENT_LENGTH"] // (1024 * 1024)
+        return jsonify(
+            {"success": False, "message": f"File is too large. Maximum size is {limit_mb} MB"}
+        ), 413
+
+    @app.errorhandler(422)
+    def unprocessable(error):
+        return jsonify(
+            {"success": False, "message": getattr(error, "description", "Invalid request")}
+        ), 422
+
+    @app.errorhandler(500)
+    def internal_error(error):
+        app.logger.exception("Unhandled server error: %s", error)
+        db.session.rollback()
+        message = "Something went wrong on our side. Please try again."
+        if app.config.get("DEBUG"):
+            message = f"Server error: {error}"
+        return jsonify({"success": False, "message": message}), 500
+
+    @app.errorhandler(Exception)
+    def unhandled_exception(error):        # pragma: no cover - defensive
+        if isinstance(error, HTTPException):
+            return error
+        app.logger.exception("Unhandled exception: %s", error)
+        db.session.rollback()
+        return jsonify({"success": False, "message": "Unexpected server error"}), 500
+
+    @app.after_request
+    def add_security_headers(response):
+        """Lightweight hardening + cache hints for uploaded images."""
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+        response.headers.setdefault("Referrer-Policy", "no-referrer-when-downgrade")
+        if request.path.startswith("/assets/uploads"):
+            response.headers["Cache-Control"] = "public, max-age=604800"
+        return response
+
+
+# ---------------------------------------------------------------------------
+# Bootstrap helpers
+# ---------------------------------------------------------------------------
+def bootstrap(app: Flask, reset: bool = False, seed: bool = False) -> None:
+    """Create tables (and optionally demo data) inside an app context."""
+    with app.app_context():
+        if reset:
+            db.drop_all()
+            print("Dropped all tables.")
+        db.create_all()
+        _ensure_admin(app)
+        if seed:
+            from seed_data import seed_database
+
+            seed_database(app)
+
+
+def _ensure_admin(app: Flask) -> None:
+    """Make sure at least one administrator exists (needed for moderation)."""
+    email = os.getenv("ADMIN_EMAIL", "admin@unilafia.edu.ng").lower()
+    password = os.getenv("ADMIN_PASSWORD", "Admin@1234")
+
+    admin = User.query.filter_by(email=email).first()
+    if admin:
+        if admin.user_type != "admin":
+            admin.user_type = "admin"
+            db.session.commit()
+        return
+
+    admin = User(
+        name=os.getenv("ADMIN_NAME", "Campus Marketplace Admin"),
+        email=email,
+        phone=os.getenv("ADMIN_PHONE", "08030000000"),
+        user_type="admin",
+        verified=True,
+        department="Student Affairs",
+        location="Federal University of Lafia",
+    )
+    admin.set_password(password)
+    db.session.add(admin)
+    db.session.commit()
+    app.logger.info("Created default administrator: %s", email)
+
+
+#: Module-level app so ``flask --app app run`` and gunicorn both work.
 app = create_app()
 
 
+# ---------------------------------------------------------------------------
+# CLI entry point
+# ---------------------------------------------------------------------------
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Campus Marketplace API server")
+    parser.add_argument("--host", default=os.getenv("HOST", "0.0.0.0"))
+    parser.add_argument("--port", type=int, default=int(os.getenv("PORT", "5000")))
+    parser.add_argument("--seed", action="store_true", help="insert demo data on start")
+    parser.add_argument("--reset", action="store_true", help="drop and recreate all tables")
+    parser.add_argument("--debug", action="store_true", default=os.getenv("FLASK_ENV") != "production")
+    args = parser.parse_args()
+
+    # The Werkzeug reloader re-executes this script in a child process, so run
+    # the database bootstrap only once (in the parent) – otherwise every file
+    # save would drop and re-seed the database.
+    is_reloader_child = os.environ.get("WERKZEUG_RUN_MAIN") == "true"
+    if not is_reloader_child:
+        bootstrap(app, reset=args.reset, seed=args.seed or args.reset)
+
+    app.run(host=args.host, port=args.port, debug=args.debug, use_reloader=args.debug)
+
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=os.getenv("FLASK_DEBUG", "0") == "1")
+    main()

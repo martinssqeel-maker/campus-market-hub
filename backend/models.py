@@ -1,264 +1,520 @@
-"""SQLAlchemy models for the Campus Marketplace API."""
+"""
+Database models for Campus Marketplace.
+
+Tables
+------
+users            – students, landlords, service providers and admins
+products         – marketplace items (books, electronics, hostel essentials…)
+accommodation    – rooms / self-contains / hostels around UNILAFIA
+events           – campus events and adverts
+services         – student services (laundry, printing, barbing, tutoring…)
+reviews          – ratings written *about* a user (seller / landlord reputation)
+favorites        – wishlist rows (polymorphic: product | accommodation | event | service)
+token_blocklist  – revoked JWTs so logout really invalidates a token
+
+Every model exposes ``to_dict()`` so routes stay thin and responses consistent.
+"""
+
 from datetime import datetime, timezone
 
-from .extensions import bcrypt, db
+import bcrypt
+from sqlalchemy import UniqueConstraint, func
+
+from extensions import db
+
+#: Listing life-cycle: pending -> published -> (sold | rejected | removed)
+LISTING_STATUSES = ("pending", "published", "rejected", "sold", "archived")
+#: Accounts that may post on the platform.
+USER_TYPES = ("student", "landlord", "service_provider", "admin")
 
 
-def utcnow():
-    """Return a naive UTC timestamp (portable across SQLite and MySQL)."""
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+def utcnow() -> datetime:
+    """Timezone-aware UTC timestamp (SQLAlchemy-friendly)."""
+    return datetime.now(timezone.utc)
 
 
+def _hash_password(password: str) -> str:
+    """Hash a password with bcrypt (sha256 pre-hash lifts the 72-byte limit)."""
+    import hashlib
+
+    digest = hashlib.sha256(password.encode("utf-8")).hexdigest().encode("utf-8")
+    return bcrypt.hashpw(digest, bcrypt.gensalt(rounds=12)).decode("utf-8")
+
+
+def _verify_password(password: str, password_hash: str) -> bool:
+    """Check a plaintext password against a stored bcrypt hash."""
+    import hashlib
+
+    if not password_hash:
+        return False
+    digest = hashlib.sha256(password.encode("utf-8")).hexdigest().encode("utf-8")
+    try:
+        return bcrypt.checkpw(digest, password_hash.encode("utf-8"))
+    except (ValueError, TypeError):
+        return False
+
+
+def iso(value: datetime | None) -> str | None:
+    """Serialise a datetime to an ISO-8601 string (or None)."""
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.isoformat()
+
+
+# ---------------------------------------------------------------------------
+# Users
+# ---------------------------------------------------------------------------
 class User(db.Model):
+    """A registered account (student, landlord, service provider or admin)."""
+
     __tablename__ = "users"
 
     id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(254), unique=True, nullable=False, index=True)
+    name = db.Column(db.String(120), nullable=False)
+    email = db.Column(db.String(160), unique=True, nullable=False, index=True)
+    phone = db.Column(db.String(20), nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
-    name = db.Column(db.String(100), nullable=False)
-    phone = db.Column(db.String(32), nullable=False, default="")
-    user_type = db.Column(db.String(20), nullable=False, default="student", index=True)
-    verified = db.Column(db.Boolean, nullable=False, default=False)
-    bio = db.Column(db.String(500), nullable=False, default="")
-    created_at = db.Column(db.DateTime, nullable=False, default=utcnow, index=True)
+    user_type = db.Column(db.String(30), nullable=False, default="student")
+    verified = db.Column(db.Boolean, nullable=False, default=False)  # admin-verified badge
+    is_active = db.Column(db.Boolean, nullable=False, default=True)   # soft ban
+    avatar_url = db.Column(db.String(300))
+    bio = db.Column(db.Text)
+    department = db.Column(db.String(120))          # e.g. "Computer Science"
+    level = db.Column(db.String(20))                # e.g. "200 Level"
+    location = db.Column(db.String(160))            # e.g. "Lafia, Nasarawa"
+    whatsapp = db.Column(db.String(20))             # optional separate WhatsApp number
+    created_at = db.Column(db.DateTime, default=utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=utcnow, onupdate=utcnow)
 
-    products = db.relationship("Product", back_populates="seller", cascade="all, delete-orphan")
-    accommodations = db.relationship("Accommodation", back_populates="landlord", cascade="all, delete-orphan")
-    events = db.relationship("Event", back_populates="creator", cascade="all, delete-orphan")
-    services = db.relationship("Service", back_populates="provider", cascade="all, delete-orphan")
-    reviews_written = db.relationship(
-        "Review", foreign_keys="Review.reviewer_id", back_populates="reviewer", cascade="all, delete-orphan"
+    # Relationships ---------------------------------------------------------
+    products = db.relationship(
+        "Product", backref="seller", lazy="dynamic", cascade="all, delete-orphan"
+    )
+    accommodations = db.relationship(
+        "Accommodation", backref="landlord", lazy="dynamic", cascade="all, delete-orphan"
+    )
+    events = db.relationship(
+        "Event", backref="creator", lazy="dynamic", cascade="all, delete-orphan"
+    )
+    services = db.relationship(
+        "Service", backref="provider", lazy="dynamic", cascade="all, delete-orphan"
+    )
+    favorites = db.relationship(
+        "Favorite", backref="user", lazy="dynamic", cascade="all, delete-orphan"
     )
     reviews_received = db.relationship(
-        "Review", foreign_keys="Review.reviewed_user_id", back_populates="reviewed_user", cascade="all, delete-orphan"
+        "Review",
+        foreign_keys="Review.target_id",
+        backref="target",
+        lazy="dynamic",
+        cascade="all, delete-orphan",
+    )
+    reviews_written = db.relationship(
+        "Review",
+        foreign_keys="Review.author_id",
+        backref="author",
+        lazy="dynamic",
+        cascade="all, delete-orphan",
     )
 
+    # Password helpers ------------------------------------------------------
     def set_password(self, password: str) -> None:
-        self.password_hash = bcrypt.generate_password_hash(password).decode("utf-8")
+        self.password_hash = _hash_password(password)
 
     def check_password(self, password: str) -> bool:
-        return bcrypt.check_password_hash(self.password_hash, password)
+        return _verify_password(password, self.password_hash)
+
+    # Reputation ------------------------------------------------------------
+    @property
+    def rating_average(self) -> float | None:
+        """Mean star rating received (None when the user has no reviews)."""
+        total = self.reviews_received.with_entities(
+            func.avg(Review.rating), func.count(Review.id)
+        ).first()
+        if not total or not total[1]:
+            return None
+        return round(float(total[0]), 1)
+
+    @property
+    def rating_count(self) -> int:
+        return self.reviews_received.count()
 
     @property
     def is_admin(self) -> bool:
         return self.user_type == "admin"
 
-    def to_dict(self, include_contact: bool = True) -> dict:
+    # Serialisation ---------------------------------------------------------
+    def to_dict(self, include_private: bool = False) -> dict:
         data = {
             "id": self.id,
             "name": self.name,
             "user_type": self.user_type,
             "verified": self.verified,
+            "avatar_url": self.avatar_url,
             "bio": self.bio,
-            "created_at": self.created_at.isoformat() + "Z" if self.created_at else None,
+            "department": self.department,
+            "level": self.level,
+            "location": self.location,
+            "rating_average": self.rating_average,
+            "rating_count": self.rating_count,
+            "created_at": iso(self.created_at),
         }
-        if include_contact:
-            data["phone"] = self.phone
+        if include_private:
+            # Email / phone are only exposed to the owner and to admins.
+            data.update(
+                {
+                    "email": self.email,
+                    "phone": self.phone,
+                    "whatsapp": self.whatsapp or self.phone,
+                    "is_active": self.is_active,
+                }
+            )
         return data
 
 
+# ---------------------------------------------------------------------------
+# Products
+# ---------------------------------------------------------------------------
 class Product(db.Model):
+    """A marketplace item posted by a student."""
+
     __tablename__ = "products"
-    __table_args__ = (
-        db.CheckConstraint("price >= 0", name="ck_products_price_nonnegative"),
-        db.Index("ix_products_status_category", "status", "category"),
-    )
 
     id = db.Column(db.Integer, primary_key=True)
-    seller_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    title = db.Column(db.String(140), nullable=False)
+    seller_id = db.Column(
+        db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    title = db.Column(db.String(160), nullable=False, index=True)
     description = db.Column(db.Text, nullable=False)
-    price = db.Column(db.Numeric(12, 2), nullable=False)
-    image_url = db.Column(db.String(500), nullable=False, default="")
-    category = db.Column(db.String(60), nullable=False, index=True)
-    location = db.Column(db.String(120), nullable=False, default="Federal University of Lafia")
+    price = db.Column(db.Float, nullable=False, default=0.0)
+    image_url = db.Column(db.String(300))
+    category = db.Column(db.String(60), nullable=False, default="others", index=True)
+    location = db.Column(db.String(160), default="UNILAFIA Campus")
+    condition = db.Column(db.String(30), default="used")   # new | used | refurbished
     status = db.Column(db.String(20), nullable=False, default="pending", index=True)
-    created_at = db.Column(db.DateTime, nullable=False, default=utcnow, index=True)
-    updated_at = db.Column(db.DateTime, nullable=False, default=utcnow, onupdate=utcnow)
+    views = db.Column(db.Integer, nullable=False, default=0)
+    featured = db.Column(db.Boolean, nullable=False, default=False)
+    rejection_reason = db.Column(db.String(255))
+    created_at = db.Column(db.DateTime, default=utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=utcnow, onupdate=utcnow)
 
-    seller = db.relationship("User", back_populates="products")
+    __table_args__ = (db.Index("ix_products_status_created", "status", "created_at"),)
 
-    def to_dict(self) -> dict:
-        return {
+    def to_dict(self, viewer=None) -> dict:
+        data = {
             "id": self.id,
+            "type": "product",
             "title": self.title,
             "description": self.description,
-            "price": float(self.price or 0),
+            "price": self.price,
             "image_url": self.image_url,
             "category": self.category,
             "location": self.location,
+            "condition": self.condition,
             "status": self.status,
-            "created_at": self.created_at.isoformat() + "Z" if self.created_at else None,
+            "views": self.views,
+            "featured": self.featured,
+            "rejection_reason": self.rejection_reason,
+            "created_at": iso(self.created_at),
+            "seller_id": self.seller_id,
             "seller": {
                 "id": self.seller.id,
                 "name": self.seller.name,
-                "phone": self.seller.phone,
                 "verified": self.seller.verified,
-            } if self.seller else None,
+                "rating_average": self.seller.rating_average,
+                "rating_count": self.seller.rating_count,
+            }
+            if self.seller
+            else None,
         }
+        if viewer is not None:
+            # Contact details only for logged-in users (protects sellers).
+            data["seller"]["phone"] = self.seller.phone if self.seller else None
+            data["seller"]["whatsapp"] = (
+                (self.seller.whatsapp or self.seller.phone) if self.seller else None
+            )
+            data["seller"]["email"] = self.seller.email if self.seller else None
+        return data
 
 
+# ---------------------------------------------------------------------------
+# Accommodation
+# ---------------------------------------------------------------------------
 class Accommodation(db.Model):
+    """A room, self-contain, flat or hostel bed space near campus."""
+
     __tablename__ = "accommodation"
-    __table_args__ = (
-        db.CheckConstraint("price >= 0", name="ck_accommodation_price_nonnegative"),
-        db.CheckConstraint("rooms >= 1", name="ck_accommodation_rooms_positive"),
-        db.Index("ix_accommodation_status_location", "status", "location"),
-    )
 
     id = db.Column(db.Integer, primary_key=True)
-    landlord_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    title = db.Column(db.String(140), nullable=False)
-    description = db.Column(db.Text, nullable=False)
-    location = db.Column(db.String(160), nullable=False)
-    price = db.Column(db.Numeric(12, 2), nullable=False)
-    rooms = db.Column(db.Integer, nullable=False, default=1)
-    room_type = db.Column(db.String(40), nullable=False, default="room")
-    image_url = db.Column(db.String(500), nullable=False, default="")
+    landlord_id = db.Column(
+        db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    title = db.Column(db.String(160), nullable=False, index=True)
+    description = db.Column(db.Text)
+    location = db.Column(db.String(160), nullable=False, index=True)
+    price = db.Column(db.Float, nullable=False, default=0.0)         # per year (₦)
+    rooms = db.Column(db.Integer, nullable=False, default=1)          # bedrooms / spaces
+    room_type = db.Column(db.String(40), nullable=False, default="single")  # single
+    gender = db.Column(db.String(20), default="any")                  # male | female | any
+    furnished = db.Column(db.Boolean, nullable=False, default=False)
+    amenities = db.Column(db.String(300))                            # comma separated
+    image_url = db.Column(db.String(300))
     status = db.Column(db.String(20), nullable=False, default="pending", index=True)
-    created_at = db.Column(db.DateTime, nullable=False, default=utcnow, index=True)
-    updated_at = db.Column(db.DateTime, nullable=False, default=utcnow, onupdate=utcnow)
+    views = db.Column(db.Integer, nullable=False, default=0)
+    featured = db.Column(db.Boolean, nullable=False, default=False)
+    rejection_reason = db.Column(db.String(255))
+    created_at = db.Column(db.DateTime, default=utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=utcnow, onupdate=utcnow)
 
-    landlord = db.relationship("User", back_populates="accommodations")
-
-    def to_dict(self) -> dict:
-        return {
+    def to_dict(self, viewer=None) -> dict:
+        data = {
             "id": self.id,
+            "type": "accommodation",
             "title": self.title,
             "description": self.description,
             "location": self.location,
-            "price": float(self.price or 0),
+            "price": self.price,
             "rooms": self.rooms,
             "room_type": self.room_type,
+            "gender": self.gender,
+            "furnished": self.furnished,
+            "amenities": [a.strip() for a in (self.amenities or "").split(",") if a.strip()],
             "image_url": self.image_url,
             "status": self.status,
-            "created_at": self.created_at.isoformat() + "Z" if self.created_at else None,
+            "views": self.views,
+            "featured": self.featured,
+            "rejection_reason": self.rejection_reason,
+            "created_at": iso(self.created_at),
+            "landlord_id": self.landlord_id,
             "landlord": {
                 "id": self.landlord.id,
                 "name": self.landlord.name,
-                "phone": self.landlord.phone,
                 "verified": self.landlord.verified,
-            } if self.landlord else None,
+                "rating_average": self.landlord.rating_average,
+                "rating_count": self.landlord.rating_count,
+            }
+            if self.landlord
+            else None,
         }
+        if viewer is not None and self.landlord:
+            data["landlord"]["phone"] = self.landlord.phone
+            data["landlord"]["whatsapp"] = self.landlord.whatsapp or self.landlord.phone
+            data["landlord"]["email"] = self.landlord.email
+        return data
 
 
+# ---------------------------------------------------------------------------
+# Events
+# ---------------------------------------------------------------------------
 class Event(db.Model):
+    """A campus event, advert or announcement."""
+
     __tablename__ = "events"
-    __table_args__ = (db.Index("ix_events_status_date", "status", "date"),)
 
     id = db.Column(db.Integer, primary_key=True)
-    creator_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    title = db.Column(db.String(140), nullable=False)
+    creator_id = db.Column(
+        db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    title = db.Column(db.String(160), nullable=False, index=True)
     description = db.Column(db.Text, nullable=False)
     date = db.Column(db.DateTime, nullable=False, index=True)
     location = db.Column(db.String(160), nullable=False)
-    category = db.Column(db.String(60), nullable=False, default="Campus event")
-    image_url = db.Column(db.String(500), nullable=False, default="")
+    category = db.Column(db.String(60), default="social", index=True)
+    ticket_price = db.Column(db.Float, nullable=False, default=0.0)
+    image_url = db.Column(db.String(300))
     status = db.Column(db.String(20), nullable=False, default="pending", index=True)
-    created_at = db.Column(db.DateTime, nullable=False, default=utcnow, index=True)
+    views = db.Column(db.Integer, nullable=False, default=0)
+    rejection_reason = db.Column(db.String(255))
+    created_at = db.Column(db.DateTime, default=utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=utcnow, onupdate=utcnow)
 
-    creator = db.relationship("User", back_populates="events")
-
-    def to_dict(self) -> dict:
+    def to_dict(self, viewer=None) -> dict:
         return {
             "id": self.id,
+            "type": "event",
             "title": self.title,
             "description": self.description,
-            "date": self.date.isoformat() + "Z" if self.date else None,
+            "date": iso(self.date),
             "location": self.location,
             "category": self.category,
+            "ticket_price": self.ticket_price,
             "image_url": self.image_url,
             "status": self.status,
-            "created_at": self.created_at.isoformat() + "Z" if self.created_at else None,
+            "views": self.views,
+            "rejection_reason": self.rejection_reason,
+            "created_at": iso(self.created_at),
+            "creator_id": self.creator_id,
             "creator": {
                 "id": self.creator.id,
                 "name": self.creator.name,
-                "phone": self.creator.phone,
-            } if self.creator else None,
+                "verified": self.creator.verified,
+            }
+            if self.creator
+            else None,
         }
 
 
+# ---------------------------------------------------------------------------
+# Services
+# ---------------------------------------------------------------------------
 class Service(db.Model):
+    """A service offered to students (laundry, printing, tutoring, hair…)."""
+
     __tablename__ = "services"
-    __table_args__ = (db.Index("ix_services_status_category", "status", "category"),)
 
     id = db.Column(db.Integer, primary_key=True)
-    provider_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    title = db.Column(db.String(140), nullable=False)
+    provider_id = db.Column(
+        db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    title = db.Column(db.String(160), nullable=False, index=True)
     description = db.Column(db.Text, nullable=False)
-    category = db.Column(db.String(60), nullable=False, default="Other")
-    location = db.Column(db.String(120), nullable=False, default="Federal University of Lafia")
-    price = db.Column(db.Numeric(12, 2), nullable=True)
-    image_url = db.Column(db.String(500), nullable=False, default="")
+    category = db.Column(db.String(60), default="others", index=True)
+    price = db.Column(db.Float, nullable=False, default=0.0)
+    price_unit = db.Column(db.String(40), default="per job")   # per job | per page | per hour
+    location = db.Column(db.String(160), default="UNILAFIA Campus")
+    image_url = db.Column(db.String(300))
     status = db.Column(db.String(20), nullable=False, default="pending", index=True)
-    created_at = db.Column(db.DateTime, nullable=False, default=utcnow, index=True)
+    views = db.Column(db.Integer, nullable=False, default=0)
+    rejection_reason = db.Column(db.String(255))
+    created_at = db.Column(db.DateTime, default=utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=utcnow, onupdate=utcnow)
 
-    provider = db.relationship("User", back_populates="services")
-
-    def to_dict(self) -> dict:
-        return {
+    def to_dict(self, viewer=None) -> dict:
+        data = {
             "id": self.id,
+            "type": "service",
             "title": self.title,
             "description": self.description,
             "category": self.category,
+            "price": self.price,
+            "price_unit": self.price_unit,
             "location": self.location,
-            "price": float(self.price) if self.price is not None else None,
             "image_url": self.image_url,
             "status": self.status,
-            "created_at": self.created_at.isoformat() + "Z" if self.created_at else None,
+            "views": self.views,
+            "rejection_reason": self.rejection_reason,
+            "created_at": iso(self.created_at),
+            "provider_id": self.provider_id,
             "provider": {
                 "id": self.provider.id,
                 "name": self.provider.name,
-                "phone": self.provider.phone,
                 "verified": self.provider.verified,
-            } if self.provider else None,
+                "rating_average": self.provider.rating_average,
+                "rating_count": self.provider.rating_count,
+            }
+            if self.provider
+            else None,
         }
+        if viewer is not None and self.provider:
+            data["provider"]["phone"] = self.provider.phone
+            data["provider"]["whatsapp"] = self.provider.whatsapp or self.provider.phone
+        return data
 
 
+# ---------------------------------------------------------------------------
+# Reviews
+# ---------------------------------------------------------------------------
 class Review(db.Model):
+    """A 1–5 star review written about a seller / landlord / provider."""
+
     __tablename__ = "reviews"
-    __table_args__ = (
-        db.CheckConstraint("rating >= 1 AND rating <= 5", name="ck_reviews_rating_range"),
-        db.UniqueConstraint("reviewer_id", "reviewed_user_id", name="uq_review_per_user"),
-    )
 
     id = db.Column(db.Integer, primary_key=True)
-    reviewer_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    reviewed_user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    rating = db.Column(db.Integer, nullable=False)
-    comment = db.Column(db.String(800), nullable=False, default="")
-    created_at = db.Column(db.DateTime, nullable=False, default=utcnow, index=True)
+    author_id = db.Column(
+        db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    target_id = db.Column(
+        db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    rating = db.Column(db.Integer, nullable=False, default=5)
+    comment = db.Column(db.Text)
+    listing_type = db.Column(db.String(30))   # optional context: product/…
+    listing_id = db.Column(db.Integer)        # optional context id
+    created_at = db.Column(db.DateTime, default=utcnow, nullable=False)
 
-    reviewer = db.relationship("User", foreign_keys=[reviewer_id], back_populates="reviews_written")
-    reviewed_user = db.relationship("User", foreign_keys=[reviewed_user_id], back_populates="reviews_received")
+    __table_args__ = (
+        UniqueConstraint("author_id", "target_id", name="uq_review_author_target"),
+    )
 
     def to_dict(self) -> dict:
         return {
             "id": self.id,
             "rating": self.rating,
             "comment": self.comment,
-            "created_at": self.created_at.isoformat() + "Z" if self.created_at else None,
-            "reviewer": {"id": self.reviewer.id, "name": self.reviewer.name} if self.reviewer else None,
+            "listing_type": self.listing_type,
+            "listing_id": self.listing_id,
+            "created_at": iso(self.created_at),
+            "author": {
+                "id": self.author.id,
+                "name": self.author.name,
+                "avatar_url": self.author.avatar_url,
+            }
+            if self.author
+            else None,
         }
 
 
+# ---------------------------------------------------------------------------
+# Favourites / wishlist
+# ---------------------------------------------------------------------------
 class Favorite(db.Model):
+    """A saved listing – item_type keeps this table generic (DRY)."""
+
     __tablename__ = "favorites"
-    __table_args__ = (db.UniqueConstraint("user_id", "listing_type", "listing_id", name="uq_user_favorite_listing"),)
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    listing_type = db.Column(db.String(30), nullable=False)
-    listing_id = db.Column(db.Integer, nullable=False)
-    created_at = db.Column(db.DateTime, nullable=False, default=utcnow)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    item_type = db.Column(db.String(30), nullable=False)   # product | accommodation | …
+    item_id = db.Column(db.Integer, nullable=False)
+    created_at = db.Column(db.DateTime, default=utcnow, nullable=False)
 
-    user = db.relationship("User")
+    __table_args__ = (
+        UniqueConstraint("user_id", "item_type", "item_id", name="uq_favorite"),
+    )
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "item_type": self.item_type,
+            "item_id": self.item_id,
+            "created_at": iso(self.created_at),
+        }
 
 
+# ---------------------------------------------------------------------------
+# JWT blocklist (real logout)
+# ---------------------------------------------------------------------------
 class TokenBlocklist(db.Model):
+    """Revoked JWT ids – checked on every authenticated request."""
+
     __tablename__ = "token_blocklist"
 
     id = db.Column(db.Integer, primary_key=True)
-    jti = db.Column(db.String(36), unique=True, nullable=False, index=True)
-    expires_at = db.Column(db.DateTime, nullable=False)
-    created_at = db.Column(db.DateTime, nullable=False, default=utcnow)
+    jti = db.Column(db.String(36), nullable=False, index=True)
+    token_type = db.Column(db.String(20))
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"))
+    created_at = db.Column(db.DateTime, default=utcnow, nullable=False)
+
+
+# ---------------------------------------------------------------------------
+# Convenience: map listing type -> model, reused by favourites & moderation
+# ---------------------------------------------------------------------------
+LISTING_MODELS = {
+    "product": Product,
+    "products": Product,
+    "accommodation": Accommodation,
+    "room": Accommodation,
+    "event": Event,
+    "events": Event,
+    "service": Service,
+    "services": Service,
+}
+
+
+def model_for_type(item_type: str):
+    """Resolve a listing type string to its SQLAlchemy model (or None)."""
+    return LISTING_MODELS.get((item_type or "").strip().lower())
