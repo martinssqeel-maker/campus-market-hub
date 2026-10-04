@@ -147,7 +147,7 @@ USERS = [
 # ---------------------------------------------------------------------------
 PRODUCTS = [
     dict(
-        seller=0, title="Introduction to Algorithms (3rd Edition)",
+        seller=0, title="Introduction to Algorithms Textbook (3rd Edition)",
         description="Cormen, Leiserson, Rivest & Stein. Very clean copy, no torn pages or "
                     "highlighting. Perfect for CSC 301 Algorithms and Data Structures.",
         price=8500, category="books", condition="used", status="published",
@@ -161,21 +161,21 @@ PRODUCTS = [
         location="UNILAFIA Campus", views=96, image="electronics",
     ),
     dict(
-        seller=1, title="HP EliteBook 840 G5 – Core i5, 8GB RAM, 256GB SSD",
+        seller=1, title="HP EliteBook 840 G5 Laptop – Core i5, 8GB RAM, 256GB SSD",
         description="Clean UK-used HP EliteBook. Fast boot, strong battery (about 5 hours), "
                     "backlit keyboard. Ideal for programming and assignments. Charger included.",
         price=185000, category="laptops", condition="refurbished", status="published",
         location="Mararaba, Lafia", views=311, featured=True, image="laptops",
     ),
     dict(
-        seller=1, title="Tecno Spark 20 – 128GB, 8GB RAM",
+        seller=1, title="Tecno Spark 20 Android Phone – 128GB, 8GB RAM",
         description="Selling my Tecno Spark 20. Screen is pristine, slight scratch on the "
                     "back cover. Comes with original charger and box.",
         price=98000, category="phones", condition="used", status="published",
         location="Mararaba, Lafia", views=205, image="phones",
     ),
     dict(
-        seller=2, title="Reading Table + Chair Set",
+        seller=2, title="Reading Table + Chair Set (Furniture)",
         description="Strong wooden reading table with a matching chair. Bought last session, "
                     "still very solid. Buyer arranges transport from Tudun Amba.",
         price=15000, category="furniture", condition="used", status="published",
@@ -189,14 +189,14 @@ PRODUCTS = [
         location="Tudun Amba, Lafia", views=58, image="hostel-essentials",
     ),
     dict(
-        seller=3, title="UNILAFIA Customized Hoodie (Size L)",
+        seller=3, title="UNILAFIA Customized Hoodie / Clothing (Size L)",
         description="Navy blue faculty hoodie with the UNILAFIA crest embroidered on the "
                     "chest. Worn twice only, still like new.",
         price=7500, category="clothing", condition="used", status="published",
         location="Akun, Lafia", views=39, image="clothing",
     ),
     dict(
-        seller=3, title="Complete CHM 101 & CHM 102 Textbook Bundle",
+        seller=3, title="CHM 101 & CHM 102 Chemistry Textbook Bundle",
         description="Two chemistry textbooks plus a practical notebook with past questions "
                     "and short notes. Everything a 100L student needs for first semester.",
         price=5000, category="books", condition="used", status="published",
@@ -217,7 +217,7 @@ PRODUCTS = [
         location="Angwan Rimi, Lafia", views=63, image="hostel-essentials",
     ),
     dict(
-        seller=2, title="PLASU/UNILAFIA Past Questions Compilation (200-Level)",
+        seller=2, title="Past Questions Booklet for 200 Level (GES 201, ECO 201, MTH 202)",
         description="Printed past questions with solutions for GES 201, ECO 201, and MTH 202. "
                     "Spiral bound and very handy for revision.",
         price=2500, category="books", condition="new", status="published",

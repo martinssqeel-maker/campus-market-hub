@@ -76,7 +76,9 @@ def list_services():
     if provider_id:
         query = query.filter(Service.provider_id == provider_id)
 
-    query = apply_search(query, Service, request.args.get("q"), ("title", "description"))
+    query = apply_search(
+        query, Service, request.args.get("q"), ("title", "description", "category", "location")
+    )
     query = apply_price_range(
         query,
         Service,

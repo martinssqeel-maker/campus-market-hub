@@ -110,7 +110,9 @@ def list_events():
     if creator_id:
         query = query.filter(Event.creator_id == creator_id)
 
-    query = apply_search(query, Event, request.args.get("q"), ("title", "description"))
+    query = apply_search(
+        query, Event, request.args.get("q"), ("title", "description", "category", "location")
+    )
     # Default ordering for events is chronological (soonest first).
     query = apply_sort(query, Event, request.args.get("sort"), default="date")
 

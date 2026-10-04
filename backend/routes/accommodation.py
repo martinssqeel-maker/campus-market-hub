@@ -85,7 +85,10 @@ def list_accommodation():
         query = query.filter(Accommodation.landlord_id == landlord_id)
 
     query = apply_search(
-        query, Accommodation, request.args.get("q"), ("title", "description", "location")
+        query,
+        Accommodation,
+        request.args.get("q"),
+        ("title", "description", "location", "room_type", "amenities"),
     )
     query = apply_price_range(
         query,

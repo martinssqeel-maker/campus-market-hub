@@ -97,7 +97,14 @@ def list_products():
     if seller_id:
         query = query.filter(Product.seller_id == seller_id)
 
-    query = apply_search(query, Product, request.args.get("q"), ("title", "description"))
+    # Category, location and condition are searched too, so "laptop" finds a
+    # laptop even when the seller's title says "HP EliteBook".
+    query = apply_search(
+        query,
+        Product,
+        request.args.get("q"),
+        ("title", "description", "category", "location", "condition"),
+    )
     query = apply_price_range(
         query,
         Product,

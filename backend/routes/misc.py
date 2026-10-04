@@ -75,7 +75,12 @@ def search_everything():
     products = (
         Product.query.filter(
             Product.status == "published",
-            or_(Product.title.ilike(pattern), Product.description.ilike(pattern)),
+            or_(
+                Product.title.ilike(pattern),
+                Product.description.ilike(pattern),
+                Product.category.ilike(pattern),
+                Product.location.ilike(pattern),
+            ),
         )
         .order_by(Product.created_at.desc())
         .limit(limit)
@@ -88,6 +93,7 @@ def search_everything():
                 Accommodation.title.ilike(pattern),
                 Accommodation.location.ilike(pattern),
                 Accommodation.description.ilike(pattern),
+                Accommodation.room_type.ilike(pattern),
             ),
         )
         .order_by(Accommodation.created_at.desc())
@@ -97,7 +103,12 @@ def search_everything():
     events = (
         Event.query.filter(
             Event.status == "published",
-            or_(Event.title.ilike(pattern), Event.description.ilike(pattern)),
+            or_(
+                Event.title.ilike(pattern),
+                Event.description.ilike(pattern),
+                Event.category.ilike(pattern),
+                Event.location.ilike(pattern),
+            ),
         )
         .order_by(Event.date.asc())
         .limit(limit)
@@ -106,7 +117,12 @@ def search_everything():
     services = (
         Service.query.filter(
             Service.status == "published",
-            or_(Service.title.ilike(pattern), Service.description.ilike(pattern)),
+            or_(
+                Service.title.ilike(pattern),
+                Service.description.ilike(pattern),
+                Service.category.ilike(pattern),
+                Service.location.ilike(pattern),
+            ),
         )
         .order_by(Service.created_at.desc())
         .limit(limit)
