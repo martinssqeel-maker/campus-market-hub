@@ -1,0 +1,21 @@
+# ---------------------------------------------------------------------------
+# Campus Marketplace – Python dependencies (repository root)
+#
+# Vercel's Python runtime installs *this* file; it pulls in the backend
+# requirements plus the two extras the hosted deployment needs:
+#
+#   * psycopg 3 – managed PostgreSQL driver  (DATABASE_URL=postgresql://…)
+#   * boto3     – S3-compatible image storage (UPLOAD_STORAGE=s3, Cloudflare R2)
+#
+# Local development (the commands in the README use this same file):
+#   python3 -m venv .venv
+#   .venv/bin/pip install -r requirements.txt
+# ---------------------------------------------------------------------------
+
+-r backend/requirements.txt
+
+# Managed PostgreSQL (Neon, Supabase, Vercel Postgres, AWS RDS…)
+psycopg[binary]==3.3.6
+
+# S3-compatible object storage (Cloudflare R2, AWS S3, MinIO, Backblaze B2…)
+boto3==1.43.108

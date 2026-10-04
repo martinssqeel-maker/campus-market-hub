@@ -5,26 +5,32 @@ POST   /api/uploads/image    multipart form upload (field name: ``image``)
 GET    /api/uploads          list of images the current user has uploaded
 DELETE /api/uploads/<name>   remove an uploaded image
 
-Files land in ``frontend/assets/uploads`` so the static frontend can serve
-them directly, and the API returns a relative URL (``assets/uploads/x.jpg``)
-that works on a phone, on Live Server and behind a reverse proxy alike.
+Storage is pluggable (see ``storage.py``):
+
+* ``UPLOAD_STORAGE=local`` (default) writes to ``UPLOAD_FOLDER``
+  (``frontend/assets/uploads`` in development) and returns a relative URL such
+  as ``assets/uploads/u3_1699999_ab12cd34.png``.
+* ``UPLOAD_STORAGE=s3`` writes to an S3-compatible bucket (Cloudflare R2, AWS
+  S3, MinIO…) and returns an absolute URL, which is what keeps images alive on
+  serverless hosts such as Vercel.
+
+Both modes answer with the same JSON shape, so the frontend does not care
+which backend is active.
 """
 
-import os
 import time
 import uuid
 
 from flask import Blueprint, current_app, request
-from werkzeug.utils import secure_filename
 
-from config import Config
+from storage import StorageError, get_storage
 from utils.decorators import current_user, login_required
 from utils.helpers import api_error, api_success
 from utils.validators import ValidationError, validate_image_file
 
 uploads_bp = Blueprint("uploads", __name__)
 
-#: Public URL prefix for an uploaded file (relative – no hard-coded host).
+#: Public URL prefix used by the local backend (relative – no hard-coded host).
 PUBLIC_PREFIX = "assets/uploads"
 #: Allowed content types as a second line of defence behind the extension check.
 ALLOWED_MIMETYPES = {
@@ -37,17 +43,16 @@ ALLOWED_MIMETYPES = {
 }
 
 
-def upload_dir() -> str:
-    """Absolute upload directory, created on first use."""
-    folder = current_app.config.get("UPLOAD_FOLDER", Config.UPLOAD_FOLDER)
-    os.makedirs(folder, exist_ok=True)
-    return folder
+def build_filename(user_id: int, safe_name: str) -> str:
+    """Unique, collision-proof name: user id + timestamp + random suffix."""
+    extension = safe_name.rsplit(".", 1)[1].lower()
+    return f"u{user_id}_{int(time.time())}_{uuid.uuid4().hex[:8]}.{extension}"
 
 
 @uploads_bp.post("/uploads/image")
 @login_required
 def upload_image():
-    """Accept one image (max size from ``MAX_CONTENT_LENGTH``) and save it."""
+    """Accept one image (max size from ``MAX_CONTENT_LENGTH``) and store it."""
     if "image" not in request.files and "file" not in request.files:
         return api_error("No image file was sent", 422, {"image": "Required"})
 
@@ -61,26 +66,22 @@ def upload_image():
             raise ValidationError("That file does not look like an image")
 
         user = current_user()
-        extension = safe_name.rsplit(".", 1)[1].lower()
-        # Unique, collision-proof name: user id + timestamp + random suffix.
-        filename = f"u{user.id}_{int(time.time())}_{uuid.uuid4().hex[:8]}.{extension}"
-        filename = secure_filename(filename)
-        destination = os.path.join(upload_dir(), filename)
-        file.save(destination)
+        storage = get_storage(current_app)
+        result = storage.save(file, build_filename(user.id, safe_name))
 
-        size_kb = round(os.path.getsize(destination) / 1024, 1)
-        return api_success(
-            {
-                "filename": filename,
-                "url": f"{PUBLIC_PREFIX}/{filename}",
-                "absolute_url": f"/{PUBLIC_PREFIX}/{filename}",
-                "size_kb": size_kb,
-            },
-            message="Image uploaded",
-            status=201,
-        )
+        payload = dict(result)
+        warning = storage.describe().get("warning")
+        if warning:
+            # Surfaced in the response so a non-persistent setup is noticed
+            # immediately instead of after the images vanish.
+            payload["warning"] = warning
+        return api_success(payload, message="Image uploaded", status=201)
+
     except ValidationError as exc:
         return api_error(exc.message, 422, exc.errors)
+    except StorageError as exc:
+        current_app.logger.error("Upload storage error: %s", exc)
+        return api_error(str(exc), 503)
     except OSError as exc:                     # disk full / permission problems
         current_app.logger.error("Upload failed: %s", exc)
         return api_error("Could not save the image. Please try again.", 500)
@@ -91,27 +92,15 @@ def upload_image():
 def list_uploads():
     """List the current user's uploaded images (newest first)."""
     user = current_user()
-    folder = upload_dir()
-    prefix = f"u{user.id}_"
     try:
-        files = [
-            name
-            for name in os.listdir(folder)
-            if name.startswith(prefix) and not name.startswith(".")
-        ]
-    except OSError:
-        files = []
+        items = get_storage(current_app).list_for_user(user.id)
+    except StorageError as exc:
+        current_app.logger.error("Upload storage error: %s", exc)
+        return api_error(str(exc), 503)
+    except OSError as exc:
+        current_app.logger.error("Could not list uploads: %s", exc)
+        return api_error("Could not list your images. Please try again.", 500)
 
-    items = []
-    for name in sorted(files, key=lambda n: os.path.getmtime(os.path.join(folder, n)), reverse=True):
-        path = os.path.join(folder, name)
-        items.append(
-            {
-                "filename": name,
-                "url": f"{PUBLIC_PREFIX}/{name}",
-                "size_kb": round(os.path.getsize(path) / 1024, 1),
-            }
-        )
     return api_success({"items": items, "total": len(items)})
 
 
@@ -120,12 +109,20 @@ def list_uploads():
 def delete_upload(filename: str):
     """Delete one of *your own* uploads (path-traversal safe)."""
     user = current_user()
-    safe_name = secure_filename(filename)
+    storage = get_storage(current_app)
+    safe_name = filename.rsplit("/", 1)[-1]
     if not safe_name.startswith(f"u{user.id}_") and not user.is_admin:
         return api_error("You can only delete your own uploads", 403)
 
-    path = os.path.join(upload_dir(), safe_name)
-    if not os.path.isfile(path):
+    try:
+        storage.delete(safe_name)
+    except FileNotFoundError:
         return api_error("File not found", 404)
-    os.remove(path)
+    except StorageError as exc:
+        current_app.logger.error("Upload storage error: %s", exc)
+        return api_error(str(exc), 503)
+    except OSError as exc:
+        current_app.logger.error("Could not delete upload: %s", exc)
+        return api_error("Could not delete the image. Please try again.", 500)
+
     return api_success(message="Image deleted")
