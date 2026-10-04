@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Find helpful student services and skills at Federal University of Lafia."><meta name="api-base" content="/api"><meta name="theme-color" content="#176c57">
+  <title>Student services — Campus Marketplace</title><link rel="icon" type="image/svg+xml" href="/assets/images/campus-logo.svg"><link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/responsive.css">
+  <script src="/js/api.js" defer></script><script src="/js/marketplace.js" defer></script><script src="/js/auth.js" defer></script><script src="/js/admin.js" defer></script>
+</head>
+<body data-page="services"><div id="site-header"></div>
+  <main class="page-main page-main--soft"><div class="container">
+    <div class="page-intro"><span class="eyebrow">Skills from your peers</span><h1>Find a little help. Share what you do.</h1><p>Discover useful student services — from design and tutoring to repairs and creative work.</p></div>
+    <form class="filters-panel" id="service-filters">
+      <div class="filter-field filter-search"><label for="service-q">Search services</label><input id="service-q" name="q" type="search" placeholder="What do you need help with?"></div>
+      <div class="filter-field"><label for="service-category">Category</label><select id="service-category" name="category"><option value="">All services</option><option>Design</option><option>Tutoring</option><option>Repairs</option><option>Photography</option><option>Beauty</option><option>Other</option></select></div>
+      <div class="filter-field"><label for="service-location">Location</label><input id="service-location" name="location" type="search" placeholder="Campus or Lafia"></div>
+      <button class="btn btn-primary filter-submit" type="submit">Search services</button>
+    </form>
+    <div class="results-bar"><span data-results-count>Loading student services…</span><a class="text-link" href="/pages/post-listing.html?type=service">Offer a service</a></div>
+    <div class="card-grid card-grid--three" data-service-grid data-page-size="12" aria-live="polite"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
+    <div class="pagination" data-pagination aria-label="Service pages"></div>
+  </div></main><div id="site-footer"></div><div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
+</body>
+</html>

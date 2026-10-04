@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Discover campus events, student meetups and activities at FULafia."><meta name="api-base" content="/api"><meta name="theme-color" content="#176c57">
+  <title>Campus events — Campus Marketplace</title><link rel="icon" type="image/svg+xml" href="/assets/images/campus-logo.svg"><link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/responsive.css">
+  <script src="/js/api.js" defer></script><script src="/js/marketplace.js" defer></script><script src="/js/auth.js" defer></script><script src="/js/admin.js" defer></script>
+</head>
+<body data-page="events"><div id="site-header"></div>
+  <main class="page-main page-main--soft"><div class="container">
+    <div class="page-intro"><span class="eyebrow">Around campus</span><h1>Good things happen together.</h1><p>Find workshops, socials and student-led events around Federal University of Lafia.</p></div>
+    <form class="filters-panel" id="event-filters">
+      <div class="filter-field filter-search"><label for="event-q">Search events</label><input id="event-q" name="q" type="search" placeholder="Search by name or place"></div>
+      <div class="filter-field"><label for="event-category">Category</label><select id="event-category" name="category"><option value="">All events</option><option>Networking</option><option>Academic</option><option>Community</option><option>Sports</option><option>Arts &amp; culture</option><option>Campus event</option></select></div>
+      <div class="filter-field"><label for="event-location">Location</label><input id="event-location" name="location" type="search" placeholder="Campus or Lafia"></div>
+      <button class="btn btn-primary filter-submit" type="submit">Find events</button>
+    </form>
+    <div class="results-bar"><span data-results-count>Loading campus events…</span><a class="text-link" href="/pages/post-listing.html?type=event">Share an event</a></div>
+    <div class="event-grid" data-event-grid data-page-size="12" aria-live="polite"><div class="skeleton"></div><div class="skeleton"></div></div>
+    <div class="pagination" data-pagination aria-label="Event pages"></div>
+  </div></main><div id="site-footer"></div><div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
+</body>
+</html>

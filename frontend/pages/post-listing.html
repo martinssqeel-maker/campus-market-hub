@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Create a product, accommodation, event or service listing."><meta name="api-base" content="/api"><meta name="theme-color" content="#176c57">
+  <title>Post a listing — Campus Marketplace</title><link rel="icon" type="image/svg+xml" href="/assets/images/campus-logo.svg"><link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/responsive.css">
+  <script src="/js/api.js" defer></script><script src="/js/marketplace.js" defer></script><script src="/js/auth.js" defer></script><script src="/js/admin.js" defer></script>
+</head>
+<body data-page="post-listing"><div id="site-header"></div>
+  <main class="page-main page-main--soft"><div class="narrow-container">
+    <div class="page-intro"><span class="eyebrow">Your campus, your marketplace</span><h1>Share something useful.</h1><p>Choose what you’re posting. Listings are checked by a moderator before becoming visible.</p></div>
+    <div class="post-tabs" role="tablist" aria-label="Listing type">
+      <button class="post-tab is-active" type="button" role="tab" aria-selected="true" data-listing-type="product">🛍️&nbsp; Product</button>
+      <button class="post-tab" type="button" role="tab" aria-selected="false" data-listing-type="accommodation">🏠&nbsp; Room</button>
+      <button class="post-tab" type="button" role="tab" aria-selected="false" data-listing-type="event">📅&nbsp; Event</button>
+      <button class="post-tab" type="button" role="tab" aria-selected="false" data-listing-type="service">✨&nbsp; Service</button>
+    </div>
+    <div class="post-form-card">
+      <div class="inline-notice" style="margin-bottom:18px">Your post starts as <strong>pending</strong> and will only appear after admin approval.</div>
+      <div class="form-alert" data-form-alert role="alert"></div>
+      <form id="listing-form" class="form-stack" enctype="multipart/form-data" novalidate>
+        <div class="form-grid">
+          <div class="form-field form-field--full"><label for="listing-title">Listing title</label><input id="listing-title" name="title" type="text" required maxlength="140" placeholder="Give it a clear, helpful name"></div>
+          <div class="form-field form-field--full"><label for="listing-description">Description</label><textarea id="listing-description" name="description" required minlength="10" maxlength="5000" placeholder="Share the details a student would want to know…"></textarea></div>
+          <div class="form-field" data-show-for="product,service,event"><label for="listing-category">Category</label><select id="listing-category" name="category"><option value="">Choose a category</option><option>Books</option><option>Electronics</option><option>Fashion</option><option>Home &amp; living</option><option>Food</option><option>Design</option><option>Tutoring</option><option>Repairs</option><option>Photography</option><option>Beauty</option><option>Academic</option><option>Community</option><option>Networking</option><option>Sports</option><option>Other</option></select></div>
+          <div class="form-field" data-show-for="product,accommodation,service"><label for="listing-price">Price (₦)</label><input id="listing-price" name="price" type="number" min="0" step="0.01" placeholder="e.g. 12000"><span class="field-hint" data-price-hint>Use a fair, clear price.</span></div>
+          <div class="form-field" data-show-for="accommodation"><label for="listing-rooms">Number of rooms</label><input id="listing-rooms" name="rooms" type="number" min="1" max="1000" value="1"></div>
+          <div class="form-field" data-show-for="accommodation"><label for="listing-room-type">Accommodation type</label><select id="listing-room-type" name="room_type"><option value="room">Single room</option><option value="shared">Shared apartment</option><option value="self_contain">Self-contain</option><option value="hostel">Hostel</option></select></div>
+          <div class="form-field" data-show-for="event"><label for="listing-date">Event date and time</label><input id="listing-date" name="date" type="datetime-local"></div>
+          <div class="form-field" data-show-for="product,accommodation,event,service"><label for="listing-location">Location</label><input id="listing-location" name="location" type="text" maxlength="160" placeholder="e.g. Take-off Campus"></div>
+          <div class="form-field form-field--full"><label for="listing-image">Photo (optional)</label><label class="upload-zone" for="listing-image"><span aria-hidden="true">⇧</span><strong>Choose an image</strong><small>JPG, PNG, WEBP or GIF · up to 5 MB</small><img class="upload-preview" data-upload-preview alt="Selected listing image preview"></label><input id="listing-image" name="image" type="file" accept="image/png,image/jpeg,image/webp,image/gif" class="visually-hidden"></div>
+        </div>
+        <button class="btn btn-primary btn-large btn-full" type="submit">Submit for review <span aria-hidden="true">→</span></button>
+      </form>
+    </div>
+  </div></main><div id="site-footer"></div><div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
+</body>
+</html>

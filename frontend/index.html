@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Buy, sell, find a room and discover campus life with the Federal University of Lafia student marketplace.">
+  <meta name="api-base" content="/api">
+  <meta name="theme-color" content="#176c57">
+  <title>Campus Marketplace — made for FULafia</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/images/campus-logo.svg">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/responsive.css">
+  <script src="/js/api.js" defer></script>
+  <script src="/js/marketplace.js" defer></script>
+  <script src="/js/auth.js" defer></script>
+  <script src="/js/admin.js" defer></script>
+</head>
+<body data-page="home">
+  <div id="site-header"></div>
+  <main>
+    <section class="hero">
+      <div class="container hero-grid">
+        <div class="hero-copy">
+          <span class="eyebrow">Your campus, all in one place</span>
+          <h1 class="display-title">Find it.<br>Sell it.<br><span class="accent">Make campus easier.</span></h1>
+          <p class="lead">A trusted marketplace made for Federal University of Lafia students. Good finds, helpful services and your next place to stay — all from people on campus.</p>
+          <div class="hero-actions">
+            <a class="btn btn-primary btn-large" href="/pages/home.html">Explore marketplace <span aria-hidden="true">→</span></a>
+            <a class="btn btn-secondary btn-large" href="/pages/post-listing.html">＋&nbsp; Post a listing</a>
+          </div>
+          <div class="hero-proof">
+            <div class="avatar-stack" aria-hidden="true"><span>AM</span><span>JO</span><span>FK</span></div>
+            <span>Built around student-to-student trust</span>
+          </div>
+          <form class="hero-search-wrap hero-search" id="home-search-form" role="search">
+            <span class="search-icon" aria-hidden="true">⌕</span>
+            <label class="visually-hidden" for="home-search">Search listings</label>
+            <input id="home-search" name="q" type="search" placeholder="What are you looking for?" autocomplete="off">
+            <button class="btn btn-primary" type="submit">Search</button>
+          </form>
+        </div>
+        <div class="hero-art">
+          <img src="/assets/images/campus-hero.svg" alt="Illustration of a campus marketplace with student listings">
+          <div class="hero-note"><span class="hero-note-icon" aria-hidden="true">✓</span><span><strong>Made for FULafia</strong><small>Local finds. Real connections.</small></span></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="container trust-strip" aria-label="Marketplace benefits">
+      <div class="trust-item"><span class="trust-icon" aria-hidden="true">⌂</span><span>Made for the FULafia community</span></div>
+      <div class="trust-item"><span class="trust-icon" aria-hidden="true">✓</span><span>Listings reviewed before they go live</span></div>
+      <div class="trust-item"><span class="trust-icon" aria-hidden="true">♡</span><span>Connect directly with student sellers</span></div>
+    </div>
+
+    <section class="section">
+      <div class="container">
+        <div class="section-heading">
+          <div><span class="eyebrow">Start exploring</span><h2>What brings you here?</h2><p>Everything students need, in one friendly place.</p></div>
+        </div>
+        <div class="category-grid">
+          <a class="category-card" href="/pages/home.html"><span class="category-icon" aria-hidden="true">🛍️</span><span><strong>Campus finds</strong><small>Books, tech & more</small></span></a>
+          <a class="category-card" href="/pages/accommodation.html"><span class="category-icon" aria-hidden="true">🏠</span><span><strong>Accommodation</strong><small>Find your next room</small></span></a>
+          <a class="category-card" href="/pages/events.html"><span class="category-icon" aria-hidden="true">📅</span><span><strong>Events</strong><small>What's happening</small></span></a>
+          <a class="category-card" href="/pages/services.html"><span class="category-icon" aria-hidden="true">✨</span><span><strong>Student services</strong><small>Skills from your peers</small></span></a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section--soft">
+      <div class="container">
+        <div class="section-heading">
+          <div><span class="eyebrow">Fresh on campus</span><h2>Good finds, close by</h2><p>Student listings approved by our campus moderators.</p></div>
+          <a class="text-link" href="/pages/home.html">Browse all</a>
+        </div>
+        <div class="card-grid" data-product-grid data-product-limit="4" aria-live="polite"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="section-heading">
+          <div><span class="eyebrow">A place to call yours</span><h2>Rooms near campus</h2><p>Explore student-friendly accommodation around Lafia.</p></div>
+          <a class="text-link" href="/pages/accommodation.html">See accommodation</a>
+        </div>
+        <div class="card-grid card-grid--three" data-accommodation-grid data-limit="3" aria-live="polite"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
+      </div>
+    </section>
+
+    <section class="section section--leaf">
+      <div class="container">
+        <div class="section-heading">
+          <div><span class="eyebrow">Campus calendar</span><h2>Make room for something fun</h2><p>See upcoming meetups, workshops and community events.</p></div>
+          <a class="text-link" href="/pages/events.html">All events</a>
+        </div>
+        <div class="event-grid" data-event-grid data-limit="2" aria-live="polite"><div class="skeleton"></div><div class="skeleton"></div></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container cta-banner">
+        <div><h2>Have something your campus needs?</h2><p>Share your listing with fellow students. Every new post is reviewed before it appears in the marketplace.</p></div>
+        <a class="btn btn-large" href="/pages/post-listing.html">Post a listing <span aria-hidden="true">→</span></a>
+      </div>
+    </section>
+  </main>
+  <div id="site-footer"></div>
+  <div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
+</body>
+</html>

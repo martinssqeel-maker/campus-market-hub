@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Create a FULafia student marketplace account."><meta name="api-base" content="/api"><meta name="theme-color" content="#176c57">
+  <title>Create an account — Campus Marketplace</title><link rel="icon" type="image/svg+xml" href="/assets/images/campus-logo.svg"><link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/responsive.css">
+  <script src="/js/api.js" defer></script><script src="/js/marketplace.js" defer></script><script src="/js/auth.js" defer></script><script src="/js/admin.js" defer></script>
+</head>
+<body data-page="signup"><div id="site-header"></div>
+  <main class="auth-layout">
+    <aside class="auth-art"><div class="auth-art-content"><img src="/assets/images/campus-hero.svg" alt=""><span class="eyebrow">Made for FULafia</span><h2>Join the campus circle.</h2><p>Find what you need, support student sellers and share your own skills with the community.</p></div></aside>
+    <section class="auth-panel"><div class="auth-card">
+      <span class="eyebrow">Come on in</span><h1>Create your account</h1><p>A few details and you’re ready to explore.</p>
+      <div class="form-alert" data-form-alert role="alert"></div>
+      <form class="form-stack" id="signup-form" novalidate>
+        <div class="form-field"><label for="signup-name">Full name</label><input id="signup-name" name="name" type="text" autocomplete="name" required maxlength="100" placeholder="Your name"></div>
+        <div class="form-field"><label for="signup-email">Email address</label><input id="signup-email" name="email" type="email" autocomplete="email" required maxlength="254" placeholder="you@example.com"><span class="field-hint">Use an email you check regularly.</span></div>
+        <div class="form-field"><label for="signup-phone">Phone number</label><input id="signup-phone" name="phone" type="tel" autocomplete="tel" required maxlength="32" placeholder="+234 800 000 0000"></div>
+        <div class="form-field"><label for="signup-password">Create a password</label><div class="input-with-icon"><input id="signup-password" name="password" type="password" autocomplete="new-password" required minlength="8" maxlength="128" placeholder="At least 8 characters"><button class="password-toggle" type="button" aria-label="Show password" data-toggle-password="signup-password">◉</button></div><span class="field-hint">At least 8 characters. Keep it private.</span></div>
+        <label class="check-row"><input type="checkbox" name="terms" required><span>I agree to use the marketplace respectfully and to share accurate listing information.</span></label>
+        <button class="btn btn-primary btn-large btn-full" type="submit">Create account <span aria-hidden="true">→</span></button>
+      </form>
+      <p class="form-note">Already have an account? <a href="/pages/login.html">Sign in</a></p>
+    </div></section>
+  </main><div id="site-footer"></div><div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
+</body>
+</html>
