@@ -1,19 +1,33 @@
 """
 Campus Marketplace – Flask application entry point.
 
-Federal University of Lafia student marketplace:
-products, accommodation, events and services with admin moderation.
+Student marketplace: products, accommodation, events and services with
+admin moderation.
 
 Run (development)
 -----------------
     cd backend
     python app.py                     # http://127.0.0.1:5000
-    python app.py --seed              # create tables + demo data
+    python app.py --seed              # create tables + demo data (opt-in)
     python app.py --reset             # drop everything and start clean
 
 The app also serves the static frontend (``../frontend``) so that a single
 ``python app.py`` gives you a working website at http://localhost:5000 –
 no separate web server needed (and no CORS problems in production).
+
+Database / account management (any environment, incl. production)
+-----------------------------------------------------------------
+    flask --app app init-db           # create the database tables
+    flask --app app create-admin      # create an administrator account
+
+Both commands also work from the repository root, where the root ``app.py``
+is the single WSGI entry point (it is the file Vercel deploys as the
+``/api`` serverless function – see ``vercel.json`` and
+``docs/DEPLOYMENT_VERCEL.md``).
+
+By design the app seeds nothing and never auto-creates accounts: demo data
+is opt-in (``--seed``) and administrators are created explicitly with
+``create-admin``.
 """
 
 import argparse
@@ -38,10 +52,10 @@ if BACKEND_DIR not in sys.path:
 load_dotenv(os.path.join(BACKEND_DIR, ".env"))
 load_dotenv(os.path.join(os.path.dirname(BACKEND_DIR), ".env"))
 
-from config import Config, get_config            # noqa: E402
-from extensions import cors, db, jwt            # noqa: E402
-from models import TokenBlocklist, User         # noqa: E402
-from routes import register_blueprints          # noqa: E402
+from config import Config, get_config
+from extensions import cors, db, jwt
+from models import TokenBlocklist, User
+from routes import register_blueprints
 
 FRONTEND_DIR = os.path.join(Config.PROJECT_ROOT, "frontend")
 
@@ -83,7 +97,10 @@ def create_app(config_object=None) -> Flask:
     app = Flask(
         __name__,
         static_folder=FRONTEND_DIR if os.path.isdir(FRONTEND_DIR) else None,
-        static_url_path="",
+        # A non-root static URL keeps Flask's built-in static view from
+        # shadowing the catch-all route below (which also implements the
+        # friendly /pages/ fallback).  Nothing uses url_for("static").
+        static_url_path="/_static_unused",
     )
     app.config.from_object(config_object or get_config())
 
@@ -155,6 +172,71 @@ def create_app(config_object=None) -> Flask:
         with app.app_context():
             db.create_all()
         print("Database tables created.")
+
+    @app.cli.command("create-admin")
+    def create_admin_command():            # pragma: no cover - manual helper
+        """``flask create-admin`` – create an administrator account.
+
+        Reads ADMIN_NAME, ADMIN_EMAIL, ADMIN_PASSWORD and ADMIN_PHONE from
+        the environment; anything missing is prompted for interactively
+        (the password without echoing).  There is deliberately no default
+        password: creating the first admin always requires explicit
+        credentials, which keeps deployments free of demo accounts.
+        """
+        import getpass
+
+        import click
+        from utils.validators import (
+            ValidationError,
+            validate_email,
+            validate_password,
+        )
+
+        def ask(prompt_text, env_var, password=False):
+            value = os.getenv(env_var)
+            if value is None or not value.strip():
+                value = (
+                    getpass.getpass(f"{prompt_text} ")
+                    if password
+                    else click.prompt(prompt_text)
+                )
+            return value.strip()
+
+        try:
+            name = ask("Administrator name", "ADMIN_NAME")
+            email = validate_email(ask("Administrator email", "ADMIN_EMAIL"))
+            password = validate_password(
+                ask("Administrator password", "ADMIN_PASSWORD", password=True)
+            )
+            phone = os.getenv("ADMIN_PHONE", "").strip() or click.prompt(
+                "Administrator phone (e.g. 08031234567)"
+            )
+        except ValidationError as exc:
+            print(f"Error: {exc.message}")
+            raise SystemExit(1)
+
+        with app.app_context():
+            existing = User.query.filter_by(email=email).first()
+            if existing is not None:
+                if existing.user_type != "admin":
+                    existing.user_type = "admin"
+                    db.session.commit()
+                print(f"Account {email} already exists – it is an admin now.")
+                return
+
+            admin = User(
+                name=name,
+                email=email,
+                phone=phone,
+                user_type="admin",
+                verified=True,
+                department=os.getenv("ADMIN_DEPARTMENT", "").strip() or None,
+                location=os.getenv("ADMIN_LOCATION", "").strip() or None,
+            )
+            admin.set_password(password)
+            db.session.add(admin)
+            db.session.commit()
+            print(f"Administrator created: {email}")
 
     return app
 
@@ -327,44 +409,21 @@ def register_error_handlers(app: Flask) -> None:
 # Bootstrap helpers
 # ---------------------------------------------------------------------------
 def bootstrap(app: Flask, reset: bool = False, seed: bool = False) -> None:
-    """Create tables (and optionally demo data) inside an app context."""
+    """Create tables (and optionally demo data) inside an app context.
+
+    Tables only by default: this function seeds nothing and creates no
+    accounts.  Demo content is opt-in (``--seed``) and administrators are
+    created explicitly with the ``create-admin`` CLI command.
+    """
     with app.app_context():
         if reset:
             db.drop_all()
             print("Dropped all tables.")
         db.create_all()
-        _ensure_admin(app)
         if seed:
             from seed_data import seed_database
 
             seed_database(app)
-
-
-def _ensure_admin(app: Flask) -> None:
-    """Make sure at least one administrator exists (needed for moderation)."""
-    email = os.getenv("ADMIN_EMAIL", "admin@unilafia.edu.ng").lower()
-    password = os.getenv("ADMIN_PASSWORD", "Admin@1234")
-
-    admin = User.query.filter_by(email=email).first()
-    if admin:
-        if admin.user_type != "admin":
-            admin.user_type = "admin"
-            db.session.commit()
-        return
-
-    admin = User(
-        name=os.getenv("ADMIN_NAME", "Campus Marketplace Admin"),
-        email=email,
-        phone=os.getenv("ADMIN_PHONE", "08030000000"),
-        user_type="admin",
-        verified=True,
-        department="Student Affairs",
-        location="Federal University of Lafia",
-    )
-    admin.set_password(password)
-    db.session.add(admin)
-    db.session.commit()
-    app.logger.info("Created default administrator: %s", email)
 
 
 #: Module-level app so ``flask --app app run`` and gunicorn both work.
@@ -378,17 +437,17 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Campus Marketplace API server")
     parser.add_argument("--host", default=os.getenv("HOST", "0.0.0.0"))
     parser.add_argument("--port", type=int, default=int(os.getenv("PORT", "5000")))
-    parser.add_argument("--seed", action="store_true", help="insert demo data on start")
-    parser.add_argument("--reset", action="store_true", help="drop and recreate all tables")
+    parser.add_argument("--seed", action="store_true", help="insert demo data (opt-in; creates the demo admin too)")
+    parser.add_argument("--reset", action="store_true", help="drop and recreate all tables (no data, no accounts)")
     parser.add_argument("--debug", action="store_true", default=os.getenv("FLASK_ENV") != "production")
     args = parser.parse_args()
 
     # The Werkzeug reloader re-executes this script in a child process, so run
     # the database bootstrap only once (in the parent) – otherwise every file
-    # save would drop and re-seed the database.
+    # save would drop the database.
     is_reloader_child = os.environ.get("WERKZEUG_RUN_MAIN") == "true"
     if not is_reloader_child:
-        bootstrap(app, reset=args.reset, seed=args.seed or args.reset)
+        bootstrap(app, reset=args.reset, seed=args.seed)
 
     app.run(host=args.host, port=args.port, debug=args.debug, use_reloader=args.debug)
 

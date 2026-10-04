@@ -1,0 +1,20 @@
+{
+  "version": 2,
+  "buildCommand": "python3 build_vercel.py",
+  "builds": [
+    {
+      "src": "app.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    { "src": "/api", "dest": "/app" },
+    { "src": "/api/:path*", "dest": "/app" }
+  ],
+  "functions": {
+    "app.py": {
+      "maxDuration": 30,
+      "includeFiles": "backend/**/*"
+    }
+  }
+}

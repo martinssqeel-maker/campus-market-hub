@@ -63,3 +63,6 @@ package-lock.json
 # --- Deploy artefacts -------------------------------------------------------
 *.tar.gz
 *.zip
+# public/ is generated from frontend/ by `python build_vercel.py`
+# (and by the Vercel build step) – never edit or commit it.
+/public/

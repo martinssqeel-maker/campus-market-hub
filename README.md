@@ -8,7 +8,7 @@ Buy and sell items · Find accommodation · Discover campus events · Hire stude
 |---|---|
 | **Student** | Martins Moses — 2023/ED/SID/OO68 |
 | **Supervisor** | Mr Solomon |
-| **Stack** | HTML5 · CSS3 · Vanilla JavaScript · Python Flask · SQLite (MySQL for production) |
+| **Stack** | HTML5 · CSS3 · Vanilla JavaScript · Python Flask · SQLite locally · PostgreSQL + S3-compatible image storage in production (Vercel) |
 | **Repository** | https://github.com/martinssqeel-maker/campus-market-hub |
 | **Timeline** | 72 hours (3 days) |
 
@@ -52,7 +52,7 @@ Buy and sell items · Find accommodation · Discover campus events · Hire stude
 - Public statistics API powering live counters on the landing page.
 - Activity feed and per-type breakdown cards on the admin dashboard (auto-refreshes).
 - Inline SVG placeholder artwork so the demo looks complete with zero external images.
-- Automated **Python API test-suite** (23 tests) and a **browser-level jsdom smoke test**.
+- Automated **Python API test-suite** (25 tests, including the S3-compatible storage path) and a **browser-level jsdom smoke test**.
 - Print-friendly stylesheet and `prefers-reduced-motion` / dark-mode support.
 
 ---
@@ -83,7 +83,8 @@ python -m venv .venv
 python3 -m venv .venv
 source .venv/bin/activate
 
-pip install -r backend/requirements.txt
+pip install -r requirements.txt     # root file = canonical list
+# (pip install -r backend/requirements.txt also works and adds gunicorn)
 ```
 
 ### 4. Create the database and load demo data
@@ -93,7 +94,11 @@ cd backend
 python app.py --reset --seed
 ```
 
-This creates `backend/database.db`, adds the tables, an administrator account and realistic demo content (9 users, 13 products, 7 rooms, 8 events, 6 services, 9 reviews, 7 pending-approval items for the moderation demo).
+This creates `backend/database.db`, adds the tables and realistic demo content (10 users including the demo administrator, 13 products, 7 rooms, 8 events, 6 services, 9 reviews, 7 pending-approval items for the moderation demo).
+
+> Without `--seed` the app creates **tables only** — it never seeds data or
+> auto-creates accounts. Real deployments create the first administrator
+> explicitly with `flask --app app create-admin`.
 
 ### 5. Open the app
 
@@ -141,6 +146,14 @@ The recommended setup is Flask serving the frontend and API together. If you use
 
 ```
 campus-market-hub/
+├── app.py                    # Root Flask entry point (the WSGI app Vercel deploys;
+│                             #   also powers `flask --app app run|init-db|create-admin`)
+├── vercel.json               # Vercel build/runtime config (builds app.py, proxies /api)
+├── build_vercel.py           # Validates the Vercel config and generates public/
+│                             #   from frontend/ (runs locally and on every Vercel build)
+├── requirements.txt          # Canonical runtime dependencies (Vercel installs this)
+├── public/                   # Generated static frontend (build artefact – git-ignored)
+├── .env.example              # Production environment template (4 core variables)
 ├── backend/
 │   ├── app.py                  # Application factory, CORS, static hosting, error handlers, CLI
 │   ├── config.py               # Dev / testing / production configuration
@@ -165,7 +178,8 @@ campus-market-hub/
 │   ├── utils/
 │   │   ├── decorators.py       # login_required, admin_required, current_user
 │   │   ├── helpers.py          # response envelopes, pagination, filtering, sorting
-│   │   └── validators.py       # email / phone / password / price / image validation
+│   │   ├── validators.py       # email / phone / password / price / image validation
+│   │   └── storage.py          # pluggable image storage: local disk or S3-compatible
 │   ├── tests/
 │   │   ├── test_api.py         # 23 automated API tests (unittest)
 │   │   ├── browser_smoke.js    # 66 jsdom checks across every page
@@ -197,9 +211,10 @@ campus-market-hub/
 │   └── assets/
 │       ├── images/logo.svg     # Logo (also used as favicon)
 │       ├── logo.png            # Raster logo for reports / slides
-│       └── uploads/            # Student-uploaded photos (git-ignored)
+│       └── uploads/            # Student-uploaded photos in local dev (git-ignored)
 ├── docs/
-│   └── API.md                  # Full API documentation with request/response examples
+│   ├── API.md                  # Full API documentation with request/response examples
+│   └── DEPLOYMENT_VERCEL.md    # Step-by-step Vercel deployment guide (Postgres + R2)
 ├── .gitignore
 └── README.md
 ```
@@ -348,14 +363,18 @@ Every response uses one envelope:
 
 ## Testing
 
-### Automated API tests (23 tests)
+### Automated API tests (25 tests)
 
 ```bash
+# from the project root (recommended – the Vercel CI-style invocation)
+python -m unittest discover -s backend/tests -v
+
+# or from inside backend/
 cd backend
 python -m unittest discover -s tests -t . -v
 ```
 
-Covers auth (including token revocation and suspension), the full moderation workflow, CRUD permissions, every filter, pagination, search, reviews, wishlist toggling, image upload and error envelopes. Uses an in-memory SQLite database — your real data is untouched.
+Covers auth (including token revocation and suspension), the full moderation workflow, CRUD permissions, every filter, pagination, search, reviews, wishlist toggling, image upload on **both** storage backends (local disk and S3-compatible, via an in-memory fake bucket) and error envelopes. Uses an in-memory SQLite database — your real data is untouched.
 
 ### Browser-level tests (jsdom)
 
@@ -392,25 +411,61 @@ node backend/tests/browser_filters.js   # 20 checks: UI counts match API filter 
 
 ## Deployment
 
-### Option A — Gunicorn on a Linux VPS (recommended)
+### Option A — Vercel (recommended)
+
+The repository is pre-configured for Vercel: `vercel.json` deploys the Flask
+API as a Python serverless function, `build_vercel.py` regenerates the static
+`public/` frontend from `frontend/` on every build, and the code supports
+PostgreSQL (`DATABASE_URL`) plus persistent S3-compatible image storage
+(`UPLOAD_STORAGE=s3`, e.g. Cloudflare R2).
+
+1. **Import the repository** into Vercel (the Python runtime is auto-detected).
+2. **Provision storage:** a **Vercel Postgres** database (Storage tab) and a
+   **Cloudflare R2** bucket with an API token and a public-read URL.
+3. **Set environment variables** (Settings → Environment Variables):
+
+   | Variable | Value |
+   |---|---|
+   | `FLASK_ENV` | `production` |
+   | `DATABASE_URL` | the Vercel Postgres *direct* connection string |
+   | `SECRET_KEY` / `JWT_SECRET` | two different long random strings |
+   | `UPLOAD_STORAGE` | `s3` |
+   | `S3_ENDPOINT_URL`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_REGION`, `S3_PUBLIC_URL`, `S3_KEY_PREFIX` | from the R2 bucket/token (see guide) |
+
+4. **Create the schema and the first admin** from your own machine, pointed
+   at the production database (the app never auto-creates accounts):
+
+   ```bash
+   export DATABASE_URL="postgresql://user:pass@host:port/campus_market?sslmode=require"
+   flask --app app init-db
+   flask --app app create-admin      # prompts for name / email / password / phone
+   ```
+
+5. **Deploy** and check `https://your-site.vercel.app/api/health`.
+
+> **First time deploying? Follow the full walkthrough — every click is
+> written out, including where each value comes from and how to verify the
+> result: [docs/DEPLOYMENT_VERCEL.md](docs/DEPLOYMENT_VERCEL.md)**
+
+### Option B — Gunicorn on a Linux VPS
 
 ```bash
 # on the server
 git clone https://github.com/martinssqeel-maker/campus-market-hub.git
 cd campus-market-hub
 python3 -m venv .venv && source .venv/bin/activate
-pip install -r backend/requirements.txt
+pip install -r requirements.txt
 
-cd backend
-cp .env.example .env      # then edit: SECRET_KEY, JWT_SECRET_KEY, ADMIN_PASSWORD
-python app.py --seed      # first-time database + demo data
+export FLASK_ENV=production DATABASE_URL="…" SECRET_KEY="…" JWT_SECRET="…"
+flask --app app init-db
+flask --app app create-admin      # or: python app.py --seed for local-style demo data
 
 gunicorn --workers 3 --bind 0.0.0.0:5000 "app:app"
 ```
 
-Put Nginx in front of it, proxy `/` and `/api` to `127.0.0.1:5000`, and serve `frontend/assets/uploads` from disk if you prefer.
+Put Nginx in front of it, proxy `/` and `/api` to `127.0.0.1:5000`, and serve `frontend/assets/uploads` from disk (or set `UPLOAD_STORAGE=s3` to use object storage).
 
-### Option B — MySQL in production
+### Option C — MySQL in production
 
 1. Create the database and a user:
 
@@ -421,34 +476,35 @@ GRANT ALL PRIVILEGES ON campus_market.* TO 'campus_user'@'localhost';
 FLUSH PRIVILEGES;
 ```
 
-2. Point the app at it in `backend/.env`:
+2. Point the app at it in `backend/.env` (or environment variables):
 
 ```
 FLASK_ENV=production
 DATABASE_URL=mysql+pymysql://campus_user:StrongPass@localhost/campus_market
 SECRET_KEY=<random>
-JWT_SECRET_KEY=<random>
-ADMIN_PASSWORD=<strong password>
+JWT_SECRET=<random>
 CORS_ORIGINS=https://your-domain.com
 ```
 
-3. Install the driver and start the app:
+3. Create the schema and the administrator, then start the app:
 
 ```bash
 pip install PyMySQL
-python app.py --seed        # creates the MySQL tables
+flask --app app init-db      # creates the MySQL tables
+flask --app app create-admin # creates the administrator (no default password)
 ```
 
-`app.py` normalises legacy `mysql://` URLs to `mysql+pymysql://` automatically, and the engine uses `pool_pre_ping` so long-idle connections do not break.
+`app.py` normalises legacy `mysql://` and `postgres://` URLs automatically, and the engine uses `pool_pre_ping` so long-idle connections do not break.
 
 ### Deployment checklist
 
 - [ ] `FLASK_ENV=production` and `DEBUG=0`
-- [ ] New `SECRET_KEY` and `JWT_SECRET_KEY`
-- [ ] Default admin password changed (or the account renamed)
-- [ ] `CORS_ORIGINS` restricted to your real domain
+- [ ] New `SECRET_KEY` and `JWT_SECRET`
+- [ ] Administrator created explicitly with `flask --app app create-admin` (no default/demo password exists)
+- [ ] `CORS_ORIGINS` restricted to your real domain (not needed on Vercel – same origin)
 - [ ] HTTPS enabled (tokens travel in headers)
-- [ ] Database backups scheduled (`mysqldump` / file copy)
+- [ ] Database backups scheduled (`mysqldump` / `pg_dump`)
+- [ ] Persistent image storage configured on serverless hosts (`UPLOAD_STORAGE=s3` + `S3_*` – the function disk is ephemeral)
 - [ ] `AUTO_PUBLISH=false` so moderation stays on
 
 ---
@@ -460,12 +516,14 @@ python app.py --seed        # creates the MySQL tables
 | `ModuleNotFoundError: No module named 'flask'` | The virtual environment is not activated, or dependencies are missing → `source .venv/bin/activate && pip install -r backend/requirements.txt` |
 | CORS error in the browser console | The frontend is on a different port than the API. Either serve the frontend from Flask (`http://localhost:5000`) or set `window.CAMPUS_API_BASE` in the page before `js/api.js` loads. |
 | `401 Please log in to continue` | The access token expired. `api.js` refreshes it automatically; if the refresh token is also expired the user is redirected to the login page. |
-| Uploaded image does not appear | Check `UPLOAD_FOLDER` is writable and that the saved path is under `frontend/assets/uploads`. |
+| Uploaded image does not appear | Check `UPLOAD_FOLDER` is writable and that the saved path is under `frontend/assets/uploads`. On Vercel, check `S3_PUBLIC_URL`/`S3_BUCKET` (see the guide). |
 | `sqlite3.OperationalError: no such table` | The database was never created → `cd backend && python app.py --seed`. |
 | Port 5000 already in use | `python app.py --port 5001` (then open `http://localhost:5001`). |
 | Listings stay invisible after posting | This is the moderation workflow. Approve them from the admin dashboard, or set `AUTO_PUBLISH=true` for a quick demo. |
-| `413 File is too large` | The image exceeds the 5 MB limit — resize it, or raise `MAX_UPLOAD_MB` in `.env`. |
+| `413 File is too large` | The image exceeds the 5 MB limit — resize it, or raise `MAX_UPLOAD_MB` in `.env`. On Vercel Hobby the practical limit is ≈ 4.5 MB. |
 | Reset everything | `python app.py --reset --seed` (drops all tables and reloads demo data). |
+| Vercel: `/api/health` shows a database error | `DATABASE_URL` is wrong, or the free-tier database is asleep — see `docs/DEPLOYMENT_VERCEL.md` → Troubleshooting. |
+| Vercel: images vanish after a while | `UPLOAD_STORAGE=s3` is not set — local disk does not persist on serverless hosts. |
 
 ---
 

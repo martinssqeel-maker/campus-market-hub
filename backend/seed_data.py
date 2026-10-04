@@ -140,6 +140,20 @@ USERS = [
         location="Faculty of Science",
         bio="Laptop repair, phone screen replacement and software installation.",
     ),
+    # --- admin ------------------------------------------------------------
+    # Included only here (opt-in demo data).  Real deployments never create
+    # accounts automatically – use `flask --app app create-admin`.
+    dict(
+        name="Campus Marketplace Admin",
+        email="admin@unilafia.edu.ng",
+        phone="08030000000",
+        password="Admin@1234",
+        user_type="admin",
+        verified=True,
+        department="Student Affairs",
+        location="UNILAFIA Campus",
+        bio="Marketplace administrator – approves listings and manages users.",
+    ),
 ]
 
 # ---------------------------------------------------------------------------

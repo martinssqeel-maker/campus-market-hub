@@ -16,17 +16,19 @@ import io
 import os
 import sys
 import unittest
+from datetime import datetime, timezone
 
 # Make ``backend/`` importable when the suite is run from the project root.
 BACKEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 PROJECT_ROOT = os.path.abspath(os.path.join(BACKEND_DIR, os.pardir))
 sys.path.insert(0, BACKEND_DIR)
 
-from app import create_app                                    # noqa: E402
-from config import TestingConfig                              # noqa: E402
-from extensions import db                                     # noqa: E402
-from models import Product, User                              # noqa: E402
+from config import TestingConfig
+from extensions import db
+from models import Product, User
+from utils import storage
 
+from app import create_app
 
 #: Smallest valid PNG (1x1 pixel) used to test the upload endpoint.
 PNG_BYTES = bytes.fromhex(
@@ -550,11 +552,12 @@ class ApiTestCase(unittest.TestCase):
     # Events
     # ------------------------------------------------------------------
     def test_event_crud_and_date_filters(self):
-        from datetime import datetime, timedelta
+        from datetime import timedelta, timezone
 
-        soon = (datetime.utcnow() + timedelta(days=3)).strftime("%Y-%m-%dT10:00")
-        later = (datetime.utcnow() + timedelta(days=30)).strftime("%Y-%m-%dT10:00")
-        past = (datetime.utcnow() - timedelta(days=10)).strftime("%Y-%m-%dT10:00")
+        now = datetime.now(timezone.utc)
+        soon = (now + timedelta(days=3)).strftime("%Y-%m-%dT10:00")
+        later = (now + timedelta(days=30)).strftime("%Y-%m-%dT10:00")
+        past = (now - timedelta(days=10)).strftime("%Y-%m-%dT10:00")
 
         for title, date, category in [
             ("Career Fair", soon, "career"),
@@ -938,6 +941,179 @@ class ApiTestCase(unittest.TestCase):
 
         wrong_method = self.client.delete("/api/auth/login")
         self.assertEqual(wrong_method.status_code, 405)
+
+
+# ---------------------------------------------------------------------------
+# S3-compatible storage (the persistent upload path used on Vercel)
+# ---------------------------------------------------------------------------
+class FakeS3Client:
+    """In-memory stand-in for the boto3 S3 client used by storage._s3_client."""
+
+    def __init__(self):
+        self.objects = {}  # key -> (body, content_type, last_modified)
+
+    def put_object(self, Bucket, Key, Body, ContentType):
+        self.objects[Key] = (bytes(Body), ContentType, datetime.now(timezone.utc))
+
+    def list_objects_v2(self, Bucket, Prefix=None, MaxKeys=None,
+                        ContinuationToken=None):
+        contents = [
+            {"Key": key, "Size": len(body), "LastModified": mtime}
+            for key, (body, _type, mtime) in self.objects.items()
+            if Prefix is None or key.startswith(Prefix)
+        ]
+        return {"Contents": contents}
+
+    def head_object(self, Bucket, Key):
+        from botocore.exceptions import ClientError
+
+        if Key not in self.objects:
+            raise ClientError(
+                {"Error": {"Code": "404", "Message": "Not Found"}}, "HeadObject"
+            )
+        return {}
+
+    def delete_object(self, Bucket, Key):
+        self.objects.pop(Key, None)
+        return {}
+
+
+class UploadS3StorageTestCase(unittest.TestCase):
+    """Upload endpoints against ``UPLOAD_STORAGE=s3`` (fake bucket).
+
+    Validates the persistent-storage contract the production (Vercel)
+    deployment relies on: objects land under the configured key prefix,
+    the API returns absolute public URLs, listing is scoped per user and
+    deletion removes the object.  Standalone (does not inherit from
+    ``ApiTestCase``) because the parent's local-storage upload test
+    asserts disk behaviour that does not apply to the S3 backend.
+    """
+
+    def setUp(self):
+        self.upload_dir = os.path.join(PROJECT_ROOT, "frontend", "assets", "uploads")
+        os.makedirs(self.upload_dir, exist_ok=True)
+        self.app = create_app(TestingConfig)
+        self.app.config.update(
+            UPLOAD_STORAGE="s3",
+            S3_ENDPOINT_URL="https://acme.r2.cloudflarestorage.com",
+            S3_BUCKET="campus-market-uploads",
+            S3_ACCESS_KEY_ID="test-key-id",
+            S3_SECRET_ACCESS_KEY="test-secret",
+            S3_REGION="auto",
+            S3_PUBLIC_URL="https://pub-test.r2.dev",
+            S3_KEY_PREFIX="uploads",
+        )
+        self.ctx = self.app.app_context()
+        self.ctx.push()
+        db.create_all()
+        self.client = self.app.test_client()
+
+        self.student_token = self._make_user("S3 Student", "s3-student@test.ng")
+        self.landlord_token = self._make_user(
+            "S3 Landlord", "s3-landlord@test.ng", user_type="landlord"
+        )
+
+        self.fake_bucket = FakeS3Client()
+        self._original_client_factory = storage._s3_client
+        storage._s3_client = lambda: self.fake_bucket
+
+    def tearDown(self):
+        storage._s3_client = self._original_client_factory
+        db.session.remove()
+        db.drop_all()
+        self.ctx.pop()
+
+    # -- helpers -----------------------------------------------------------
+    def _make_user(self, name, email, user_type="student"):
+        response = self.client.post(
+            "/api/auth/signup",
+            json={
+                "name": name,
+                "email": email,
+                "phone": "08031234567",
+                "password": "Passw0rd123",
+                "user_type": user_type,
+            },
+        )
+        self.assertEqual(response.status_code, 201, response.get_json())
+        return response.get_json()["data"]["access_token"]
+
+    def _upload_png(self, token, name="photo.png"):
+        return self.client.post(
+            "/api/uploads/image",
+            data={"image": (io.BytesIO(PNG_BYTES), name)},
+            headers={"Authorization": f"Bearer {token}"},
+            content_type="multipart/form-data",
+        )
+
+    def test_s3_upload_returns_absolute_public_url(self):
+        response = self._upload_png(self.student_token)
+        self.assertEqual(response.status_code, 201, response.get_json())
+        payload = response.get_json()["data"]
+
+        self.assertTrue(payload["url"].startswith("https://pub-test.r2.dev/uploads/"))
+        self.assertEqual(payload["url"], payload["absolute_url"])
+        self.assertGreater(payload["size_kb"], 0)
+
+        key = f"uploads/{payload['filename']}"
+        self.assertIn(key, self.fake_bucket.objects)
+        body, content_type, _mtime = self.fake_bucket.objects[key]
+        self.assertEqual(body, PNG_BYTES)
+        self.assertEqual(content_type, "image/png")
+
+        # nothing may land on the local disk when the S3 backend is active
+        self.assertFalse(
+            os.path.isfile(os.path.join(self.upload_dir, payload["filename"]))
+        )
+
+    def test_s3_list_is_scoped_per_user_and_deletion_removes_object(self):
+        first = self._upload_png(self.student_token, "one.png").get_json()["data"]
+        second = self._upload_png(self.student_token, "two.png").get_json()["data"]
+        other = self._upload_png(self.landlord_token, "theirs.png").get_json()["data"]
+
+        listed = self.client.get(
+            "/api/uploads",
+            headers={"Authorization": f"Bearer {self.student_token}"},
+        ).get_json()["data"]
+        self.assertEqual(listed["total"], 2)
+        names = {item["filename"] for item in listed["items"]}
+        self.assertEqual(
+            names, {first["filename"], second["filename"]}
+        )
+        self.assertNotIn(other["filename"], names)
+        self.assertTrue(all(
+            item["url"].startswith("https://pub-test.r2.dev/uploads/")
+            for item in listed["items"]
+        ))
+
+        # another user cannot delete the object
+        self.assertEqual(
+            self.client.delete(
+                f"/api/uploads/{first['filename']}",
+                headers={"Authorization": f"Bearer {self.landlord_token}"},
+            ).status_code,
+            403,
+        )
+
+        # owner deletes; the object disappears from the bucket
+        self.assertEqual(
+            self.client.delete(
+                f"/api/uploads/{first['filename']}",
+                headers={"Authorization": f"Bearer {self.student_token}"},
+            ).status_code,
+            200,
+        )
+        self.assertNotIn(f"uploads/{first['filename']}", self.fake_bucket.objects)
+        self.assertIn(f"uploads/{second['filename']}", self.fake_bucket.objects)
+
+        # deleting again → 404 (object no longer exists)
+        self.assertEqual(
+            self.client.delete(
+                f"/api/uploads/{first['filename']}",
+                headers={"Authorization": f"Bearer {self.student_token}"},
+            ).status_code,
+            404,
+        )
 
 
 if __name__ == "__main__":

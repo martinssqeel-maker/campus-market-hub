@@ -5,27 +5,31 @@ POST   /api/uploads/image    multipart form upload (field name: ``image``)
 GET    /api/uploads          list of images the current user has uploaded
 DELETE /api/uploads/<name>   remove an uploaded image
 
-Files land in ``frontend/assets/uploads`` so the static frontend can serve
-them directly, and the API returns a relative URL (``assets/uploads/x.jpg``)
-that works on a phone, on Live Server and behind a reverse proxy alike.
+Where the files actually live is decided by ``UPLOAD_STORAGE`` (see
+``utils/storage.py``):
+
+* ``local`` (development) – ``frontend/assets/uploads``, served by Flask so
+  the returned relative URL (``assets/uploads/x.jpg``) works on one phone,
+  on Live Server and behind a reverse proxy alike.
+* ``s3`` (production, e.g. Vercel) – a persistent S3-compatible bucket such
+  as Cloudflare R2; the API then returns an absolute public URL for the
+  object instead.
+
+The route layer is identical either way.
 """
 
-import os
 import time
 import uuid
 
 from flask import Blueprint, current_app, request
-from werkzeug.utils import secure_filename
-
-from config import Config
+from utils import storage
 from utils.decorators import current_user, login_required
 from utils.helpers import api_error, api_success
 from utils.validators import ValidationError, validate_image_file
+from werkzeug.utils import secure_filename
 
 uploads_bp = Blueprint("uploads", __name__)
 
-#: Public URL prefix for an uploaded file (relative – no hard-coded host).
-PUBLIC_PREFIX = "assets/uploads"
 #: Allowed content types as a second line of defence behind the extension check.
 ALLOWED_MIMETYPES = {
     "image/png",
@@ -35,13 +39,6 @@ ALLOWED_MIMETYPES = {
     "image/webp",
     "application/octet-stream",  # some Android browsers send this
 }
-
-
-def upload_dir() -> str:
-    """Absolute upload directory, created on first use."""
-    folder = current_app.config.get("UPLOAD_FOLDER", Config.UPLOAD_FOLDER)
-    os.makedirs(folder, exist_ok=True)
-    return folder
 
 
 @uploads_bp.post("/uploads/image")
@@ -65,23 +62,13 @@ def upload_image():
         # Unique, collision-proof name: user id + timestamp + random suffix.
         filename = f"u{user.id}_{int(time.time())}_{uuid.uuid4().hex[:8]}.{extension}"
         filename = secure_filename(filename)
-        destination = os.path.join(upload_dir(), filename)
-        file.save(destination)
 
-        size_kb = round(os.path.getsize(destination) / 1024, 1)
-        return api_success(
-            {
-                "filename": filename,
-                "url": f"{PUBLIC_PREFIX}/{filename}",
-                "absolute_url": f"/{PUBLIC_PREFIX}/{filename}",
-                "size_kb": size_kb,
-            },
-            message="Image uploaded",
-            status=201,
-        )
+        info = storage.save_image(filename, file, content_type=file.mimetype)
+        return api_success(info, message="Image uploaded", status=201)
     except ValidationError as exc:
         return api_error(exc.message, 422, exc.errors)
-    except OSError as exc:                     # disk full / permission problems
+    except (OSError, storage.StorageError) as exc:
+        # Disk full / permission problems, or S3 misconfiguration.
         current_app.logger.error("Upload failed: %s", exc)
         return api_error("Could not save the image. Please try again.", 500)
 
@@ -91,27 +78,11 @@ def upload_image():
 def list_uploads():
     """List the current user's uploaded images (newest first)."""
     user = current_user()
-    folder = upload_dir()
-    prefix = f"u{user.id}_"
     try:
-        files = [
-            name
-            for name in os.listdir(folder)
-            if name.startswith(prefix) and not name.startswith(".")
-        ]
-    except OSError:
-        files = []
-
-    items = []
-    for name in sorted(files, key=lambda n: os.path.getmtime(os.path.join(folder, n)), reverse=True):
-        path = os.path.join(folder, name)
-        items.append(
-            {
-                "filename": name,
-                "url": f"{PUBLIC_PREFIX}/{name}",
-                "size_kb": round(os.path.getsize(path) / 1024, 1),
-            }
-        )
+        items = storage.list_user_images(user.id)
+    except (OSError, storage.StorageError) as exc:
+        current_app.logger.error("Listing uploads failed: %s", exc)
+        items = []
     return api_success({"items": items, "total": len(items)})
 
 
@@ -124,8 +95,11 @@ def delete_upload(filename: str):
     if not safe_name.startswith(f"u{user.id}_") and not user.is_admin:
         return api_error("You can only delete your own uploads", 403)
 
-    path = os.path.join(upload_dir(), safe_name)
-    if not os.path.isfile(path):
+    try:
+        existed = storage.delete_image(safe_name)
+    except (OSError, storage.StorageError) as exc:
+        current_app.logger.error("Deleting upload failed: %s", exc)
+        return api_error("Could not delete the image. Please try again.", 500)
+    if not existed:
         return api_error("File not found", 404)
-    os.remove(path)
     return api_success(message="Image deleted")

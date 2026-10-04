@@ -1,9 +1,11 @@
 # ---------------------------------------------------------------------------
-# Campus Marketplace – Python dependencies (local development)
-# Install with:  pip install -r backend/requirements.txt
-#
-# The root requirements.txt is the canonical list (it is what Vercel
-# installs for the production function) – keep the two files in sync.
+# Campus Marketplace – runtime dependencies
+# This is the single dependency list used by:
+#   • local development  →  python -m venv .venv && . .venv/bin/activate
+#                           pip install -r requirements.txt
+#   • Vercel deployment  →  installed automatically for the Python function
+# (backend/requirements.txt mirrors these pins for the legacy
+#  `pip install -r backend/requirements.txt` workflow; keep them in sync.)
 # ---------------------------------------------------------------------------
 
 # Core web framework
@@ -25,8 +27,6 @@ Flask-CORS==6.0.5
 # Environment variable loading (.env support)
 python-dotenv==1.2.4
 
-# S3-compatible object storage (used when UPLOAD_STORAGE=s3)
+# S3-compatible object storage for uploaded images (AWS S3, Cloudflare R2,
+# MinIO, …). Only used when UPLOAD_STORAGE=s3 (required on Vercel).
 boto3==1.35.51
-
-# WSGI server for a bare-metal / VPS deployment (gunicorn --bind … "app:app")
-gunicorn==23.0.0; sys_platform != "win32"
