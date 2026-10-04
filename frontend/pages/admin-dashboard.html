@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f766e">
+  <meta name="description" content="Administrator dashboard – moderate listings and manage users on Campus Marketplace.">
+  <title>Admin dashboard · Campus Marketplace</title>
+
+  <link rel="icon" type="image/svg+xml" href="../assets/images/logo.svg">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/responsive.css">
+</head>
+<body data-page="admin">
+
+  <header id="site-header"></header>
+
+  <main>
+    <!-- Dashboard header -->
+    <section style="background:#0f172a;color:#fff;padding:22px 0">
+      <div class="container">
+        <div class="flex-between wrap">
+          <div>
+            <h1 style="color:#fff" class="mb-0">
+              Admin dashboard
+              <span class="badge badge-rejected hidden" id="pending-badge">0</span>
+            </h1>
+            <p class="mb-0" style="color:rgba(255,255,255,.75)">
+              Review submissions, moderate listings and manage student accounts.
+            </p>
+          </div>
+          <button class="btn btn-outline btn-sm"
+                  style="background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.35)"
+                  id="refresh-dashboard">🔄 Refresh</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <!-- ===================== STATISTICS ====================== -->
+        <h2>Overview</h2>
+        <div class="stat-grid mb-3">
+          <div class="stat-tile"><div class="value" id="stat-users">0</div><div class="label">Total users</div></div>
+          <div class="stat-tile"><div class="value" id="stat-verified">0</div><div class="label">Verified users</div></div>
+          <div class="stat-tile"><div class="value" id="stat-new-week">0</div><div class="label">New this week</div></div>
+          <div class="stat-tile"><div class="value" id="stat-listings">0</div><div class="label">All listings</div></div>
+          <div class="stat-tile"><div class="value" id="stat-published">0</div><div class="label">Published</div></div>
+          <div class="stat-tile"><div class="value" id="stat-pending">0</div><div class="label">Awaiting review</div></div>
+          <div class="stat-tile"><div class="value" id="stat-views">0</div><div class="label">Listing views</div></div>
+          <div class="stat-tile"><div class="value" id="stat-reviews">0</div><div class="label">Reviews left</div></div>
+        </div>
+
+        <div class="grid grid-2 mb-3">
+          <div class="card">
+            <div class="card-head"><h3>Listings by type</h3></div>
+            <div class="card-body"><ul class="spec-list" id="listing-breakdown">
+              <li><span class="k">Loading…</span><span class="v">—</span></li>
+            </ul></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><h3>Recent activity</h3></div>
+            <div class="card-body" id="activity-list"><p class="text-muted">Loading…</p></div>
+          </div>
+        </div>
+
+        <!-- ===================== TABS ============================ -->
+        <div class="tabs" id="admin-tabs">
+          <button class="active" data-tab="queue">⏳ Moderation queue
+            <span class="count" id="tab-pending-count">0</span></button>
+          <button data-tab="listings">📦 All listings</button>
+          <button data-tab="users">👥 Users</button>
+        </div>
+
+        <!-- Moderation queue -->
+        <div data-panel="queue">
+          <div class="section-head">
+            <div>
+              <h2 class="mb-0">Pending submissions</h2>
+              <p class="mb-0">Approve to publish, reject or flag to hide, with a reason for the seller.</p>
+            </div>
+          </div>
+          <div id="pending-list">
+            <div class="skeleton skeleton-card"></div>
+          </div>
+        </div>
+
+        <!-- All listings -->
+        <div data-panel="listings" class="hidden">
+          <div class="section-head">
+            <div>
+              <h2 class="mb-0">All listings</h2>
+              <p class="mb-0">Every product, room, event and service with its moderation status.</p>
+            </div>
+          </div>
+
+          <form id="listing-filters" class="filter-panel mb-2">
+            <div class="filter-grid">
+              <div class="form-group">
+                <label for="listing-search">Search</label>
+                <input id="listing-search" type="search" placeholder="Title or description">
+              </div>
+              <div class="form-group">
+                <label for="listing-status">Status</label>
+                <select id="listing-status">
+                  <option value="">All statuses</option>
+                  <option value="pending">Pending</option>
+                  <option value="published">Published</option>
+                  <option value="rejected">Rejected</option>
+                  <option value="sold">Sold</option>
+                  <option value="archived">Archived</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="listing-type">Type</label>
+                <select id="listing-type">
+                  <option value="">All types</option>
+                  <option value="product">Products</option>
+                  <option value="accommodation">Accommodation</option>
+                  <option value="event">Events</option>
+                  <option value="service">Services</option>
+                </select>
+              </div>
+              <div class="form-group" style="align-self:end">
+                <button class="btn btn-primary" type="submit">Apply</button>
+              </div>
+            </div>
+          </form>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Listing</th><th>Owner</th><th>Price</th><th>Location</th>
+                  <th>Status</th><th>Posted</th><th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="listings-body">
+                <tr><td colspan="7" class="text-muted">Open the tab to load listings…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Users -->
+        <div data-panel="users" class="hidden">
+          <div class="section-head">
+            <div>
+              <h2 class="mb-0">User management</h2>
+              <p class="mb-0">Verify students, suspend rule breakers or grant admin rights.</p>
+            </div>
+          </div>
+
+          <div class="filter-panel mb-2">
+            <div class="filter-grid">
+              <div class="form-group">
+                <label for="user-search">Search users</label>
+                <input id="user-search" type="search" placeholder="Name, email or phone">
+              </div>
+              <div class="form-group">
+                <label for="user-type">Account type</label>
+                <select id="user-type">
+                  <option value="">All types</option>
+                  <option value="student">Students</option>
+                  <option value="landlord">Landlords</option>
+                  <option value="service_provider">Service providers</option>
+                  <option value="admin">Administrators</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>User</th><th>Phone</th><th>Type</th><th>Verified</th>
+                  <th>Status</th><th>Joined</th><th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="users-body">
+                <tr><td colspan="7" class="text-muted">Open the tab to load users…</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination" id="users-pagination"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer id="site-footer"></footer>
+  <nav id="bottom-nav" aria-label="Mobile navigation"></nav>
+
+  <script src="../js/api.js"></script>
+  <script src="../js/ui.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/admin.js"></script>
+</body>
+</html>

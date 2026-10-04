@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f766e">
+  <meta name="description" content="Accommodation around Federal University of Lafia – self-contains, hostels, flats and shared rooms with verified landlords.">
+  <title>Accommodation · Campus Marketplace</title>
+
+  <link rel="icon" type="image/svg+xml" href="../assets/images/logo.svg">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/responsive.css">
+</head>
+<body data-page="accommodation">
+
+  <header id="site-header"></header>
+
+  <main>
+    <!-- Page header -->
+    <section class="hero" style="padding:28px 0 24px">
+      <div class="container">
+        <span class="hero-badge">🏠 Verified landlords · No agent fees surprises</span>
+        <h1>Find your next room near campus</h1>
+        <p class="lead">
+          Self-contains, single rooms, hostels and flats in Angwan Rimi, Bukan Sidi,
+          Mararaba, Tudun Amba, Akun and more. Compare prices, see amenities, then call or
+          WhatsApp the landlord directly.
+        </p>
+      </div>
+    </section>
+
+    <!-- Room type chips -->
+    <section style="background:#fff;border-bottom:1px solid var(--line);padding:12px 0">
+      <div class="container">
+        <div class="chip-row" id="room-type-chips">
+          <button class="chip active" data-value="all">All rooms</button>
+          <button class="chip" data-value="single">🛏 Single room</button>
+          <button class="chip" data-value="self-contain">🚿 Self-contain</button>
+          <button class="chip" data-value="hostel">🏢 Hostel space</button>
+          <button class="chip" data-value="flat">🏡 Flat / apartment</button>
+          <button class="chip" data-value="shared">👥 Shared room</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="grid grid-sidebar">
+          <!-- Filters -->
+          <aside>
+            <div class="filter-panel">
+              <h4>Filter rooms</h4>
+              <form id="room-filter-form">
+                <div class="form-group">
+                  <label for="room-min">Minimum price (₦ / year)</label>
+                  <input id="room-min" name="min_price" type="number" min="0" placeholder="e.g. 60000">
+                </div>
+                <div class="form-group">
+                  <label for="room-max">Maximum price (₦ / year)</label>
+                  <input id="room-max" name="max_price" type="number" min="0" placeholder="e.g. 250000">
+                </div>
+                <div class="form-group">
+                  <label for="room-location">Area around campus</label>
+                  <select id="room-location" name="location">
+                    <option value="">Any area</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="room-gender">Preferred gender</label>
+                  <select id="room-gender" name="gender">
+                    <option value="any">Any</option>
+                    <option value="male">Male only</option>
+                    <option value="female">Female only</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="room-rooms">Minimum bedrooms / spaces</label>
+                  <select id="room-rooms" name="rooms">
+                    <option value="">Any</option>
+                    <option value="1">1+</option>
+                    <option value="2">2+</option>
+                    <option value="3">3+</option>
+                    <option value="4">4+</option>
+                  </select>
+                </div>
+                <div class="checkbox-row form-group">
+                  <input id="room-furnished" name="furnished" type="checkbox" value="true">
+                  <label for="room-furnished">Furnished rooms only</label>
+                </div>
+                <div class="filter-actions">
+                  <button class="btn btn-primary" type="submit" style="flex:1">Apply filters</button>
+                  <button class="btn btn-outline" type="button" data-action="reset">Reset</button>
+                </div>
+              </form>
+            </div>
+
+            <div class="card card-pad mt-2">
+              <h4>🛡 Renting safely</h4>
+              <ul class="spec-list">
+                <li><span class="k">Inspect first</span><span class="v">Always</span></li>
+                <li><span class="k">Never pay twice</span><span class="v">Get a receipt</span></li>
+                <li><span class="k">Report a scam</span><span class="v">Contact admin</span></li>
+              </ul>
+            </div>
+          </aside>
+
+          <!-- Listings -->
+          <div>
+            <div class="section-head" style="margin-bottom:12px">
+              <div>
+                <h2 class="mb-0">Available rooms</h2>
+                <p class="mb-0"><span id="room-count">Loading…</span></p>
+              </div>
+              <a class="btn btn-primary btn-sm" href="post-listing.html#accommodation">➕ Advertise a room</a>
+            </div>
+
+            <div class="grid grid-cards" id="room-grid">
+              <div class="skeleton skeleton-card"></div>
+              <div class="skeleton skeleton-card"></div>
+              <div class="skeleton skeleton-card"></div>
+            </div>
+            <div class="pagination" id="room-pagination"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer id="site-footer"></footer>
+  <nav id="bottom-nav" aria-label="Mobile navigation"></nav>
+
+  <script src="../js/api.js"></script>
+  <script src="../js/ui.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/marketplace.js"></script>
+</body>
+</html>

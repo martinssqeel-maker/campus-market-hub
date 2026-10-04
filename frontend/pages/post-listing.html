@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f766e">
+  <meta name="description" content="Post a marketplace listing – sell an item, advertise accommodation, an event or a service on Campus Marketplace.">
+  <title>Post a listing · Campus Marketplace</title>
+
+  <link rel="icon" type="image/svg+xml" href="../assets/images/logo.svg">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/responsive.css">
+</head>
+<body data-page="post">
+
+  <header id="site-header"></header>
+
+  <main>
+    <section class="section">
+      <div class="container container-narrow">
+        <div class="section-head">
+          <div>
+            <h1 class="mb-0">Post a listing</h1>
+            <p class="mb-0">Choose what you are posting – the form adapts to your choice.</p>
+          </div>
+        </div>
+
+        <!-- Listing type tabs -->
+        <div class="tabs" role="tablist">
+          <button type="button" class="active" data-listing-type="product">🛍 Product</button>
+          <button type="button" data-listing-type="accommodation">🏠 Accommodation</button>
+          <button type="button" data-listing-type="event">📅 Event / advert</button>
+          <button type="button" data-listing-type="service">🧰 Service</button>
+        </div>
+
+        <form id="post-form" class="form-card" novalidate>
+          <!-- ===================== COMMON FIELDS ==================== -->
+          <div class="form-group">
+            <label for="post-title">Title <span class="req">*</span></label>
+            <input id="post-title" name="title" type="text" maxlength="160" required
+                   placeholder="e.g. HP EliteBook 840 G5 – Core i5, 8GB RAM">
+            <span class="field-hint">Be specific – listings with clear titles sell faster.</span>
+            <span class="field-error"></span>
+          </div>
+
+          <div class="form-group">
+            <label for="post-description">Description <span class="req">*</span></label>
+            <textarea id="post-description" name="description" maxlength="4000" required
+                      placeholder="Describe the item, room, event or service – condition, what's included, why you're selling…"></textarea>
+            <span class="field-error"></span>
+          </div>
+
+          <div class="form-row form-row-2">
+            <div class="form-group">
+              <label for="category-select" id="category-label">Category</label>
+              <select id="category-select" name="category"></select>
+            </div>
+            <div class="form-group">
+              <label for="post-location">Location</label>
+              <input id="post-location" name="location" type="text"
+                     placeholder="e.g. Angwan Rimi, Lafia">
+            </div>
+          </div>
+
+          <!-- ===================== PRODUCT FIELDS =================== -->
+          <div data-type-section="product">
+            <div class="form-row form-row-2">
+              <div class="form-group">
+                <label for="product-price">Price (₦) <span class="req">*</span></label>
+                <input id="product-price" name="price" type="number" min="0" step="50" placeholder="8500">
+                <span class="field-error"></span>
+              </div>
+              <div class="form-group">
+                <label for="product-condition">Condition</label>
+                <select id="product-condition" name="condition">
+                  <option value="used">Used – still in good shape</option>
+                  <option value="new">Brand new</option>
+                  <option value="refurbished">Refurbished</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- ================== ACCOMMODATION FIELDS ================ -->
+          <div data-type-section="accommodation" class="hidden">
+            <div class="form-row form-row-2">
+              <div class="form-group">
+                <label for="room-price">Rent per year (₦) <span class="req">*</span></label>
+                <input id="room-price" name="price" type="number" min="0" step="1000" placeholder="180000">
+                <span class="field-error"></span>
+              </div>
+              <div class="form-group">
+                <label for="room-spaces">Number of rooms / spaces</label>
+                <input id="room-spaces" name="rooms" type="number" min="1" max="50" value="1">
+              </div>
+            </div>
+            <div class="form-row form-row-2">
+              <div class="form-group">
+                <label for="room-gender-field">Preferred gender</label>
+                <select id="room-gender-field" name="gender">
+                  <option value="any">Any student</option>
+                  <option value="male">Male students</option>
+                  <option value="female">Female students</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="room-amenities">Amenities (comma separated)</label>
+                <input id="room-amenities" name="amenities" type="text"
+                       placeholder="Water supply, Prepaid meter, Tiled floor">
+              </div>
+            </div>
+            <div class="checkbox-row form-group">
+              <input id="room-furnished-field" name="furnished" type="checkbox" value="true">
+              <label for="room-furnished-field">The room is furnished</label>
+            </div>
+          </div>
+
+          <!-- ===================== EVENT FIELDS ==================== -->
+          <div data-type-section="event" class="hidden">
+            <div class="form-row form-row-2">
+              <div class="form-group">
+                <label for="event-date">Date &amp; time <span class="req">*</span></label>
+                <input id="event-date" name="date" type="datetime-local">
+                <span class="field-error"></span>
+              </div>
+              <div class="form-group">
+                <label for="event-price">Ticket price (₦) – 0 for free</label>
+                <input id="event-price" name="ticket_price" type="number" min="0" step="100" value="0">
+              </div>
+            </div>
+          </div>
+
+          <!-- ==================== SERVICE FIELDS =================== -->
+          <div data-type-section="service" class="hidden">
+            <div class="form-row form-row-2">
+              <div class="form-group">
+                <label for="service-price">Price (₦) <span class="req">*</span></label>
+                <input id="service-price" name="price" type="number" min="0" step="50" placeholder="1500">
+                <span class="field-error"></span>
+              </div>
+              <div class="form-group">
+                <label for="service-unit">Price unit</label>
+                <select id="service-unit" name="price_unit">
+                  <option value="per job">Per job</option>
+                  <option value="per page">Per page</option>
+                  <option value="per hour">Per hour</option>
+                  <option value="per session">Per session</option>
+                  <option value="per load">Per load</option>
+                  <option value="per room">Per room</option>
+                  <option value="per day">Per day</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- ===================== IMAGE UPLOAD ==================== -->
+          <h3 class="mt-3">Photo</h3>
+          <p class="text-muted">A clear photo gets up to 3× more responses. Max 5&nbsp;MB (jpg, png, gif, webp).</p>
+
+          <div class="upload-zone" id="upload-zone" tabindex="0" role="button"
+               aria-label="Upload a photo">
+            <div class="icon">🖼</div>
+            <strong>Click to choose a photo</strong>
+            <div class="text-muted"><small>or drag and drop it here</small></div>
+            <input id="image-input" type="file" accept="image/*" class="hidden">
+          </div>
+
+          <div class="progress" id="upload-progress"><span></span></div>
+
+          <div class="upload-preview" id="upload-preview">
+            <img id="preview-img" alt="Selected photo preview">
+            <button class="remove" type="button" id="remove-image">Remove photo</button>
+          </div>
+
+          <div class="mt-3">
+            <button class="btn btn-primary btn-lg btn-block" type="submit">Submit for approval</button>
+            <p class="text-muted text-center mt-1">
+              <small>Listings are reviewed by an administrator before they appear publicly.</small>
+            </p>
+          </div>
+        </form>
+
+        <div id="post-result" class="mt-2 hidden"></div>
+
+        <!-- Guidance card -->
+        <div class="card card-pad mt-3">
+          <h3>Tips for a great listing</h3>
+          <ul class="spec-list">
+            <li><span class="k">Real photos</span><span class="v">Use your own, not internet images</span></li>
+            <li><span class="k">Honest condition</span><span class="v">Mention scratches or faults</span></li>
+            <li><span class="k">Fair price</span><span class="v">Check similar listings first</span></li>
+            <li><span class="k">Safe meeting point</span><span class="v">Campus gate or a busy hostel</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer id="site-footer"></footer>
+  <nav id="bottom-nav" aria-label="Mobile navigation"></nav>
+
+  <script src="../js/api.js"></script>
+  <script src="../js/ui.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/marketplace.js"></script>
+</body>
+</html>
