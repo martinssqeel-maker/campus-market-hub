@@ -27,6 +27,7 @@ from utils.helpers import api_error, api_success, parse_int, request_data
 from utils.validators import (
     ValidationError,
     clean_text,
+    normalize_image_reference,
     validate_email,
     validate_phone,
     validate_rating,
@@ -101,10 +102,13 @@ def update_user(user_id: int):
             ("department", 120),
             ("level", 20),
             ("location", 160),
-            ("avatar_url", 300),
         ):
             if field in payload:
                 setattr(user, field, clean_text(payload.get(field), limit) or None)
+        if "avatar_url" in payload:
+            # Normalised like a listing image: a bucket key survives a provider
+            # or domain change, a pasted (or expiring) URL does not.
+            user.avatar_url = normalize_image_reference(payload.get("avatar_url"), "avatar_url")
 
         # Admins may toggle verification / account status.
         if viewer.is_admin:

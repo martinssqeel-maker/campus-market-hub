@@ -56,7 +56,7 @@ database and the images must live outside the app.
 ```bash
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
-.venv/bin/python -m unittest discover -s backend/tests -v      # 63 tests, OK
+.venv/bin/python -m unittest discover -s backend/tests -v      # 104 tests, OK
 .venv/bin/python build_vercel.py                               # generates public/
 ```
 
@@ -122,7 +122,47 @@ Result — five values to remember:
 | `S3_ENDPOINT_URL` | `https://1a2b3c4d5e6f.r2.cloudflarestorage.com` |
 | `S3_ACCESS_KEY_ID` | `a1b2c3…` |
 | `S3_SECRET_ACCESS_KEY` | `d4e5f6…` |
-| `S3_PUBLIC_BASE_URL` | `https://pub-1a2b3c4d5e.r2.dev` |
+| `S3_PUBLIC_BASE_URL` | `https://pub-1a2b3c4d5e.r2.dev` (optional — see below) |
+
+### Using Supabase Storage instead of R2
+
+Supabase exposes the *same* bucket through two URLs that look alike and behave
+completely differently. Mixing them up is the classic reason a photo uploads
+happily, shows up in the Supabase dashboard, and never renders in a listing:
+
+| Purpose | Value | Who may read it |
+|---|---|---|
+| Writes (`S3_ENDPOINT_URL`) | `https://<project-ref>.supabase.co/storage/v1/s3` | signed requests only (the app signs them) |
+| Public reads (`S3_PUBLIC_BASE_URL`) | `https://<project-ref>.supabase.co/storage/v1/object/public/<bucket>` | any browser — **if** the bucket is public |
+
+1. Storage → Buckets → **New bucket** (e.g. `campus-market`). Turn on **Public
+   bucket** if browsers should read images directly; leaving it off is fine too
+   (see the note below).
+2. Storage → Settings → **S3 connection info** → *Access keys*: copy the access
+   key and secret (shown once). The region is the project's AWS region, e.g.
+   `us-east-1` — not `auto`.
+3. Set the variables:
+
+   ```
+   UPLOAD_STORAGE=s3
+   S3_BUCKET=campus-market
+   S3_REGION=us-east-1
+   S3_ENDPOINT_URL=https://<project-ref>.supabase.co/storage/v1/s3
+   S3_ACCESS_KEY_ID=…
+   S3_SECRET_ACCESS_KEY=…
+   S3_PUBLIC_BASE_URL=https://<project-ref>.supabase.co/storage/v1/object/public/campus-market
+   S3_ADDRESSING_STYLE=path
+   ```
+
+   Never put `…/storage/v1/s3` in `S3_PUBLIC_BASE_URL`: every request there must
+   be signed, so a browser always fails. If you do, the app detects it, corrects
+   the value to the `object/public` form and explains itself in `/api/health`.
+
+> **Private bucket?** Clear `S3_PUBLIC_BASE_URL` (or set `UPLOAD_URL_MODE=proxy`)
+> and the API serves the images itself through `GET /api/uploads/view/…`, using
+> the same credentials that write them. No signed URLs to expire, no bucket
+> policy to configure, and the frontend switches to that route by itself whenever
+> a direct bucket link fails.
 
 ---
 
@@ -169,10 +209,12 @@ site.
 | `S3_ENDPOINT_URL` | `https://<account>.r2.cloudflarestorage.com` | yes for R2 |
 | `S3_ACCESS_KEY_ID` | R2 token access key | yes when `UPLOAD_STORAGE=s3` |
 | `S3_SECRET_ACCESS_KEY` | R2 token secret | yes when `UPLOAD_STORAGE=s3` |
-| `S3_PUBLIC_BASE_URL` | `https://pub-….r2.dev` | yes (otherwise images cannot be linked) |
+| `S3_PUBLIC_BASE_URL` | `https://pub-….r2.dev`, or Supabase's `…/storage/v1/object/public/<bucket>` | optional — without it the API streams images instead of the bucket |
 | `S3_REGION` | `auto` | optional (default `auto`) |
 | `S3_PREFIX` | `uploads` | optional (default `uploads`) |
 | `S3_ADDRESSING_STYLE` | `path` | optional; use `virtual` for AWS S3 |
+| `UPLOAD_URL_MODE` | `auto` (or `public`, `proxy`) | optional; `proxy` keeps the bucket fully private |
+| `UPLOAD_PROXY_MODE` | `stream` (or `redirect`) | optional; `redirect` answers `/uploads/view` with a 302 to a presigned URL |
 | `MAX_UPLOAD_MB` | `4` | optional; clamped to 4 MB on Vercel |
 | `CORS_ORIGINS` | e.g. `https://your-app.vercel.app` | optional (default `*`) |
 | `AUTO_PUBLISH` | `false` | optional (moderation stays on) |
@@ -247,11 +289,11 @@ and password, then open the admin dashboard.
 
 | # | Check | Expected |
 |---|---|---|
-| 1 | `GET /api/health` | `status: "ok"`, `database: "connected"`, `storage.backend: "s3"`, `storage.persistent: true`, no `warnings` |
+| 1 | `GET /api/health` | `status: "ok"`, `database: "connected"`, `storage.backend: "s3"`, `storage.persistent: true`, `images.delivery` as expected, no `warnings` |
 | 2 | Open `/` | Landing page loads with styling (served from the CDN) |
 | 3 | Log in as the admin | Dashboard loads, stats are zeros |
-| 4 | Student sign-up, post a product **with a photo** | Upload succeeds; the image URL starts with your `S3_PUBLIC_BASE_URL` |
-| 5 | Check the R2 bucket | An object `uploads/u<id>_…png` exists |
+| 4 | Student sign-up, post a product **with a photo** | Upload succeeds; the listing's `image_url` starts with your `S3_PUBLIC_BASE_URL` — or is `/api/uploads/view/…` when the bucket is private — and `image_fallback_url` returns `200` |
+| 5 | Check the bucket | An object `uploads/u<id>_…png` exists, and the listing row stores that *key*, not a full URL |
 | 6 | Approve the listing as admin | It becomes public |
 | 7 | Redeploy (push any commit) and reload the listing | The image is still there (this is the persistence test that `/tmp` would fail) |
 | 8 | `/api/health` from a phone | Same JSON — proves the environment variables are set for Production, not only Preview |
@@ -280,15 +322,18 @@ Local development is unchanged: `python app.py` from the repository root (or
 | Symptom | Cause & fix |
 |---|---|
 | `/api/health` → `database: "error: …"` | `DATABASE_URL` is wrong, or the database is asleep. Neon free branches suspend after inactivity; the first request wakes them (that is why the function has a 30 s limit). |
-| `/api/health` → `storage.configured: false` | `UPLOAD_STORAGE=s3` but `S3_BUCKET` / `S3_PUBLIC_BASE_URL` are missing. The error message names the missing variable. |
+| `/api/health` → `storage.configured: false` | `UPLOAD_STORAGE=s3` but `S3_BUCKET` is missing; the error message names it. `S3_PUBLIC_BASE_URL` is *not* required — images are then served through `/api/uploads/view`. |
 | Upload returns `503` with *"Check S3_ACCESS_KEY_ID / S3_SECRET_ACCESS_KEY"* | The R2 token is wrong, expired, or scoped to another bucket. Create a new token with **Object Read & Write** on that bucket. |
-| Upload succeeds but the image is broken (404) | The bucket is not public, or `S3_PUBLIC_BASE_URL` does not match the bucket's public URL. Open `S3_PUBLIC_BASE_URL/uploads/<filename>` directly to confirm. |
+| Upload succeeds — the file is in the bucket — but the listing shows "No photo" or a broken image | The URL handed to the browser is not anonymously readable. Read `GET /api/health` → `images`: `delivery: "bucket"` means links go straight to the bucket, and `notice` names a corrected or suspicious `S3_PUBLIC_BASE_URL`. Then either make the bucket public (Supabase: bucket → **Public bucket**; R2: enable the `r2.dev` subdomain or attach a domain) **or** set `UPLOAD_URL_MODE=proxy` and redeploy, which makes the API stream the file with its own credentials. Listing rows store the object key, so no data has to be touched. |
+| Only *older* listings are missing photos | Those rows were written under a previous storage configuration. They are re-resolved from the upload name at read time; if one is still broken the object no longer exists in the bucket (or its name was cut by the old 300-character column, now 1000) and the owner should re-upload it. |
+| Card grid shows "Photo unavailable" after a moment | That is the fallback path reporting itself: the direct bucket URL failed *and* `/api/uploads/view` failed. Open the listing's `image_fallback_url` in a browser — its error message says whether the bucket credentials are wrong. |
 | Upload fails at exactly ~4 MB with an HTML error | Vercel's request-body limit was hit. Keep `MAX_UPLOAD_MB<=4`; for bigger images you would need client-side uploads directly to R2 (out of scope). |
 | `GET /pages/...` returns JSON `{"success": false, "message": "Not found"}` | The page does not exist in `public/`. Run `python build_vercel.py --check` locally — `frontend/` is the source of truth. |
 | Deploy succeeds but the site is an unstyled page / 404 | Check the build log: `python build_vercel.py` must have run and created `public/`. Committing a `vercel.json` with a wrong `outputDirectory` breaks this — keep the repository's file as-is. |
 | `ModuleNotFoundError: psycopg` / `boto3` in the build log | The root `requirements.txt` is the file Vercel installs; do not replace it with `backend/requirements.txt`. |
 | "No administrator account yet" on `/pages/login.html` | Run Step 9 (`create-admin`) with the production `DATABASE_URL` exported. |
 | Password reset / lost admin password | `flask --app app create-admin --email you@example.com --reset-password` (with the production `DATABASE_URL`). |
+| A listing save fails with a database length error | Databases created before image references were shortened still have `image_url varchar(300)`. New values are ~40-character object keys, so this only bites when a very long external link is pasted. Widen it when convenient: `ALTER TABLE products ALTER COLUMN image_url TYPE varchar(1000);` (same for `accommodation`, `events`, `services`, and `users.avatar_url`). |
 
 ---
 

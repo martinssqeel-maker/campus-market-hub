@@ -584,7 +584,7 @@
         '<div class="detail-grid">' +
           "<div>" +
             '<div class="detail-media">' + (item.image_url
-              ? '<img src="' + UI.imageFor(item) + '" alt="' + UI.escapeHtml(item.title) + '">'
+              ? UI.imageTag(item, item.title, true)
               : '<div class="detail-placeholder"><strong>No photo available</strong><span>The owner did not add an image to this listing.</span></div>') + '</div>' +
             '<div class="card card-pad mt-2">' +
               "<h2>Description</h2>" +
@@ -610,7 +610,7 @@
                 Number(item.views || 0) + " views</p>" +
               '<div class="flex gap-1 wrap">' +
                 '<button class="btn btn-outline btn-sm" data-detail-fav="' + item.type + '" data-id="' + item.id +
-                  '">' + (UI.wishlist.has(item.type, item.id) ? "Saved Saved" : "Save Save") + "</button>" +
+                  '">' + (UI.wishlist.has(item.type, item.id) ? "♥ Saved" : "♡ Save") + "</button>" +
                 '<button class="btn btn-outline btn-sm" data-action="share">🔗 Share</button>' +
                 (isOwner ? '<a class="btn btn-outline btn-sm" href="' + UI.pageUrl("profile.html") +
                   '">Edit in profile</a>' : "") +
@@ -955,8 +955,22 @@
       API.uploads.image(file, function (percent) {
         if (progressFill) progressFill.style.width = percent + "%";
       }).then(function (payload) {
-        uploadedUrl = payload.data.url;
+        // `reference` is the storage key; the listing then renders whatever URL
+        // the current bucket configuration implies, so moving provider or
+        // domain later cannot orphan the photo.
+        uploadedUrl = payload.data.reference || payload.data.url;
         UI.toast("Image uploaded", "success");
+        // The preview above is a local blob, so a student could post a photo
+        // that nobody else can ever see.  Check the *served* URL quietly.
+        // Resolve against the site root first: the page lives in /pages/, and a
+        // relative upload URL would otherwise be probed at the wrong path.
+        UI.checkImage(UI.resolveImage(payload.data.url), UI.resolveImage(payload.data.proxy_url))
+          .then(function (ok) {
+            if (!ok) {
+              UI.toast("Photo saved, but it could not be displayed from storage. " +
+                "If this keeps happening, tell the administrator.", "info", 7000);
+            }
+          });
       }).catch(function (error) {
         UI.toast(error.message, "error");
         preview.style.display = "none";

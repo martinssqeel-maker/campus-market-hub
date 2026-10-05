@@ -30,7 +30,7 @@ from utils.helpers import (
     parse_int,
     request_data,
 )
-from utils.validators import ValidationError, clean_text
+from utils.validators import ValidationError, clean_text, normalize_image_reference
 
 events_bp = Blueprint("events", __name__)
 
@@ -207,7 +207,7 @@ def create_event():
             location=clean_text(payload.get("location"), 160) or "UNILAFIA Campus",
             category=category,
             ticket_price=parse_float(payload.get("ticket_price"), 0.0, minimum=0.0) or 0.0,
-            image_url=clean_text(payload.get("image_url"), 300) or None,
+            image_url=normalize_image_reference(payload.get("image_url")),
             status="published" if (Config.AUTO_PUBLISH or user.is_admin) else "pending",
         )
         db.session.add(event)
@@ -250,7 +250,7 @@ def update_event(event_id: int):
         if payload.get("ticket_price") is not None:
             event.ticket_price = parse_float(payload["ticket_price"], 0.0, minimum=0.0) or 0.0
         if "image_url" in payload:
-            event.image_url = clean_text(payload["image_url"], 300) or None
+            event.image_url = normalize_image_reference(payload.get("image_url"))
 
         new_status = (payload.get("status") or "").lower()
         if viewer.is_admin and new_status in {"published", "archived"}:

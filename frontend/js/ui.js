@@ -134,13 +134,110 @@
     return "";
   }
 
+  var ABSOLUTE_URL_RE = /^(https?:|data:|blob:|\/\/)/i;
+
+  /** Resolve any stored image reference into a URL this page can request. */
+  function resolveImage(value) {
+    var text = String(value == null ? "" : value).trim();
+    if (!text) return null;
+    if (ABSOLUTE_URL_RE.test(text)) return text;
+    // Relative references are root-relative, and pages live under /pages/.
+    return ROOT + text.replace(/^\/+/, "");
+  }
+
   function imageFor(item) {
-    if (item && item.image_url) {
-      // Absolute URLs are used as-is; relative ones resolve against the site root.
-      if (/^(https?:|data:)/.test(item.image_url)) return item.image_url;
-      return ROOT + item.image_url.replace(/^\//, "");
+    return item ? resolveImage(item.image_url) : null;
+  }
+
+  /**
+   * The same-origin API route that streams this file, tried when the primary
+   * URL fails.  Object storage is only reachable from the browser when the
+   * bucket is public *and* its public domain is correct; the API can always
+   * read it, so a listing never shows a hole because of bucket settings.
+   */
+  function imageFallbackFor(item) {
+    return item ? resolveImage(item.image_fallback_url) : null;
+  }
+
+  /** <img> markup for a listing, wired for the automatic fallback below. */
+  function imageTag(item, alt, eager) {
+    var src = imageFor(item);
+    if (!src) return "";
+    var fallback = imageFallbackFor(item);
+    return (
+      '<img src="' + escapeHtml(src) + '" alt="' + escapeHtml(alt || (item && item.title) || "") + '"' +
+      ' loading="' + (eager ? "eager" : "lazy") + '" decoding="async"' +
+      (fallback ? ' data-fallback-src="' + escapeHtml(fallback) + '"' : "") + ">"
+    );
+  }
+
+  /* -----------------------------------------------------------------------
+     Broken-image recovery
+
+     The "No photo" tile used to mean "nobody uploaded a picture".  It could
+     equally mean "the picture is in Supabase/R2 and the URL we were given is
+     not readable by a browser", which looked identical to the student and was
+     invisible to the poster.  So a failing <img> is retried through the API
+     first (once), and the tile is only shown when that fails too.
+
+     ``error`` does not bubble, hence the capture-phase listener.
+     ----------------------------------------------------------------------- */
+  function brokenPhoto(img) {
+    img.style.display = "none";
+    if (img.dataset.photoMarked) return;
+    img.dataset.photoMarked = "1";
+    var note = document.createElement("span");
+    var inDetail = img.closest && img.closest(".detail-media");
+    note.className = inDetail ? "detail-placeholder" : "listing-placeholder";
+    note.innerHTML = inDetail
+      ? "<strong>Photo unavailable</strong><span>The image could not be loaded from storage.</span>"
+      : "<span>Photo unavailable</span><small>Could not load from storage</small>";
+    img.insertAdjacentElement("afterend", note);
+  }
+
+  /** True when `src` (or `fallback`) actually renders – used after an upload. */
+  function checkImage(src, fallback) {
+    return new Promise(function (resolve) {
+      var candidates = [src, fallback].filter(Boolean);
+      if (!candidates.length) { resolve(false); return; }
+      var index = 0;
+      var probe = new window.Image();
+      var timer = window.setTimeout(function () { probe.onload = probe.onerror = null; resolve(false); }, 12000);
+      function next() {
+        if (index >= candidates.length) {
+          window.clearTimeout(timer);
+          resolve(false);
+          return;
+        }
+        var url = candidates[index++];
+        probe.onload = function () {
+          window.clearTimeout(timer);
+          // A cached/redirected error page can still fire `load`, so check that
+          // real pixels arrived.
+          resolve(probe.naturalWidth === undefined || probe.naturalWidth > 0);
+        };
+        probe.onerror = next;
+        probe.src = url;
+      }
+      next();
+    });
+  }
+
+  function handleImageError(event) {
+    var img = event.target;
+    if (!img || img.tagName !== "IMG" || !img.dataset) return;
+    var fallback = img.dataset.fallbackSrc;
+    if (fallback && !img.dataset.fallbackTried && fallback !== img.getAttribute("src")) {
+      img.dataset.fallbackTried = "1";
+      img.src = fallback;                 // re-fires `error` if this fails too
+      return;
     }
-    return null;
+    brokenPhoto(img);
+  }
+
+  if (!window.__campusImageFallbackInstalled) {
+    window.__campusImageFallbackInstalled = true;
+    document.addEventListener("error", handleImageError, true);
   }
 
   /* -----------------------------------------------------------------------
@@ -397,7 +494,7 @@
       '<article class="listing-card" data-type="' + escapeHtml(item.type) + '" data-id="' + item.id + '">' +
         '<a class="listing-thumb" href="' + listingUrl(item) + '" aria-label="' + escapeHtml(item.title) + '">' +
           (item.image_url
-            ? '<img src="' + imageFor(item) + '" alt="' + escapeHtml(item.title) + '" loading="lazy">'
+            ? imageTag(item, item.title)
             : '<span class="listing-placeholder"><span>No photo</span><small>Image not provided</small></span>') +
           '<span class="listing-flags">' +
             (item.featured ? '<span class="badge badge-featured">Featured</span>' : "") +
@@ -586,6 +683,10 @@
     toQuery: toQuery,
     placeholder: placeholder,
     imageFor: imageFor,
+    imageFallbackFor: imageFallbackFor,
+    imageTag: imageTag,
+    checkImage: checkImage,
+    resolveImage: resolveImage,
     toast: toast,
     modal: modal,
     confirm: confirmDialog,

@@ -21,6 +21,7 @@ import bcrypt
 from sqlalchemy import UniqueConstraint, func
 
 from extensions import db
+from storage import image_urls
 
 #: Listing life-cycle: pending -> published -> (sold | rejected | removed)
 LISTING_STATUSES = ("pending", "published", "rejected", "sold", "archived")
@@ -79,7 +80,7 @@ class User(db.Model):
     user_type = db.Column(db.String(30), nullable=False, default="student")
     verified = db.Column(db.Boolean, nullable=False, default=False)  # admin-verified badge
     is_active = db.Column(db.Boolean, nullable=False, default=True)   # soft ban
-    avatar_url = db.Column(db.String(300))
+    avatar_url = db.Column(db.String(1000))
     bio = db.Column(db.Text)
     department = db.Column(db.String(120))          # e.g. "Computer Science"
     level = db.Column(db.String(20))                # e.g. "200 Level"
@@ -152,7 +153,7 @@ class User(db.Model):
             "name": self.name,
             "user_type": self.user_type,
             "verified": self.verified,
-            "avatar_url": self.avatar_url,
+            "avatar_url": image_urls(self.avatar_url)["image_url"],
             "bio": self.bio,
             "department": self.department,
             "level": self.level,
@@ -189,7 +190,7 @@ class Product(db.Model):
     title = db.Column(db.String(160), nullable=False, index=True)
     description = db.Column(db.Text, nullable=False)
     price = db.Column(db.Float, nullable=False, default=0.0)
-    image_url = db.Column(db.String(300))
+    image_url = db.Column(db.String(1000))
     category = db.Column(db.String(60), nullable=False, default="others", index=True)
     location = db.Column(db.String(160), default="UNILAFIA Campus")
     condition = db.Column(db.String(30), default="used")   # new | used | refurbished
@@ -203,13 +204,15 @@ class Product(db.Model):
     __table_args__ = (db.Index("ix_products_status_created", "status", "created_at"),)
 
     def to_dict(self, viewer=None) -> dict:
+        images = image_urls(self.image_url)
         data = {
             "id": self.id,
             "type": "product",
             "title": self.title,
             "description": self.description,
             "price": self.price,
-            "image_url": self.image_url,
+            "image_url": images["image_url"],
+            "image_fallback_url": images["image_fallback_url"],
             "category": self.category,
             "location": self.location,
             "condition": self.condition,
@@ -260,7 +263,7 @@ class Accommodation(db.Model):
     gender = db.Column(db.String(20), default="any")                  # male | female | any
     furnished = db.Column(db.Boolean, nullable=False, default=False)
     amenities = db.Column(db.String(300))                            # comma separated
-    image_url = db.Column(db.String(300))
+    image_url = db.Column(db.String(1000))
     status = db.Column(db.String(20), nullable=False, default="pending", index=True)
     views = db.Column(db.Integer, nullable=False, default=0)
     featured = db.Column(db.Boolean, nullable=False, default=False)
@@ -269,6 +272,7 @@ class Accommodation(db.Model):
     updated_at = db.Column(db.DateTime, default=utcnow, onupdate=utcnow)
 
     def to_dict(self, viewer=None) -> dict:
+        images = image_urls(self.image_url)
         data = {
             "id": self.id,
             "type": "accommodation",
@@ -281,7 +285,8 @@ class Accommodation(db.Model):
             "gender": self.gender,
             "furnished": self.furnished,
             "amenities": [a.strip() for a in (self.amenities or "").split(",") if a.strip()],
-            "image_url": self.image_url,
+            "image_url": images["image_url"],
+            "image_fallback_url": images["image_fallback_url"],
             "status": self.status,
             "views": self.views,
             "featured": self.featured,
@@ -323,7 +328,7 @@ class Event(db.Model):
     location = db.Column(db.String(160), nullable=False)
     category = db.Column(db.String(60), default="social", index=True)
     ticket_price = db.Column(db.Float, nullable=False, default=0.0)
-    image_url = db.Column(db.String(300))
+    image_url = db.Column(db.String(1000))
     status = db.Column(db.String(20), nullable=False, default="pending", index=True)
     views = db.Column(db.Integer, nullable=False, default=0)
     rejection_reason = db.Column(db.String(255))
@@ -331,6 +336,7 @@ class Event(db.Model):
     updated_at = db.Column(db.DateTime, default=utcnow, onupdate=utcnow)
 
     def to_dict(self, viewer=None) -> dict:
+        images = image_urls(self.image_url)
         return {
             "id": self.id,
             "type": "event",
@@ -340,7 +346,8 @@ class Event(db.Model):
             "location": self.location,
             "category": self.category,
             "ticket_price": self.ticket_price,
-            "image_url": self.image_url,
+            "image_url": images["image_url"],
+            "image_fallback_url": images["image_fallback_url"],
             "status": self.status,
             "views": self.views,
             "rejection_reason": self.rejection_reason,
@@ -374,7 +381,7 @@ class Service(db.Model):
     price = db.Column(db.Float, nullable=False, default=0.0)
     price_unit = db.Column(db.String(40), default="per job")   # per job | per page | per hour
     location = db.Column(db.String(160), default="UNILAFIA Campus")
-    image_url = db.Column(db.String(300))
+    image_url = db.Column(db.String(1000))
     status = db.Column(db.String(20), nullable=False, default="pending", index=True)
     views = db.Column(db.Integer, nullable=False, default=0)
     rejection_reason = db.Column(db.String(255))
@@ -382,6 +389,7 @@ class Service(db.Model):
     updated_at = db.Column(db.DateTime, default=utcnow, onupdate=utcnow)
 
     def to_dict(self, viewer=None) -> dict:
+        images = image_urls(self.image_url)
         data = {
             "id": self.id,
             "type": "service",
@@ -391,7 +399,8 @@ class Service(db.Model):
             "price": self.price,
             "price_unit": self.price_unit,
             "location": self.location,
-            "image_url": self.image_url,
+            "image_url": images["image_url"],
+            "image_fallback_url": images["image_fallback_url"],
             "status": self.status,
             "views": self.views,
             "rejection_reason": self.rejection_reason,
@@ -449,7 +458,7 @@ class Review(db.Model):
             "author": {
                 "id": self.author.id,
                 "name": self.author.name,
-                "avatar_url": self.author.avatar_url,
+                "avatar_url": image_urls(self.author.avatar_url)["image_url"],
             }
             if self.author
             else None,

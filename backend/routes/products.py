@@ -30,7 +30,12 @@ from utils.helpers import (
     parse_int,
     request_data,
 )
-from utils.validators import ValidationError, clean_text, validate_listing_payload
+from utils.validators import (
+    ValidationError,
+    clean_text,
+    normalize_image_reference,
+    validate_listing_payload,
+)
 
 products_bp = Blueprint("products", __name__)
 
@@ -226,7 +231,7 @@ def create_product():
             category=category,
             location=data.get("location") or "UNILAFIA Campus",
             condition=clean_text(payload.get("condition"), 30).lower() or "used",
-            image_url=clean_text(payload.get("image_url"), 300) or None,
+            image_url=normalize_image_reference(payload.get("image_url")),
             status="published" if Config.AUTO_PUBLISH or user.is_admin else "pending",
         )
         db.session.add(product)
@@ -267,7 +272,7 @@ def update_product(product_id: int):
         if "condition" in payload:
             product.condition = clean_text(payload.get("condition"), 30).lower()
         if "image_url" in payload:
-            product.image_url = clean_text(payload.get("image_url"), 300) or None
+            product.image_url = normalize_image_reference(payload.get("image_url"))
 
         # Optional status shortcut (mark as sold / re-list).
         new_status = (payload.get("status") or "").strip().lower()

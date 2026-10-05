@@ -222,16 +222,41 @@ class StorageFactoryTests(unittest.TestCase):
         self.assertIn("local", str(ctx.exception))
         self.assertIn("s3", str(ctx.exception))
 
-    def test_s3_requires_bucket_and_public_url(self):
+    def test_s3_requires_only_a_bucket(self):
+        """A public CDN domain is optional – /api/uploads/view covers the rest.
+
+        Requiring ``S3_PUBLIC_BASE_URL`` used to fail uploads outright, which
+        pushed people into pasting whatever URL their provider showed them –
+        for a private Supabase bucket that is a URL no browser can open.
+        """
         without_bucket = build_storage({"UPLOAD_STORAGE": "s3"})
         self.assertIsInstance(without_bucket, UnavailableStorage)
         self.assertIn("S3_BUCKET", without_bucket.describe()["error"])
-        self.assertIn("S3_PUBLIC_BASE_URL", without_bucket.describe()["error"])
 
         without_public_url = build_storage(
             {"UPLOAD_STORAGE": "s3", "S3_BUCKET": "campus-market"}
         )
-        self.assertIn("S3_PUBLIC_BASE_URL", without_public_url.describe()["error"])
+        self.assertIsInstance(without_public_url, S3Storage)
+        description = without_public_url.describe()
+        self.assertIsNone(description["public_base_url"])
+        self.assertEqual(description["image_delivery"], "/api/uploads/view")
+        self.assertEqual(
+            without_public_url.url_for_key("uploads/u3_1_aaaaaa.png"),
+            "/api/uploads/view/uploads/u3_1_aaaaaa.png",
+        )
+
+        # A private Supabase bucket therefore still produces a working link.
+        supabase = build_storage({
+            "UPLOAD_STORAGE": "s3",
+            "S3_BUCKET": "campus-market",
+            "S3_ENDPOINT_URL": "https://ref.supabase.co/storage/v1/s3",
+            "S3_ACCESS_KEY_ID": "key", "S3_SECRET_ACCESS_KEY": "secret",
+        })
+        self.assertEqual(
+            supabase.public_base_url,
+            "https://ref.supabase.co/storage/v1/object/public/campus-market",
+        )
+        self.assertIn("derived", supabase.describe()["notice"])
 
     def test_s3_half_configured_credentials_are_rejected(self):
         storage = build_storage(

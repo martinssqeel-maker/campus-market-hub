@@ -46,8 +46,10 @@ Buy and sell items · Find accommodation · Discover campus events · Hire stude
 
 - Public statistics API powering live counters on the landing page.
 - Activity feed and per-type breakdown cards on the admin dashboard (auto-refreshes).
-- Honest empty and no-photo states when a listing has no uploaded image.
-- Automated **Python test-suite** (63 tests, including the hosting/storage layer) and a **browser-level jsdom smoke test**.
+- Honest empty and no-photo states when a listing has no uploaded image — and a
+  photo that fails to load from object storage is retried through the API
+  (`image_fallback_url`) before falling back to the labelled tile.
+- Automated **Python test-suite** (104 tests, including the hosting/storage and image-delivery layers) and **browser-level jsdom tests**.
 - Print-friendly stylesheet and `prefers-reduced-motion` / dark-mode support.
 
 ---
@@ -154,18 +156,20 @@ campus-market-hub/
 │   │   ├── services.py         # service CRUD, categories
 │   │   ├── users.py            # profiles, listings, stats, reviews
 │   │   ├── favorites.py        # wishlist toggle / list / remove
-│   │   ├── uploads.py          # image upload, list, delete
+│   │   ├── uploads.py          # image upload, list, delete, /uploads/view streaming
 │   │   ├── admin.py            # moderation queue, approvals, user management, dashboards
 │   │   └── misc.py             # health, stats, global search, meta
 │   ├── utils/
 │   │   ├── decorators.py       # login_required, admin_required, current_user
 │   │   ├── helpers.py          # response envelopes, pagination, filtering, sorting
-│   │   └── validators.py       # email / phone / password / price / image validation
+│   │   └── validators.py       # email / phone / password / price / image validation, image references
 │   ├── tests/
 │   │   ├── test_api.py         # 23 automated API tests (unittest)
 │   │   ├── test_vercel_deployment.py # 40 hosting/storage tests (S3 backend, build script, config)
+│   │   ├── test_image_delivery.py    # 41 tests: image URLs, Supabase/R2 handling, /uploads/view
 │   │   ├── browser_smoke.js    # 66 jsdom checks across every page
-│   │   └── browser_filters.js  # 20 jsdom checks that filters match the API
+│   │   ├── browser_filters.js  # 20 jsdom checks that filters match the API
+│   │   └── browser_images.js   # 19 jsdom checks on listing photos and the fallback
 │   └── logs/                   # Rotating log files (created at runtime)
 ├── frontend/
 │   ├── index.html              # Landing page (hero, stats, featured, events, CTA)
@@ -313,6 +317,7 @@ Authentication uses `Authorization: Bearer <access_token>`.
 | POST | `/api/favorites` | Toggle a listing in the wishlist |
 | GET | `/api/favorites`, `/api/favorites/ids` | Wishlist with details / id list |
 | POST | `/api/uploads/image` | Upload a listing photo (multipart, field `image`) |
+| GET | `/api/uploads/view/<reference>` | Stream a stored photo (public; works with private buckets) |
 
 ### Admin (admin token required)
 
@@ -349,10 +354,10 @@ Every response uses one envelope:
 ### Automated tests (63 tests)
 
 ```bash
-python -m unittest discover -s backend/tests -v
+python -m unittest discover -s backend/tests -v      # 104 tests
 ```
 
-Covers auth (including token revocation and suspension), the full moderation workflow, CRUD permissions, every filter, pagination, search, reviews, wishlist toggling, image upload and error envelopes — plus the hosting layer: PostgreSQL URL handling, the S3-compatible storage backend (with a fake boto3 client), the Vercel entrypoint and `build_vercel.py`. Uses an in-memory SQLite database and a temporary directory — your real data and network are untouched.
+Covers auth (including token revocation and suspension), the full moderation workflow, CRUD permissions, every filter, pagination, search, reviews, wishlist toggling, image upload and error envelopes — plus the hosting layer: PostgreSQL URL handling, the S3-compatible storage backend (with a fake boto3 client), the Vercel entrypoint and `build_vercel.py`; and the image-delivery layer: reference normalisation, the Supabase/R2 public-URL corrections, `/api/uploads/view` streaming, presigned redirects and the traversal guard. Uses an in-memory SQLite database and a temporary directory — your real data and network are untouched.
 
 ### Browser-level tests (jsdom)
 
@@ -364,9 +369,10 @@ npm install jsdom
 
 node backend/tests/browser_smoke.js     # 66 checks: every page renders, no JS errors
 node backend/tests/browser_filters.js   # 20 checks: UI counts match API filter results
+node backend/tests/browser_images.js    # 19 checks: photos render, retry the fallback, then degrade
 ```
 
-`browser_smoke.js` asserts that each page renders its content and that the console stays clean; `browser_filters.js` drives the search boxes, category chips and filter forms and compares the number of listings shown with the number the API returns for the same query, proving the filters really filter.
+`browser_images.js` posts a real photo through the API and checks the card renders an `<img>` with a fallback URL, that a failing image is retried through `/api/uploads/view`, and that a still-broken photo degrades to a labelled tile; `browser_filters.js` drives the search boxes, category chips and filter forms and compares the number of listings shown with the number the API returns for the same query, proving the filters really filter.
 
 ### Manual smoke test checklist
 
@@ -401,7 +407,7 @@ managed PostgreSQL. **The complete walkthrough is
 |---|---|
 | Site + API | Vercel (Framework Preset: **Flask**, detected automatically) |
 | Database | Neon / Supabase / Vercel Postgres → `DATABASE_URL` |
-| Images | Cloudflare R2 (or AWS S3, MinIO…) → `UPLOAD_STORAGE=s3` + `S3_*` |
+| Images | Cloudflare R2, Supabase Storage, AWS S3, MinIO… → `UPLOAD_STORAGE=s3` + `S3_*` |
 
 Environment variables to set in **Vercel → Project → Settings → Environment
 Variables**:
@@ -417,8 +423,15 @@ S3_BUCKET=campus-market
 S3_ENDPOINT_URL=https://<account>.r2.cloudflarestorage.com
 S3_ACCESS_KEY_ID=…
 S3_SECRET_ACCESS_KEY=…
-S3_PUBLIC_BASE_URL=https://pub-<hash>.r2.dev
+S3_PUBLIC_BASE_URL=https://pub-<hash>.r2.dev   # optional!
 # optional: S3_REGION=auto  S3_PREFIX=uploads  S3_ADDRESSING_STYLE=path
+# optional: UPLOAD_URL_MODE=auto|public|proxy   UPLOAD_PROXY_MODE=stream|redirect
+#
+# Supabase Storage: S3_ENDPOINT_URL=https://<ref>.supabase.co/storage/v1/s3
+#                   S3_REGION=us-east-1
+#                   S3_PUBLIC_BASE_URL=https://<ref>.supabase.co/storage/v1/object/public/<bucket>
+#                   (or leave the public URL empty for a private bucket: the API
+#                    then serves images from /api/uploads/view)
 # optional: MAX_UPLOAD_MB=4  CORS_ORIGINS=https://your-app.vercel.app  AUTO_PUBLISH=false
 ```
 
@@ -435,8 +448,10 @@ flask --app app create-admin --email you@example.com   # prints a generated pass
 ```
 
 Verify with `https://<your-project>.vercel.app/api/health` — it reports the
-database and the storage backend, and lists any missing configuration as
-`warnings`. Troubleshooting (bucket permissions, `r2.dev` URLs, the 4 MB upload
+database, the storage backend and an `images` block saying whether listing
+photos are linked straight to the bucket or served by the API (plus a `notice`
+when `S3_PUBLIC_BASE_URL` had to be corrected), and lists any missing
+configuration as `warnings`. Troubleshooting (bucket permissions, `r2.dev` URLs, the 4 MB upload
 limit, first-request wake-ups) is covered in
 [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md#12-troubleshooting).
 
@@ -518,7 +533,7 @@ the engine uses `pool_pre_ping` so long-idle connections do not break.
 | `ModuleNotFoundError: No module named 'flask'` | The virtual environment is not activated, or dependencies are missing → `source .venv/bin/activate && pip install -r requirements.txt` |
 | CORS error in the browser console | The frontend is on a different port than the API. Either serve the frontend from Flask (`http://localhost:5000`) or set `window.CAMPUS_API_BASE` in the page before `js/api.js` loads. |
 | `401 Please log in to continue` | The access token expired. `api.js` refreshes it automatically; if the refresh token is also expired the user is redirected to the login page. |
-| Uploaded image does not appear | Check `UPLOAD_FOLDER` is writable and that the saved path is under `frontend/assets/uploads` — or, when `UPLOAD_STORAGE=s3`, that the bucket is public and `S3_PUBLIC_BASE_URL` matches. `GET /api/health` reports the active backend and its warnings. |
+| Uploaded image does not appear (the file is in the bucket, the listing shows no photo) | The URL given to the browser is not anonymously readable: a private bucket, or `S3_PUBLIC_BASE_URL` pointing at the *signed* S3 endpoint (`…/storage/v1/s3`) instead of the public one (`…/storage/v1/object/public/<bucket>` for Supabase, `https://pub-….r2.dev` for R2). `GET /api/health` → `images` says which mode is active and what to change; `UPLOAD_URL_MODE=proxy` fixes it without making the bucket public. Locally, also check `UPLOAD_FOLDER` is writable. |
 | `404 Not found: /pages/...` on Vercel | The generated `public/` directory is out of date → run `python build_vercel.py --check` locally; pushing to the branch rebuilds it. |
 | Images vanish after a redeploy / on Vercel | The app is using the `local` backend on an ephemeral filesystem → set `UPLOAD_STORAGE=s3` plus the `S3_*` variables and redeploy. `/api/health` warns about this before it happens. |
 | `sqlite3.OperationalError: no such table` | The database was never created → `python app.py --seed` (local) or `flask --app app init-db` (hosted). |

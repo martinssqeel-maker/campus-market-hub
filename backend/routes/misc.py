@@ -25,6 +25,54 @@ from routes.services import SERVICE_CATEGORIES
 misc_bp = Blueprint("misc", __name__)
 
 
+def _image_report(storage: dict) -> dict:
+    """Plain-language verdict on *why photos do or do not render*.
+
+    ``/api/health`` is the place an operator looks when "the picture is in the
+    bucket but the listing is empty", so the answer is spelled out here instead
+    of leaving them to compare ``S3_*`` values by eye.
+    """
+    delivery = storage.get("image_delivery") or "unknown"
+    problems = []
+    if storage.get("error"):
+        problems.append(
+            "Image storage is not usable, so new uploads fail: " + str(storage["error"])
+        )
+    elif storage.get("backend") == "local" and storage.get("persistent") is False:
+        problems.append(
+            "Uploads land on an ephemeral filesystem – they disappear on the next "
+            "request or deploy. Set UPLOAD_STORAGE=s3 plus the S3_* variables."
+        )
+
+    if storage.get("backend") == "s3" and delivery == "bucket":
+        hint = (
+            "Listing photos link straight to the bucket; if they still do not render, "
+            "the bucket is not public – set UPLOAD_URL_MODE=proxy (or clear "
+            "S3_PUBLIC_BASE_URL) to serve them through /api/uploads/view instead."
+        )
+    elif storage.get("backend") == "s3":
+        hint = (
+            "Listing photos are served by this API through /api/uploads/view, which "
+            "reads the bucket with the server's credentials and therefore works with a "
+            "private bucket as well."
+        )
+    else:
+        hint = (
+            "Listing photos are read from UPLOAD_FOLDER and can also be served through "
+            "/api/uploads/view. On serverless hosts this folder is temporary – use "
+            "UPLOAD_STORAGE=s3 for persistent images."
+        )
+    return {
+        "backend": storage.get("backend"),
+        "delivery": delivery,
+        "url_mode": storage.get("url_mode"),
+        "public_base_url": storage.get("public_base_url"),
+        "notice": storage.get("notice"),
+        "problems": problems,
+        "hint": hint,
+    }
+
+
 @misc_bp.get("/health")
 def health():
     """Uptime probe – verifies the database and reports the upload backend."""
@@ -52,7 +100,9 @@ def health():
         "status": "ok" if healthy else "degraded",
         "database": database,
         "storage": storage,
+        "images": _image_report(storage),
     }
+    warnings.extend(payload["images"]["problems"])
     if warnings:
         payload["warnings"] = warnings
     return api_success(payload)

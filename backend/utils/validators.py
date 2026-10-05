@@ -7,14 +7,26 @@ this is the single defence against bad data, XSS-ish junk and oversized input.
 
 import re
 
+from flask import current_app, has_app_context
 from werkzeug.utils import secure_filename
 
 from config import Config
+from storage import StorageError, get_storage
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[A-Za-z]{2,}$")
 # Nigerian phone numbers: 0703…, +234703…, 0803…, 0813… etc.
 PHONE_RE = re.compile(r"^(\+?234|0)[789][01]\d{8}$")
 ALLOWED_USER_TYPES = {"student", "landlord", "service_provider"}
+
+#: Column width for ``image_url`` / ``avatar_url``.
+#:
+#: The cap matters more than it looks: presigned object-storage URLs run to
+#: several hundred characters, and slicing one in half produces a URL that
+#: 404s quietly forever.  Anything over the limit is rejected with a clear
+#: message instead, and references that belong to this app's own bucket are
+#: shortened to their object key before they ever reach the column (see
+#: :func:`normalize_image_reference`).
+MAX_IMAGE_URL_LENGTH = 1000
 
 
 class ValidationError(Exception):
@@ -171,6 +183,50 @@ def validate_listing_payload(payload: dict, kind: str = "product") -> dict:
     if "location" in payload:
         cleaned["location"] = clean_text(payload.get("location"), 160) or "UNILAFIA Campus"
     return cleaned
+
+
+def normalize_image_reference(value, field: str = "image_url") -> str | None:
+    """Canonical, durable value to store for a listing or avatar image.
+
+    The frontend posts back whatever ``POST /api/uploads/image`` handed it,
+    which historically was a full URL.  Storing that made the listing depend on
+    the storage configuration of the moment: change the bucket's public domain,
+    switch provider, or let a presigned URL expire, and every photo in the
+    database breaks at once.
+
+    So a reference this app owns is reduced to its object key (``uploads/u3_….png``)
+    or file name (``u3_….png`` on disk) and the browser URL is rebuilt when the
+    listing is read (``storage.image_urls``).  A URL pointing somewhere else is
+    kept as provided, because there is nothing to re-derive it from.
+    """
+    text = clean_text(value, MAX_IMAGE_URL_LENGTH)
+    if not text:
+        return None
+    # Measured before cleaning, otherwise "too long" can never be detected.
+    oversized = len(str(value or "").strip()) > MAX_IMAGE_URL_LENGTH
+
+    if has_app_context():
+        storage = get_storage(current_app)
+        try:
+            owns = storage.owns(text)
+        except (AttributeError, StorageError):         # pragma: no cover - custom backend
+            owns = False
+        if owns:
+            try:
+                return storage.reference_for(text)
+            except StorageError as exc:
+                raise ValidationError(
+                    "That image link does not point at a stored upload",
+                    {field: str(exc)},
+                ) from exc
+
+    if oversized:
+        raise ValidationError(
+            "That image URL is too long to store – upload the picture instead of "
+            "pasting a link",
+            {field: f"Maximum {MAX_IMAGE_URL_LENGTH} characters"},
+        )
+    return text
 
 
 def validate_image_file(filename: str) -> str:

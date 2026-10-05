@@ -30,7 +30,7 @@ from utils.helpers import (
     parse_int,
     request_data,
 )
-from utils.validators import ValidationError, clean_text
+from utils.validators import ValidationError, clean_text, normalize_image_reference
 
 accommodation_bp = Blueprint("accommodation", __name__)
 
@@ -209,7 +209,7 @@ def create_accommodation():
             amenities=", ".join(
                 filter(None, [clean_text(a, 40) for a in _as_list(payload.get("amenities"))])
             ),
-            image_url=clean_text(payload.get("image_url"), 300) or None,
+            image_url=normalize_image_reference(payload.get("image_url")),
             status="published" if (Config.AUTO_PUBLISH or user.is_admin) else "pending",
         )
         db.session.add(listing)
@@ -266,7 +266,7 @@ def update_accommodation(listing_id: int):
                 filter(None, [clean_text(a, 40) for a in _as_list(payload["amenities"])])
             )
         if "image_url" in payload:
-            listing.image_url = clean_text(payload["image_url"], 300) or None
+            listing.image_url = normalize_image_reference(payload.get("image_url"))
 
         new_status = (payload.get("status") or "").lower()
         if new_status in {"archived", "sold"}:

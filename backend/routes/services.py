@@ -27,7 +27,12 @@ from utils.helpers import (
     parse_int,
     request_data,
 )
-from utils.validators import ValidationError, clean_text, validate_price
+from utils.validators import (
+    ValidationError,
+    clean_text,
+    normalize_image_reference,
+    validate_price,
+)
 
 services_bp = Blueprint("services", __name__)
 
@@ -155,7 +160,7 @@ def create_service():
             price=validate_price(payload.get("price"), required=False),
             price_unit=clean_text(payload.get("price_unit"), 40) or "per job",
             location=clean_text(payload.get("location"), 160) or "UNILAFIA Campus",
-            image_url=clean_text(payload.get("image_url"), 300) or None,
+            image_url=normalize_image_reference(payload.get("image_url")),
             status="published" if (Config.AUTO_PUBLISH or user.is_admin) else "pending",
         )
         db.session.add(service)
@@ -198,7 +203,7 @@ def update_service(service_id: int):
         if payload.get("location"):
             service.location = clean_text(payload["location"], 160)
         if "image_url" in payload:
-            service.image_url = clean_text(payload["image_url"], 300) or None
+            service.image_url = normalize_image_reference(payload.get("image_url"))
 
         new_status = (payload.get("status") or "").lower()
         if new_status in {"archived", "sold"}:

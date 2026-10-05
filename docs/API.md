@@ -2,7 +2,13 @@
 
 Base URL (development): `http://localhost:5000/api`
 
-All requests and responses are JSON, except `POST /api/uploads/image` which uses `multipart/form-data`.
+All requests and responses are JSON, except `POST /api/uploads/image` which uses `multipart/form-data`
+and `GET /api/uploads/view/…`, which returns image bytes.
+
+Every listing carries `image_url` plus `image_fallback_url`: the second is the
+`/api/uploads/view` route, and the frontend retries it automatically when the
+first fails to load, so a private bucket or a stale CDN domain never shows a
+blank tile.
 
 **Authentication:** send the access token in a header:
 
@@ -164,7 +170,8 @@ Guests see `published` items only; owners also see their own drafts; admins see 
   "category": "laptops",
   "condition": "refurbished",
   "location": "Mararaba, Lafia",
-  "image_url": "assets/uploads/u3_1728040000_ab12cd34.jpg"
+  "image_url": "assets/uploads/u3_1728040000_ab12cd34.jpg",
+  "image_fallback_url": "/api/uploads/view/u3_1728040000_ab12cd34.jpg"
 }
 ```
 
@@ -351,11 +358,34 @@ Allowed extensions: `png`, `jpg`, `jpeg`, `gif`, `webp`.
 
 ```json
 { "data": { "filename": "u3_1728040000_ab12cd34.jpg",
-            "url": "assets/uploads/u3_1728040000_ab12cd34.jpg",
+            "reference": "uploads/u3_1728040000_ab12cd34.jpg",
+            "url": "https://pub-1a2b.r2.dev/uploads/u3_1728040000_ab12cd34.jpg",
+            "proxy_url": "/api/uploads/view/uploads/u3_1728040000_ab12cd34.jpg",
             "size_kb": 182.4 } }
 ```
 
-Pass the returned `url` as `image_url` when creating a listing.
+`url` is what to put in an `<img>` right now; `reference` is what to store on
+the listing. Either works — `image_url` is normalised to `reference` on write —
+but a listing that stores the key keeps rendering after the bucket's domain,
+provider or URL mode changes, while a stored URL breaks the moment one of them
+moves.
+
+### GET `/uploads/view/<reference>`
+**Public** (no token: an `<img>` tag cannot send one). Streams one uploaded
+image from wherever it lives — the local folder or an S3-compatible bucket —
+using the server's credentials.
+
+- `200` with `Content-Type: image/…` and `Cache-Control: public, max-age=604800, immutable`
+  (`ETag` supported, so `If-None-Match` returns `304`)
+- `404` for an unknown object, a path outside the upload prefix, or anything
+  that is not an image extension
+- `503` when the bucket itself is unreachable, with the provider's error
+  translated into what to fix
+
+Accepts the object key, the bare file name, `assets/uploads/…`, a full public
+URL of the bucket, or a presigned/endpoint URL for it — all of which resolve to
+the same object. `UPLOAD_PROXY_MODE=redirect` answers `302` to a short-lived
+presigned URL instead, which moves the bandwidth to the storage provider.
 
 ### GET `/uploads` — images uploaded by the signed-in user
 ### DELETE `/uploads/<filename>` — delete one of your own uploads

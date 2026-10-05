@@ -140,6 +140,23 @@ USERS = [
         location="Faculty of Science",
         bio="Laptop repair, phone screen replacement and software installation.",
     ),
+    # --- administrator ----------------------------------------------------
+    # Appended last on purpose: the demo rows above and below refer to users by
+    # position, so inserting here in front would silently re-point every seller.
+    # ``--seed`` only ever runs in development (``app.py`` refuses it under
+    # FLASK_ENV=production), and a real deployment still creates its admin
+    # explicitly with ``flask --app app create-admin``.
+    dict(
+        name="UNILAFIA Marketplace Admin",
+        email="admin@unilafia.edu.ng",
+        phone="08030000000",
+        password="Admin@1234",
+        user_type="admin",
+        verified=True,
+        department="Student Affairs",
+        location="Administrative Staff, Lafia",
+        bio="Reviews listings and settles disputes on the student marketplace.",
+    ),
 ]
 
 # ---------------------------------------------------------------------------

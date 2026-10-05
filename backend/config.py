@@ -18,6 +18,10 @@ Production example – see ``docs/DEPLOYMENT.md`` for the full Vercel walkthroug
     export S3_ACCESS_KEY_ID="..."
     export S3_SECRET_ACCESS_KEY="..."
     export S3_PUBLIC_BASE_URL="https://pub-<hash>.r2.dev"
+
+Supabase Storage works through the same variables – see ``docs/DEPLOYMENT.md``
+for the exact endpoint and public-URL values, and for why images keep loading
+even when the bucket is private.
 """
 
 import os
@@ -195,6 +199,15 @@ class Config:
     # --- Uploads ------------------------------------------------------------
     #: URL prefix returned for images served by the local backend.
     PUBLIC_UPLOAD_PREFIX = "assets/uploads"
+    #: How listing responses link to a stored image:
+    #:   ``auto``   – the bucket's public URL when one is configured and safe
+    #:                for a browser, otherwise ``/api/uploads/view/<key>``
+    #:   ``public`` – always link the bucket directly
+    #:   ``proxy``  – always stream through the API (keeps a bucket private)
+    UPLOAD_URL_MODE = (_str_env("UPLOAD_URL_MODE") or "auto").lower()
+    #: ``/api/uploads/view`` behaviour: ``stream`` proxies the bytes (works for
+    #: private buckets), ``redirect`` answers with a 302 to a presigned URL.
+    UPLOAD_PROXY_MODE = (_str_env("UPLOAD_PROXY_MODE") or "stream").lower()
     #: "local" (disk) or "s3" (any S3-compatible bucket).
     UPLOAD_STORAGE = resolve_upload_storage()
     #: False when uploads land on an ephemeral filesystem (Vercel + local).
@@ -214,7 +227,11 @@ class Config:
     # Key prefix inside the bucket, e.g. "uploads/u3_1699999_ab12.png".
     S3_PREFIX = _str_env("S3_PREFIX") or "uploads"
     # Public read base URL of the bucket, e.g. https://pub-<hash>.r2.dev
-    # (Cloudflare R2) or https://cdn.example.com (custom domain).
+    # (Cloudflare R2) or https://cdn.example.com (custom domain).  Supabase
+    # Storage uses https://<ref>.supabase.co/storage/v1/object/public/<bucket>
+    # – *not* its /storage/v1/s3 endpoint, which needs a signature.  A wrong
+    # value is corrected at runtime, and leaving it empty serves images through
+    # /api/uploads/view, so this variable is genuinely optional.
     S3_PUBLIC_BASE_URL = _str_env("S3_PUBLIC_BASE_URL")
     # "path" works with every S3-compatible provider; use "virtual" on AWS.
     S3_ADDRESSING_STYLE = (_str_env("S3_ADDRESSING_STYLE") or "path").lower()
@@ -257,6 +274,8 @@ class TestingConfig(Config):
     JWT_SECRET_KEY = "campus-market-test-jwt-secret"
     UPLOAD_STORAGE = "local"
     UPLOAD_STORAGE_PERSISTENT = True
+    UPLOAD_URL_MODE = "auto"
+    UPLOAD_PROXY_MODE = "stream"
     UPLOAD_FOLDER = os.path.join(PROJECT_ROOT, "frontend", "assets", "uploads")
     S3_BUCKET = None
     S3_PUBLIC_BASE_URL = None
