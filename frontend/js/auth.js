@@ -195,16 +195,6 @@
           });
       });
 
-      // Demo credentials helper (handy during the project presentation).
-      document.querySelectorAll("[data-demo-email]").forEach(function (button) {
-        button.addEventListener("click", function () {
-          emailInput.value = button.dataset.demoEmail;
-          passwordInput.value = button.dataset.demoPassword;
-          emailInput.dispatchEvent(new Event("input"));
-          passwordInput.dispatchEvent(new Event("input"));
-          UI.toast("Demo credentials filled in – press Log in", "info");
-        });
-      });
     },
 
     initSignupPage: function () {

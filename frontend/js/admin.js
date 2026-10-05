@@ -88,7 +88,7 @@
     return API.admin.pending().then(function (payload) {
       state.pending = payload.data.items || [];
       if (!state.pending.length) {
-        host.innerHTML = UI.emptyState("✅", "Nothing to review",
+        host.innerHTML = UI.emptyState("Verified", "Nothing to review",
           "Every listing has been moderated. New submissions will appear here automatically.", "", true);
         return;
       }
@@ -98,32 +98,32 @@
           (state.pending.length === 1 ? "" : "s") + " waiting for approval</p>" +
         state.pending.map(function (item) {
           return (
-            '<article class="card card-pad" style="margin-bottom:12px" data-item-id="' + item.id +
+            '<article class="card card-pad admin-queue-card" data-item-id="' + item.id +
               '" data-item-type="' + item.item_type + '">' +
               '<div class="flex-between wrap">' +
                 "<div>" +
                   '<span class="badge badge-pending">' + UI.escapeHtml(item.type_label) + "</span> " +
-                  '<strong style="font-size:1.05rem">' + UI.escapeHtml(item.title) + "</strong>" +
+                  '<strong class="admin-item-title">' + UI.escapeHtml(item.title) + "</strong>" +
                   '<div class="text-muted">' + UI.escapeHtml(String(item.description || "").slice(0, 160)) +
                     (String(item.description || "").length > 160 ? "…" : "") + "</div>" +
-                  '<div class="text-muted"><small>👤 ' +
+                  '<div class="text-muted"><small>Users ' +
                     UI.escapeHtml((item.seller || item.landlord || item.creator || item.provider || {}).name || "—") +
-                    " · 💰 " + (item.price !== undefined ? UI.money(item.price) : "Free") +
-                    " · 📍 " + UI.escapeHtml(item.location || "—") +
+                    " · Price " + (item.price !== undefined ? UI.money(item.price) : "Free") +
+                    " · Location " + UI.escapeHtml(item.location || "—") +
                     " · " + UI.timeAgo(item.created_at) + "</small></div>" +
                 "</div>" +
                 '<div class="row-actions">' +
-                  '<button class="btn btn-success btn-sm" data-action="approve">✓ Approve</button>' +
-                  '<button class="btn btn-danger btn-sm" data-action="reject">✕ Reject</button>' +
-                  '<button class="btn btn-outline btn-sm" data-action="flag">🚩 Flag</button>' +
-                  '<button class="btn btn-outline btn-sm" data-action="view">👁 View</button>' +
+                  '<button class="btn btn-success btn-sm" data-action="approve">Approve Approve</button>' +
+                  '<button class="btn btn-danger btn-sm" data-action="reject">Reject Reject</button>' +
+                  '<button class="btn btn-outline btn-sm" data-action="flag">Flag Flag</button>' +
+                  '<button class="btn btn-outline btn-sm" data-action="view">Views View</button>' +
                 "</div>" +
               "</div>" +
             "</article>"
           );
         }).join("");
     }).catch(function (error) {
-      host.innerHTML = UI.emptyState("⚠️", "Could not load the queue", error.message);
+      host.innerHTML = UI.emptyState("!", "Could not load the queue", error.message);
     });
   }
 
@@ -168,8 +168,8 @@
             '<li><span class="k">Submitted</span><span class="v">' + UI.formatDate(item.created_at, true) + "</span></li>" +
           "</ul>",
         footerHtml:
-          '<button class="btn btn-success" data-action="approve">✓ Approve</button>' +
-          '<button class="btn btn-danger" data-action="reject">✕ Reject</button>'
+          '<button class="btn btn-success" data-action="approve">Approve Approve</button>' +
+          '<button class="btn btn-danger" data-action="reject">Reject Reject</button>'
       });
     }
   }
@@ -306,8 +306,8 @@
         body.innerHTML = users.map(function (user) {
           return (
             "<tr>" +
-              '<td><div class="flex gap-1" style="align-items:center">' +
-                '<span class="seller-avatar" style="width:34px;height:34px;font-size:.8rem">' +
+              '<td><div class="flex gap-1 align-center">' +
+                '<span class="seller-avatar avatar-sm">' +
                   UI.escapeHtml(UI.initials(user.name)) + "</span>" +
                 "<div><strong>" + UI.escapeHtml(user.name) + "</strong><br>" +
                   '<small class="text-muted">' + UI.escapeHtml(user.email) + "</small></div></div></td>" +
@@ -418,7 +418,7 @@
       var items = payload.data.items || [];
       host.innerHTML = items.length
         ? '<ul class="spec-list">' + items.slice(0, 12).map(function (row) {
-            return "<li><span class=\"k\">" + (row.kind === "user" ? "👤" : "📦") + "</span>" +
+            return "<li><span class=\"k\">" + (row.kind === "user" ? "Users" : "Other") + "</span>" +
               '<span class="v">' + UI.escapeHtml(row.label) +
               (row.status ? " · " + UI.statusBadge(row.status) : "") +
               ' <small class="text-muted">' + UI.timeAgo(row.created_at) + "</small></span></li>";
@@ -500,7 +500,7 @@
     loadPending();
     loadActivity();
 
-    // Auto-refresh the queue every 60 seconds (keeps the demo lively).
+    // Auto-refresh the queue every 60 seconds (keeps the moderation queue current).
     window.setInterval(function () {
       if (!document.hidden && !document.getElementById("pending-list").classList.contains("hidden")) {
         loadPending();

@@ -230,8 +230,8 @@ function countCards(doc) {
   // ------------------------------------------------------------- login
   page = await loadPage("/pages/login.html");
   doc = page.document;
-  log("login: form + demo accounts",
-      doc.getElementById("login-form") !== null && doc.querySelectorAll("[data-demo-email]").length === 4);
+  log("login: form has no shipped credentials",
+      doc.getElementById("login-form") !== null && doc.querySelectorAll("[data-demo-email]").length === 0);
   log("login: no JS errors", page.errors.length === 0, page.errors.join(" | "));
 
   // ------------------------------------------------------------ signup

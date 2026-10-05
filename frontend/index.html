@@ -20,15 +20,15 @@
     <!-- ============================ HERO ============================ -->
     <section class="hero">
       <div class="container">
-        <span class="hero-badge">🎓 Federal University of Lafia · Student Marketplace</span>
+        <span class="hero-badge">Federal University of Lafia · Student Marketplace</span>
         <h1>The campus market that never closes.</h1>
         <p class="lead">
-          Buy and sell textbooks, gadgets and hostel essentials. Find verified accommodation
+          Buy and sell textbooks, gadgets and hostel essentials. Find accommodation
           around Lafia. Discover campus events and hire fellow students for services –
           all in one place, all approved by admins.
         </p>
 
-        <div class="search-wrap" style="position:relative;max-width:620px">
+        <div class="search-wrap">
           <form class="search-bar" role="search" onsubmit="return false;">
             <label class="sr-only" for="hero-search">Search Campus Marketplace</label>
             <input id="hero-search" type="search" autocomplete="off"
@@ -39,9 +39,9 @@
         </div>
 
         <div class="hero-actions">
-          <a class="btn btn-accent btn-lg" href="pages/post-listing.html">➕ Post a listing</a>
-          <a class="btn btn-outline btn-lg" style="background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.4)"
-             href="pages/accommodation.html">🏠 Find accommodation</a>
+          <a class="btn btn-accent btn-lg" href="pages/post-listing.html">Post a listing</a>
+          <a class="btn btn-outline btn-lg" class="btn btn-outline btn-lg on-hero"
+             href="pages/accommodation.html">Find accommodation</a>
         </div>
 
         <div class="hero-stats">
@@ -66,19 +66,19 @@
     </section>
 
     <!-- ====================== CATEGORY STRIP ======================== -->
-    <section class="section" style="padding-bottom:0">
+    <section class="section section-tight">
       <div class="container">
         <div class="section-head">
           <div>
             <h2>Popular categories</h2>
             <p>Everything a UNILAFIA student needs, in one marketplace</p>
           </div>
-          <a class="btn btn-outline btn-sm" href="pages/home.html">See all →</a>
+          <a class="btn btn-outline btn-sm" href="pages/home.html">See all View</a>
         </div>
         <div class="chip-row" id="category-strip">
-          <div class="skeleton" style="height:38px;width:120px"></div>
-          <div class="skeleton" style="height:38px;width:120px"></div>
-          <div class="skeleton" style="height:38px;width:120px"></div>
+          <div class="skeleton skeleton-chip"></div>
+          <div class="skeleton skeleton-chip"></div>
+          <div class="skeleton skeleton-chip"></div>
         </div>
       </div>
     </section>
@@ -91,7 +91,7 @@
             <h2>Featured listings</h2>
             <p>Hand-picked items from students around campus</p>
           </div>
-          <a class="btn btn-outline btn-sm" href="pages/home.html">Browse all →</a>
+          <a class="btn btn-outline btn-sm" href="pages/home.html">Browse all View</a>
         </div>
         <div class="grid grid-cards" id="featured-grid">
           <div class="skeleton skeleton-card"></div>
@@ -103,14 +103,14 @@
     </section>
 
     <!-- ===================== ACCOMMODATION ========================= -->
-    <section class="section" style="background:#fff;border-block:1px solid var(--line)">
+    <section class="section section-surface">
       <div class="container">
         <div class="section-head">
           <div>
             <h2>Accommodation near campus</h2>
             <p>Self-contains, hostels and flats in Angwan Rimi, Bukan Sidi, Mararaba and more</p>
           </div>
-          <a class="btn btn-outline btn-sm" href="pages/accommodation.html">View rooms →</a>
+          <a class="btn btn-outline btn-sm" href="pages/accommodation.html">View rooms View</a>
         </div>
         <div class="grid grid-cards" id="rooms-grid">
           <div class="skeleton skeleton-card"></div>
@@ -128,7 +128,7 @@
             <h2>What&rsquo;s happening on campus</h2>
             <p>Events, adverts and announcements from student bodies</p>
           </div>
-          <a class="btn btn-outline btn-sm" href="pages/events.html">All events →</a>
+          <a class="btn btn-outline btn-sm" href="pages/events.html">All events View</a>
         </div>
         <div class="grid grid-3" id="events-list">
           <div class="skeleton skeleton-card"></div>
@@ -139,7 +139,7 @@
     </section>
 
     <!-- ========================= HOW IT WORKS ====================== -->
-    <section class="section" style="background:#fff;border-block:1px solid var(--line)">
+    <section class="section section-surface">
       <div class="container">
         <div class="section-head">
           <div>
@@ -171,17 +171,17 @@
     <!-- ========================= CTA BANNER ======================== -->
     <section class="section">
       <div class="container">
-        <div class="card card-pad" style="background:linear-gradient(135deg,#0b5b55,#14b8a6);color:#fff;border:none">
+        <div class="card card-pad cta-panel">
           <div class="flex-between wrap">
             <div>
-              <h2 style="color:#fff">Have something to sell or a room to let?</h2>
-              <p class="mb-0" style="color:rgba(255,255,255,.9)">
-                Post it in minutes and reach thousands of UNILAFIA students.
+              <h2>Have something to sell or a room to let?</h2>
+              <p class="mb-0 cta-copy">
+                Post it in minutes and reach students in Lafia.
               </p>
             </div>
             <div class="flex gap-1 wrap mt-2">
               <a class="btn btn-accent" href="pages/post-listing.html">Post a listing</a>
-              <a class="btn btn-outline" style="background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.4)"
+              <a class="btn btn-outline on-hero"
                  href="pages/signup.html">Create free account</a>
             </div>
           </div>
@@ -196,7 +196,7 @@
   <!-- Shared bottom navigation (mobile) injected by ui.js -->
   <nav id="bottom-nav" aria-label="Mobile navigation"></nav>
 
-  <!-- Scripts: order matters (api → ui → auth → marketplace) -->
+  <!-- Scripts: order matters (api View ui View auth View marketplace) -->
   <script src="js/api.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/auth.js"></script>

@@ -25,7 +25,7 @@
      ======================================================================= */
 
   /**
-   * Generic, reusable listing grid: fetch → skeleton → cards → pagination.
+   * Generic, reusable listing grid: fetch View skeleton View cards View pagination.
    * Every browse page uses this so behaviour stays identical everywhere.
    */
   function ListingFeed(options) {
@@ -197,7 +197,7 @@
           '<a class="btn btn-primary" target="_blank" rel="noopener" href="https://wa.me/234' +
             UI.escapeHtml(String(item.creator.phone).replace(/^0/, "")) +
             "?text=" + encodeURIComponent("Hello, I saw your event on Campus Marketplace: " + item.title) +
-          '">💬 WhatsApp</a>';
+          '">Contact WhatsApp</a>';
       } else if (!API.isLoggedIn()) {
         footer = '<a class="btn btn-primary" href="' + UI.pageUrl("login.html") + '">Log in for contact details</a>';
       }
@@ -228,7 +228,7 @@
           '<a class="btn btn-primary" target="_blank" rel="noopener" href="https://wa.me/234' +
             UI.escapeHtml(String(provider.phone).replace(/^0/, "")) +
             "?text=" + encodeURIComponent("Hello, I need your service from Campus Marketplace: " + item.title) +
-          '">💬 WhatsApp</a>';
+          '">Contact WhatsApp</a>';
       } else if (!API.isLoggedIn()) {
         footer = '<a class="btn btn-primary" href="' + UI.pageUrl("login.html") + '">Log in for contact details</a>';
       }
@@ -255,7 +255,7 @@
           '<a class="btn btn-success" target="_blank" rel="noopener" href="https://wa.me/234' +
             UI.escapeHtml(phone.replace(/^0/, "")) +
             "?text=" + encodeURIComponent(opts.waText || "Hello, I am interested in your listing on Campus Marketplace") +
-          '">💬 WhatsApp</a>' +
+          '">Contact WhatsApp</a>' +
         "</div>";
     } else {
       contact = '<div class="contact-actions">' +
@@ -320,7 +320,7 @@
         .then(function (items) {
           featuredGrid.innerHTML = items.length
             ? items.map(function (item) { return UI.listingCard(item); }).join("")
-            : UI.emptyState("🛍", "No listings yet", "Be the first to post an item on Campus Marketplace.",
+            : UI.emptyState("Products", "No listings yet", "Be the first to post an item on Campus Marketplace.",
                 '<a class="btn btn-primary mt-2" href="' + UI.pageUrl("post-listing.html") + '">Post a listing</a>');
         })
         .catch(function (error) {
@@ -336,7 +336,7 @@
           var items = payload.data.items;
           roomsGrid.innerHTML = items.length
             ? items.map(function (item) { return UI.listingCard(item); }).join("")
-            : UI.emptyState("🏠", "No rooms listed yet", "Accommodation listings will appear here.");
+            : UI.emptyState("Rooms", "No rooms listed yet", "Accommodation listings will appear here.");
         })
         .catch(function (error) { roomsGrid.innerHTML = UI.emptyState("⚠️", "Unavailable", error.message); });
     }
@@ -352,7 +352,7 @@
                 '<article class="card card-pad" data-event-id="' + item.id + '">' +
                   '<span class="badge badge-featured">' + UI.escapeHtml(item.category) + "</span>" +
                   '<h3 class="mt-1">' + UI.escapeHtml(item.title) + "</h3>" +
-                  '<p class="text-muted mb-1">📅 ' + UI.formatDate(item.date, true) + "<br>📍 " +
+                  '<p class="text-muted mb-1">Events ' + UI.formatDate(item.date, true) + "<br>" +
                     UI.escapeHtml(item.location) + "</p>" +
                   '<div class="flex-between"><strong>' +
                     (Number(item.ticket_price) > 0 ? UI.money(item.ticket_price) : "Free entry") +
@@ -361,7 +361,7 @@
                 "</article>"
               );
             }).join("")
-          : UI.emptyState("📅", "No upcoming events", "Campus events will show up here.");
+          : UI.emptyState("Events", "No upcoming events", "Campus events will show up here.");
       }).catch(function () { eventsHost.innerHTML = ""; });
 
       eventsHost.addEventListener("click", function (event) {
@@ -402,7 +402,7 @@
       perPage: 12,
       filters: initialFilters,
       fetcher: function (query) { return API.products.list(query); },
-      emptyIcon: "🛍",
+      emptyIcon: "Products",
       emptyTitle: "No items match your filters",
       emptyMessage: "Try a different category, price range or search term."
     });
@@ -482,11 +482,11 @@
         sideRooms.innerHTML = items.length
           ? items.map(function (item) {
               return (
-                '<a class="card card-pad" style="display:block;margin-bottom:10px" href="' +
+                '<a class="card card-pad side-room-card" href="' +
                   UI.listingUrl(item) + '">' +
                   "<strong>" + UI.escapeHtml(item.title) + "</strong>" +
                   '<div class="listing-price">' + UI.money(item.price) + '<small class="text-muted"> / year</small></div>' +
-                  '<small class="text-muted">📍 ' + UI.escapeHtml(item.location) + "</small>" +
+                  '<small class="text-muted">' + UI.escapeHtml(item.location) + "</small>" +
                 "</a>"
               );
             }).join("")
@@ -502,10 +502,10 @@
         sideEvents.innerHTML = items.length
           ? items.map(function (item) {
               return (
-                '<div style="margin-bottom:12px">' +
+                '<div class="side-event-item">' +
                   "<strong>" + UI.escapeHtml(item.title) + "</strong>" +
-                  '<div class="text-muted"><small>📅 ' + UI.formatDate(item.date, true) + "</small></div>" +
-                  '<button class="btn btn-ghost btn-sm" data-event="' + item.id + '">View details →</button>' +
+                  '<div class="text-muted"><small>Events ' + UI.formatDate(item.date, true) + "</small></div>" +
+                  '<button class="btn btn-ghost btn-sm" data-event="' + item.id + '">View details View</button>' +
                 "</div>"
               );
             }).join("")
@@ -535,7 +535,7 @@
       return;
     }
 
-    host.innerHTML = '<div class="skeleton" style="height:320px"></div>';
+    host.innerHTML = '<div class="skeleton detail-loading"></div>';
 
     var call = type === "accommodation" ? API.accommodation.get(id) : API.products.get(id);
 
@@ -569,7 +569,7 @@
       var statusNote = "";
       if (isOwner && item.status !== "published") {
         statusNote =
-          '<div class="card card-pad mb-2" style="border-color:#f59e0b">' +
+          '<div class="card card-pad mb-2 status-note">' +
             "<strong>Status: </strong>" + UI.statusBadge(item.status) +
             (item.status === "pending"
               ? '<p class="mb-0 mt-1">Your listing is awaiting admin approval. It will appear publicly shortly.</p>'
@@ -583,8 +583,9 @@
         statusNote +
         '<div class="detail-grid">' +
           "<div>" +
-            '<div class="detail-media"><img src="' + UI.imageFor(item) + '" alt="' +
-              UI.escapeHtml(item.title) + '"></div>' +
+            '<div class="detail-media">' + (item.image_url
+              ? '<img src="' + UI.imageFor(item) + '" alt="' + UI.escapeHtml(item.title) + '">'
+              : '<div class="detail-placeholder"><strong>No photo available</strong><span>The owner did not add an image to this listing.</span></div>') + '</div>' +
             '<div class="card card-pad mt-2">' +
               "<h2>Description</h2>" +
               "<p>" + UI.escapeHtml(item.description || "No description provided.") + "</p>" +
@@ -605,11 +606,11 @@
               "<h1 class=\"mt-1\">" + UI.escapeHtml(item.title) + "</h1>" +
               '<div class="price-tag">' + UI.money(item.price) +
                 (item.type === "accommodation" ? '<small class="text-muted"> / year</small>' : "") + "</div>" +
-              '<p class="text-muted">📍 ' + UI.escapeHtml(item.location || "") + " · 👁 " +
+              '<p class="text-muted">' + UI.escapeHtml(item.location || "") + " · " +
                 Number(item.views || 0) + " views</p>" +
               '<div class="flex gap-1 wrap">' +
                 '<button class="btn btn-outline btn-sm" data-detail-fav="' + item.type + '" data-id="' + item.id +
-                  '">' + (UI.wishlist.has(item.type, item.id) ? "♥ Saved" : "♡ Save") + "</button>" +
+                  '">' + (UI.wishlist.has(item.type, item.id) ? "Saved Saved" : "Save Save") + "</button>" +
                 '<button class="btn btn-outline btn-sm" data-action="share">🔗 Share</button>' +
                 (isOwner ? '<a class="btn btn-outline btn-sm" href="' + UI.pageUrl("profile.html") +
                   '">Edit in profile</a>' : "") +
@@ -642,7 +643,7 @@
       if (favButton) {
         favButton.addEventListener("click", function () {
           UI.wishlist.toggle(item.type, item.id, favButton).then(function (saved) {
-            favButton.innerHTML = saved ? "♥ Saved" : "♡ Save";
+            favButton.innerHTML = saved ? "Saved Saved" : "Save Save";
           });
         });
       }
@@ -677,7 +678,7 @@
       countId: "room-count",
       perPage: 9,
       fetcher: function (query) { return API.accommodation.list(query); },
-      emptyIcon: "🏠",
+      emptyIcon: "Rooms",
       emptyTitle: "No rooms match your filters",
       emptyMessage: "Try a wider price range or another area around campus."
     });
@@ -736,7 +737,7 @@
       perPage: 9,
       fetcher: function (query) { return API.events.list(query); },
       cardOptions: { showFavorite: true },
-      emptyIcon: "📅",
+      emptyIcon: "Events",
       emptyTitle: "No events found",
       emptyMessage: "Check the filters or come back later for new campus events."
     });
@@ -811,7 +812,7 @@
       countId: "service-count",
       perPage: 9,
       fetcher: function (query) { return API.services.list(query); },
-      emptyIcon: "🧰",
+      emptyIcon: "Services",
       emptyTitle: "No services found",
       emptyMessage: "Try another service category."
     });
@@ -1078,14 +1079,14 @@
 
     if (!host) return;
     if (!userId) {
-      host.innerHTML = UI.emptyState("🔒", "Please log in",
+      host.innerHTML = UI.emptyState("Secure", "Please log in",
         "Log in to view your profile, listings and reviews.",
         '<a class="btn btn-primary mt-2" href="' + UI.pageUrl("login.html") + '">Log in</a>');
       return;
     }
 
     var isMe = !!(me && Number(me.id) === Number(userId));
-    host.innerHTML = '<div class="skeleton" style="height:220px"></div>';
+    host.innerHTML = '<div class="skeleton profile-loading"></div>';
 
     Promise.all([
       API.users.get(userId),
@@ -1104,7 +1105,7 @@
       host.innerHTML =
         '<div class="profile-hero">' +
           '<div class="flex-between wrap">' +
-            '<div class="flex gap-2" style="align-items:center">' +
+            '<div class="flex gap-2 align-center">' +
               '<span class="profile-avatar">' + UI.escapeHtml(UI.initials(profile.name)) + "</span>" +
               "<div>" +
                 "<h1>" + UI.escapeHtml(profile.name) +
@@ -1112,10 +1113,10 @@
                   (profile.user_type === "admin" ? ' <span class="badge badge-admin">Admin</span>' : "") +
                 "</h1>" +
                 '<div class="meta">' +
-                  "<span>🎓 " + UI.escapeHtml(profile.user_type.replace(/_/g, " ")) + "</span>" +
+                  "<span>Academic " + UI.escapeHtml(profile.user_type.replace(/_/g, " ")) + "</span>" +
                   (profile.department ? "<span>📚 " + UI.escapeHtml(profile.department) + "</span>" : "") +
                   (profile.level ? "<span>🏅 " + UI.escapeHtml(profile.level) + "</span>" : "") +
-                  (profile.location ? "<span>📍 " + UI.escapeHtml(profile.location) + "</span>" : "") +
+                  (profile.location ? "<span>" + UI.escapeHtml(profile.location) + "</span>" : "") +
                   "<span>🗓 Joined " + UI.formatDate(profile.created_at) + "</span>" +
                 "</div>" +
               "</div>" +
@@ -1185,7 +1186,7 @@
                 return (
                   '<div class="review-item">' +
                     '<div class="review-head">' +
-                      '<span class="seller-avatar" style="width:38px;height:38px;font-size:.9rem">' +
+                      '<span class="seller-avatar avatar-review">' +
                         UI.escapeHtml(UI.initials(review.author.name)) + "</span>" +
                       "<div><strong>" + UI.escapeHtml(review.author.name) + "</strong>" +
                         "<div>" + UI.stars(review.rating) + ' <small class="text-muted">' +
@@ -1195,7 +1196,7 @@
                   "</div>"
                 );
               }).join("")
-            : UI.emptyState("⭐", "No reviews yet", "Reviews from other students will appear here.", "", true);
+            : UI.emptyState("Reviews", "No reviews yet", "Reviews from other students will appear here.", "", true);
           return;
         }
 
@@ -1204,7 +1205,7 @@
           ? '<div class="grid grid-cards">' + items.map(function (item) {
               return UI.listingCard(item, { showStatus: isMe });
             }).join("") + "</div>"
-          : UI.emptyState("📦", "Nothing here yet",
+          : UI.emptyState("Other", "Nothing here yet",
               isMe ? "Use the “Post listing” button to add your first advert." : "This user has no published listings here.",
               isMe ? '<a class="btn btn-primary mt-2" href="' + UI.pageUrl("post-listing.html") + '">Post a listing</a>' : "",
               true);
@@ -1244,9 +1245,9 @@
                 '<div class="form-group"><label for="ep-wa">WhatsApp</label>' +
                   '<input id="ep-wa" name="whatsapp" type="tel" value="' +
                   UI.escapeHtml(profile.whatsapp || "") + '"></div>' +
-                '<div class="form-group" style="grid-column:1/-1"><label for="ep-bio">Bio</label>' +
+                '<div class="form-group form-span"><label for="ep-bio">Bio</label>' +
                   '<textarea id="ep-bio" name="bio" rows="3">' + UI.escapeHtml(profile.bio || "") + "</textarea></div>" +
-                '<div class="form-group" style="grid-column:1/-1">' +
+                '<div class="form-group form-span">' +
                   '<button class="btn btn-primary" type="submit">Save changes</button>' +
                   '<button class="btn btn-outline" type="button" data-action="cancel-edit">Cancel</button>' +
                 "</div>" +
