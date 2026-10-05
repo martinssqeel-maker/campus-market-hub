@@ -17,21 +17,19 @@
 
   <main>
     <!-- Dashboard header -->
-    <section style="background:#0f172a;color:#fff;padding:22px 0">
+    <section>
       <div class="container">
         <div class="flex-between wrap">
           <div>
-            <h1 style="color:#fff" class="mb-0">
+            <h1 class="mb-0">
               Admin dashboard
               <span class="badge badge-rejected hidden" id="pending-badge">0</span>
             </h1>
-            <p class="mb-0" style="color:rgba(255,255,255,.75)">
+            <p class="mb-0">
               Review submissions, moderate listings and manage student accounts.
             </p>
           </div>
-          <button class="btn btn-outline btn-sm"
-                  style="background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.35)"
-                  id="refresh-dashboard">🔄 Refresh</button>
+          <button class="btn btn-outline btn-sm" id="refresh-dashboard">Refresh</button>
         </div>
       </div>
     </section>
@@ -66,10 +64,10 @@
 
         <!-- ===================== TABS ============================ -->
         <div class="tabs" id="admin-tabs">
-          <button class="active" data-tab="queue">⏳ Moderation queue
+          <button class="active" data-tab="queue">Moderation queue Moderation queue
             <span class="count" id="tab-pending-count">0</span></button>
-          <button data-tab="listings">📦 All listings</button>
-          <button data-tab="users">👥 Users</button>
+          <button data-tab="listings">Other All listings</button>
+          <button data-tab="users">Shared Users</button>
         </div>
 
         <!-- Moderation queue -->
@@ -121,7 +119,7 @@
                   <option value="service">Services</option>
                 </select>
               </div>
-              <div class="form-group" style="align-self:end">
+              <div class="form-group">
                 <button class="btn btn-primary" type="submit">Apply</button>
               </div>
             </div>

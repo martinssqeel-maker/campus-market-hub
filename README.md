@@ -6,11 +6,7 @@ Buy and sell items · Find accommodation · Discover campus events · Hire stude
 
 | | |
 |---|---|
-| **Student** | Martins Moses — 2023/ED/SID/OO68 |
-| **Supervisor** | Mr Solomon |
 | **Stack** | HTML5 · CSS3 · Vanilla JavaScript · Python Flask · SQLite locally, PostgreSQL in production (Vercel) |
-| **Repository** | https://github.com/martinssqeel-maker/campus-market-hub |
-| **Timeline** | 72 hours (3 days) |
 
 ---
 
@@ -18,7 +14,6 @@ Buy and sell items · Find accommodation · Discover campus events · Hire stude
 
 1. [What is implemented](#what-is-implemented)
 2. [Quick start (5 minutes)](#quick-start-5-minutes)
-3. [Demo accounts](#demo-accounts)
 4. [Project structure](#project-structure)
 5. [Database schema](#database-schema)
 6. [API reference (summary)](#api-reference-summary)
@@ -51,7 +46,7 @@ Buy and sell items · Find accommodation · Discover campus events · Hire stude
 
 - Public statistics API powering live counters on the landing page.
 - Activity feed and per-type breakdown cards on the admin dashboard (auto-refreshes).
-- Inline SVG placeholder artwork so the demo looks complete with zero external images.
+- Honest empty and no-photo states when a listing has no uploaded image.
 - Automated **Python test-suite** (63 tests, including the hosting/storage layer) and a **browser-level jsdom smoke test**.
 - Print-friendly stylesheet and `prefers-reduced-motion` / dark-mode support.
 
@@ -86,16 +81,16 @@ source .venv/bin/activate
 pip install -r requirements.txt        # backend deps + PostgreSQL & S3 drivers
 ```
 
-### 4. Create the database and load demo data
+### 4. Create the database and load local fixtures
 
 ```bash
 python app.py --reset --seed
 ```
 
-This creates `backend/database.db`, adds the tables, an administrator account and realistic demo content (9 users, 13 products, 7 rooms, 8 events, 6 services, 9 reviews, 7 pending-approval items for the moderation demo).
+This creates `backend/database.db`, adds the tables, an administrator account and realistic local fixture content (9 users, 13 products, 7 rooms, 8 events, 6 services, 9 reviews, 7 pending-approval items for local moderation testing).
 
-> Demo data is **opt-in** (the `--seed` flag) and is meant for local use. Without
-> it, the app starts empty — no default admin, no demo accounts — and you create
+> Local fixture data is **opt-in** (the `--seed` flag) and is meant for local use. Without
+> it, the app starts empty — no default admin, no seeded accounts — and you create
 > your own administrator explicitly:
 >
 > ```bash
@@ -116,7 +111,7 @@ Useful URLs:
 | `http://localhost:5000/` | Landing page |
 | `http://localhost:5000/pages/home.html` | Marketplace (browse, filter, search) |
 | `http://localhost:5000/pages/accommodation.html` | Accommodation listings |
-| `http://localhost:5000/pages/login.html` | Login (with demo-account shortcuts) |
+| `http://localhost:5000/pages/login.html` | Login |
 | `http://localhost:5000/pages/admin-dashboard.html` | Admin moderation dashboard |
 | `http://localhost:5000/api` | API index (self-documenting JSON) |
 | `http://localhost:5000/api/health` | Health check |
@@ -127,27 +122,9 @@ The recommended setup is Flask serving the frontend and API together. If you use
 
 ---
 
-## Demo accounts
+## Local development data
 
-| Role | Email | Password |
-|---|---|---|
-| **Administrator** | `admin@unilafia.edu.ng` | `Admin@1234` |
-| Student | `aisha.bello@unilafia.edu.ng` | `Student@123` |
-| Student | `emeka.okafor@unilafia.edu.ng` | `Student@123` |
-| Landlord | `danjuma.attah@gmail.com` | `Landlord@123` |
-| Landlord | `grace.onah@gmail.com` | `Landlord@123` |
-| Service provider | `blessing.uche@unilafia.edu.ng` | `Provider@123` |
-| Service provider | `ibrahim.musa@unilafia.edu.ng` | `Provider@123` |
-
-> These accounts are created **only** by the local `--seed` command above. A
-> real deployment never creates demo users or a default administrator — you
-> create your own admin with `flask --app app create-admin`.
->
-> The login page has one-click buttons that fill these credentials in automatically.
-
-**Moderation demo:** sign in as the admin, open the dashboard — you will find several listings already waiting in the queue. Approve one and watch it appear in the public marketplace immediately.
-
----
+The optional `--seed` flag creates clearly development-only fixtures for local testing. It is never run by the production build and no default users or listings are created automatically.
 
 ## Project structure
 
@@ -164,7 +141,7 @@ campus-market-hub/
 │   ├── storage.py              # Upload backends: local disk or S3-compatible bucket
 │   ├── extensions.py           # Shared SQLAlchemy, JWT and CORS instances
 │   ├── models.py               # 7 tables: users, products, accommodation, events, services, reviews, favorites (+ token blocklist)
-│   ├── seed_data.py            # Realistic UNILAFIA demo data (opt-in via --seed)
+│   ├── seed_data.py            # Realistic UNILAFIA local fixtures (opt-in via --seed)
 │   ├── requirements.txt        # Backend-only Python dependencies
 │   ├── .env.example            # Local environment template
 │   ├── database.db             # SQLite database (created by --seed, not committed)
@@ -193,7 +170,7 @@ campus-market-hub/
 ├── frontend/
 │   ├── index.html              # Landing page (hero, stats, featured, events, CTA)
 │   ├── pages/
-│   │   ├── login.html          # Login + demo credentials
+│   │   ├── login.html          # Login
 │   │   ├── signup.html         # Registration form with live validation
 │   │   ├── home.html           # Marketplace browse, filters, pagination
 │   │   ├── product-details.html# Item / room details, seller contact, safety tips
@@ -446,7 +423,7 @@ S3_PUBLIC_BASE_URL=https://pub-<hash>.r2.dev
 ```
 
 Then create the schema and the first administrator **from your laptop**, using
-the production connection string (no demo data, no default account is ever
+the production connection string (no fixture data, no default account is ever
 created automatically):
 
 ```bash
@@ -475,10 +452,10 @@ pip install -r requirements.txt
 cp .env.example .env      # then edit: SECRET_KEY, JWT_SECRET
 python app.py --reset     # first-time database (tables only)
 
-# create an administrator (no demo account is created automatically)
+# create an administrator (no seeded account is created automatically)
 flask --app app create-admin --email you@example.com
 
-# optional demo content for a presentation:
+# optional local fixture content for development:
 python app.py --seed
 
 gunicorn --workers 3 --bind 0.0.0.0:5000 "app:app"
@@ -546,11 +523,11 @@ the engine uses `pool_pre_ping` so long-idle connections do not break.
 | Images vanish after a redeploy / on Vercel | The app is using the `local` backend on an ephemeral filesystem → set `UPLOAD_STORAGE=s3` plus the `S3_*` variables and redeploy. `/api/health` warns about this before it happens. |
 | `sqlite3.OperationalError: no such table` | The database was never created → `python app.py --seed` (local) or `flask --app app init-db` (hosted). |
 | Port 5000 already in use | `python app.py --port 5001` (then open `http://localhost:5001`). |
-| Listings stay invisible after posting | This is the moderation workflow. Approve them from the admin dashboard, or set `AUTO_PUBLISH=true` for a quick demo. |
+| Listings stay invisible after posting | This is the moderation workflow. Approve them from the admin dashboard, or set `AUTO_PUBLISH=true` for local testing. |
 | `413 File is too large` | The image exceeds the limit (5 MB locally, 4 MB on Vercel because of the platform's request-body cap) — resize it, or lower `MAX_UPLOAD_MB`. |
 | `ModuleNotFoundError: psycopg` / `boto3` in a Vercel build log | Vercel installs the **root** `requirements.txt` → make sure it still contains the `-r backend/requirements.txt` line plus `psycopg[binary]` and `boto3`. |
 | First request after a quiet period is slow | Neon free branches suspend when idle and take ~1 s to wake. `pool_pre_ping` + the 30 s function limit keep it from erroring. |
-| Reset everything | Local: `python app.py --reset --seed` (drops all tables and reloads demo data). Hosted: `flask --app app init-db` recreates missing tables — there is no `--seed` in production. |
+| Reset everything | Local: `python app.py --reset --seed` (drops all tables and reloads local fixtures). Hosted: `flask --app app init-db` recreates missing tables — there is no `--seed` in production. |
 
 ---
 
@@ -576,5 +553,5 @@ the engine uses `pool_pre_ping` so long-idle connections do not break.
 
 ## Licence & attribution
 
-Coursework project for the Federal University of Lafia. Built by **Martins Moses** (2023/ED/SID/OO68),
-supervised by **Mr Solomon**. Free to reuse for educational purposes with attribution.
+Campus Marketplace is a student marketplace for Lafia.
+Free to reuse for educational purposes with attribution.

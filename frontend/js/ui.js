@@ -128,36 +128,10 @@
     others: ["#334155", "#94a3b8"]
   };
 
-  var TYPE_GLYPH = {
-    product: "🛍",
-    accommodation: "🏠",
-    event: "📅",
-    service: "🧰"
-  };
+  var TYPE_GLYPH = { product: "ITEM", accommodation: "ROOM", event: "EVENT", service: "SERVICE" };
 
-  /**
-   * Return an inline SVG data-URI placeholder for a listing.
-   * Keeps the demo usable with zero external image dependencies.
-   */
   function placeholder(type, category, label) {
-    var colors = CATEGORY_COLORS[category] || CATEGORY_COLORS.others;
-    var glyph = TYPE_GLYPH[type] || "📦";
-    var text = escapeHtml((label || category || "Campus Marketplace").slice(0, 26));
-    var svg =
-      '<svg xmlns="http://www.w3.org/2000/svg" width="600" height="450" viewBox="0 0 600 450">' +
-      '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">' +
-      '<stop offset="0%" stop-color="' + colors[0] + '"/><stop offset="100%" stop-color="' + colors[1] + '"/>' +
-      "</linearGradient></defs>" +
-      '<rect width="600" height="450" fill="url(#g)"/>' +
-      '<circle cx="520" cy="70" r="120" fill="rgba(255,255,255,.12)"/>' +
-      '<circle cx="80" cy="400" r="90" fill="rgba(255,255,255,.10)"/>' +
-      '<text x="300" y="230" font-size="120" text-anchor="middle">' + glyph + "</text>" +
-      '<text x="300" y="300" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="700" ' +
-      'fill="#ffffff" text-anchor="middle">' + text + "</text>" +
-      '<text x="300" y="336" font-family="Segoe UI, Arial, sans-serif" font-size="17" ' +
-      'fill="rgba(255,255,255,.85)" text-anchor="middle">Campus Marketplace · UNILAFIA</text>' +
-      "</svg>";
-    return "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg);
+    return "";
   }
 
   function imageFor(item) {
@@ -166,7 +140,7 @@
       if (/^(https?:|data:)/.test(item.image_url)) return item.image_url;
       return ROOT + item.image_url.replace(/^\//, "");
     }
-    return placeholder(item && item.type, item && item.category, item && item.title);
+    return null;
   }
 
   /* -----------------------------------------------------------------------
@@ -255,11 +229,11 @@
   ];
 
   var BOTTOM_LINKS = [
-    { page: "home", label: "Home", icon: "🏠", href: "pages/home.html" },
-    { page: "marketplace", label: "Browse", icon: "🛍", href: "pages/home.html#marketplace" },
-    { page: "post", label: "Sell", icon: "➕", href: "pages/post-listing.html" },
-    { page: "favorites", label: "Saved", icon: "❤", href: "pages/favorites.html" },
-    { page: "profile", label: "Profile", icon: "👤", href: "pages/profile.html" }
+    { page: "home", label: "Home", icon: "home", href: "pages/home.html" },
+    { page: "marketplace", label: "Browse", icon: "browse", href: "pages/home.html#marketplace" },
+    { page: "post", label: "Sell", icon: "plus", href: "pages/post-listing.html" },
+    { page: "favorites", label: "Saved", icon: "heart", href: "pages/favorites.html" },
+    { page: "profile", label: "Profile", icon: "user", href: "pages/profile.html" }
   ];
 
   function currentPage() {
@@ -336,11 +310,19 @@
     var host = document.getElementById("bottom-nav");
     if (!host) return;
     var active = currentPage();
+    var user = API.currentUser();
+    var links = user ? BOTTOM_LINKS : [
+      { page: "marketplace", label: "Browse", icon: "browse", href: "pages/home.html#marketplace" },
+      { page: "accommodation", label: "Rooms", icon: "room", href: "pages/accommodation.html" },
+      { page: "events", label: "Events", icon: "calendar", href: "pages/events.html" },
+      { page: "login", label: "Log in", icon: "user", href: "pages/login.html" },
+      { page: "signup", label: "Sign up", icon: "plus", href: "pages/signup.html" }
+    ];
     host.className = "bottom-nav";
-    host.innerHTML = BOTTOM_LINKS.map(function (link) {
+    host.innerHTML = links.map(function (link) {
       return (
         '<a href="' + url(link.href) + '" class="' + (link.page === active ? "active" : "") + '">' +
-          '<span class="icon">' + link.icon + "</span>" + link.label +
+          '<span class="icon icon-' + link.icon + '" aria-hidden="true"></span>' + link.label +
         "</a>"
       );
     }).join("");
@@ -349,33 +331,27 @@
   function renderFooter() {
     var host = document.getElementById("site-footer");
     if (!host) return;
+    var user = API.currentUser();
+    var accountLinks = user
+      ? '<li><a href="' + pageUrl("profile.html") + '">My profile</a></li>' +
+        '<li><a href="' + pageUrl("favorites.html") + '">Saved items</a></li>' +
+        '<li><button class="footer-action" data-action="logout">Log out</button></li>'
+      : '<li><a href="' + pageUrl("login.html") + '">Log in</a></li>' +
+        '<li><a href="' + pageUrl("signup.html") + '">Create an account</a></li>';
     host.className = "site-footer";
     host.innerHTML =
-      '<div class="container">' +
-        '<div class="footer-grid">' +
-          "<div>" +
-            "<h4>Campus Marketplace</h4>" +
-            "<p>The official student-to-student marketplace for Federal University of Lafia – " +
-            "buy and sell items, find accommodation, discover campus events and hire student services.</p>" +
-          "</div>" +
-          "<div><h4>Explore</h4><ul class=\"footer-list\">" +
-            '<li><a href="' + url("pages/home.html") + '">Browse marketplace</a></li>' +
-            '<li><a href="' + url("pages/accommodation.html") + '">Accommodation</a></li>' +
-            '<li><a href="' + url("pages/events.html") + '">Campus events</a></li>' +
-            '<li><a href="' + url("pages/services.html") + '">Student services</a></li>' +
-          "</ul></div>" +
-          "<div><h4>Account</h4><ul class=\"footer-list\">" +
-            '<li><a href="' + url("pages/signup.html") + '">Create an account</a></li>' +
-            '<li><a href="' + url("pages/login.html") + '">Log in</a></li>' +
-            '<li><a href="' + url("pages/post-listing.html") + '">Post a listing</a></li>' +
-            '<li><a href="' + url("pages/favorites.html") + '">My wishlist</a></li>' +
-          "</ul></div>" +
-        "</div>" +
-        '<div class="footer-bottom">' +
-          "© " + new Date().getFullYear() + " Campus Marketplace · Built by Martins Moses " +
-          "(2023/ED/SID/OO68) · Supervisor: Mr Solomon · Powered by Flask + SQLite" +
-        "</div>" +
-      "</div>";
+      '<div class="container"><div class="footer-grid">' +
+        '<div><h4>Campus Marketplace</h4><p>Browse student listings, accommodation, events and services around Lafia.</p></div>' +
+        '<div><h4>Explore</h4><ul class="footer-list">' +
+          '<li><a href="' + url("pages/home.html") + '">Marketplace</a></li>' +
+          '<li><a href="' + url("pages/accommodation.html") + '">Accommodation</a></li>' +
+          '<li><a href="' + url("pages/events.html") + '">Events</a></li>' +
+          '<li><a href="' + url("pages/services.html") + '">Services</a></li></ul></div>' +
+        '<div><h4>Account</h4><ul class="footer-list">' + accountLinks + '</ul></div>' +
+        '</div><div class="footer-bottom">© ' + new Date().getFullYear() +
+        ' Campus Marketplace · A student marketplace for Lafia</div></div>';
+    var logout = host.querySelector('[data-action="logout"]');
+    if (logout) logout.addEventListener("click", function () { Auth.logout(); });
   }
 
   /* -----------------------------------------------------------------------
@@ -422,7 +398,7 @@
         '<a class="listing-thumb" href="' + listingUrl(item) + '" aria-label="' + escapeHtml(item.title) + '">' +
           (item.image_url
             ? '<img src="' + imageFor(item) + '" alt="' + escapeHtml(item.title) + '" loading="lazy">'
-            : '<img src="' + imageFor(item) + '" alt="' + escapeHtml(item.title) + '" loading="lazy">') +
+            : '<span class="listing-placeholder"><span>No photo</span><small>Image not provided</small></span>') +
           '<span class="listing-flags">' +
             (item.featured ? '<span class="badge badge-featured">Featured</span>' : "") +
             (opts.showStatus ? statusBadge(item.status) : "") +
@@ -435,8 +411,8 @@
         '<div class="listing-body">' +
           '<h3 class="listing-title"><a href="' + listingUrl(item) + '">' + escapeHtml(item.title) + "</a></h3>" +
           '<div class="listing-price">' + priceLabel(item) + "</div>" +
-          '<div class="listing-meta"><span>📍 ' + subtitle + "</span>" +
-          (item.views !== undefined ? "<span>👁 " + Number(item.views || 0) + "</span>" : "") +
+          '<div class="listing-meta"><span>' + subtitle + "</span>" +
+          (item.views !== undefined ? "<span>" + Number(item.views || 0) + " views</span>" : "") +
           "</div>" +
         "</div>" +
       "</article>"
@@ -453,7 +429,7 @@
 
   function emptyState(icon, title, message, actionHtml) {
     return (
-      '<div class="empty-state"><span class="icon">' + icon + "</span><h3>" + escapeHtml(title) + "</h3>" +
+      '<div class="empty-state"><span class="empty-mark" aria-hidden="true">' + escapeHtml(icon || "") + "</span><h3>" + escapeHtml(title) + "</h3>" +
       "<p>" + escapeHtml(message) + "</p>" + (actionHtml || "") + "</div>"
     );
   }

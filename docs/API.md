@@ -100,7 +100,7 @@ Rules: password ≥ 6 chars with at least one letter and one digit; Nigerian pho
 ### POST `/auth/login`
 
 ```json
-{ "email": "aisha.bello@unilafia.edu.ng", "password": "Student@123" }
+{ "email": "student@example.com", "password": "YourStrongPassword1!" }
 ```
 
 Returns the same `data` shape as signup. `401` for wrong credentials,
@@ -124,7 +124,7 @@ Any of `name`, `email`, `phone`, `whatsapp`, `bio`, `department`, `level`, `loca
 
 ### POST `/auth/me/password`
 ```json
-{ "old_password": "Student@123", "new_password": "BrandNew123" }
+{ "old_password": "YourStrongPassword1!", "new_password": "BrandNew123" }
 ```
 
 ### POST `/auth/check-email`
@@ -426,10 +426,10 @@ ambiguity rather than guessing. Typed variants exist as well:
 ## 12. Worked example (curl)
 
 ```bash
-# 1. Log in as the demo student
+# 1. Log in with a local test account
 TOKEN=$(curl -s -X POST http://localhost:5000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"aisha.bello@unilafia.edu.ng","password":"Student@123"}' \
+  -d '{"email":"student@example.com","password":"YourStrongPassword1!"}' \
   | python -c "import sys, json; print(json.load(sys.stdin)['data']['access_token'])")
 
 # 2. Upload a photo
@@ -445,7 +445,7 @@ curl -s -X POST http://localhost:5000/api/products \
 # 4. Approve it as the admin
 ADMIN=$(curl -s -X POST http://localhost:5000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@unilafia.edu.ng","password":"Admin@1234"}' \
+  -d '{"email":"admin@example.com","password":"YourAdminPassword1!"}' \
   | python -c "import sys, json; print(json.load(sys.stdin)['data']['access_token'])")
 
 curl -s -X POST http://localhost:5000/api/admin/approve/14 \
