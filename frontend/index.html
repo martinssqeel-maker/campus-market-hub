@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f766e">
+  <meta name="description" content="Campus Marketplace – the student-to-student marketplace for Federal University of Lafia. Buy and sell items, find accommodation, discover campus events and hire student services.">
+  <title>Campus Marketplace · Federal University of Lafia</title>
+
+  <link rel="icon" type="image/svg+xml" href="assets/images/logo.svg">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body data-page="landing">
+
+  <!-- Shared header injected by ui.js -->
+  <header id="site-header"></header>
+
+  <main>
+    <!-- ============================ HERO ============================ -->
+    <section class="hero">
+      <div class="container">
+        <span class="hero-badge">Federal University of Lafia · Student Marketplace</span>
+        <h1>The campus market that never closes.</h1>
+        <p class="lead">
+          Buy and sell textbooks, gadgets and hostel essentials. Find accommodation
+          around Lafia. Discover campus events and hire fellow students for services –
+          all in one place, all approved by admins.
+        </p>
+
+        <div class="search-wrap">
+          <form class="search-bar" role="search" onsubmit="return false;">
+            <label class="sr-only" for="hero-search">Search Campus Marketplace</label>
+            <input id="hero-search" type="search" autocomplete="off"
+                   placeholder="Search laptops, textbooks, rooms, services…">
+            <a class="btn btn-primary" href="pages/home.html">Browse</a>
+          </form>
+          <div id="hero-suggestions" class="suggestions hidden" role="listbox"></div>
+        </div>
+
+        <div class="hero-actions">
+          <a class="btn btn-accent btn-lg" href="pages/post-listing.html">Post a listing</a>
+          <a class="btn btn-outline btn-lg" class="btn btn-outline btn-lg on-hero"
+             href="pages/accommodation.html">Find accommodation</a>
+        </div>
+
+        <div class="hero-stats">
+          <div class="hero-stat">
+            <div class="value" id="stat-products">—</div>
+            <div class="label">Items on sale</div>
+          </div>
+          <div class="hero-stat">
+            <div class="value" id="stat-accommodation">—</div>
+            <div class="label">Rooms & hostels</div>
+          </div>
+          <div class="hero-stat">
+            <div class="value" id="stat-events">—</div>
+            <div class="label">Upcoming events</div>
+          </div>
+          <div class="hero-stat">
+            <div class="value" id="stat-services">—</div>
+            <div class="label">Student services</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================== CATEGORY STRIP ======================== -->
+    <section class="section section-tight">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <h2>Popular categories</h2>
+            <p>Everything a UNILAFIA student needs, in one marketplace</p>
+          </div>
+          <a class="btn btn-outline btn-sm" href="pages/home.html">See all View</a>
+        </div>
+        <div class="chip-row" id="category-strip">
+          <div class="skeleton skeleton-chip"></div>
+          <div class="skeleton skeleton-chip"></div>
+          <div class="skeleton skeleton-chip"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================== FEATURED =========================== -->
+    <section class="section" id="featured">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <h2>Featured listings</h2>
+            <p>Hand-picked items from students around campus</p>
+          </div>
+          <a class="btn btn-outline btn-sm" href="pages/home.html">Browse all View</a>
+        </div>
+        <div class="grid grid-cards" id="featured-grid">
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== ACCOMMODATION ========================= -->
+    <section class="section section-surface">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <h2>Accommodation near campus</h2>
+            <p>Self-contains, hostels and flats in Angwan Rimi, Bukan Sidi, Mararaba and more</p>
+          </div>
+          <a class="btn btn-outline btn-sm" href="pages/accommodation.html">View rooms View</a>
+        </div>
+        <div class="grid grid-cards" id="rooms-grid">
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================= EVENTS ============================ -->
+    <section class="section">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <h2>What&rsquo;s happening on campus</h2>
+            <p>Events, adverts and announcements from student bodies</p>
+          </div>
+          <a class="btn btn-outline btn-sm" href="pages/events.html">All events View</a>
+        </div>
+        <div class="grid grid-3" id="events-list">
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================= HOW IT WORKS ====================== -->
+    <section class="section section-surface">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <h2>How Campus Marketplace works</h2>
+            <p>Four simple steps – safe, moderated and student-focused</p>
+          </div>
+        </div>
+        <div class="grid grid-4">
+          <div class="card card-pad">
+            <h3>1 · Create an account</h3>
+            <p class="text-muted mb-0">Sign up with your student details in under a minute. Free for all UNILAFIA students.</p>
+          </div>
+          <div class="card card-pad">
+            <h3>2 · Post your listing</h3>
+            <p class="text-muted mb-0">Add a title, price, description and photo. Products, rooms, events or services.</p>
+          </div>
+          <div class="card card-pad">
+            <h3>3 · Admin approval</h3>
+            <p class="text-muted mb-0">An administrator reviews every listing to keep scams and fake adverts off the platform.</p>
+          </div>
+          <div class="card card-pad">
+            <h3>4 · Buy &amp; connect</h3>
+            <p class="text-muted mb-0">Contact the seller directly by call or WhatsApp, then meet safely on campus.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================= CTA BANNER ======================== -->
+    <section class="section">
+      <div class="container">
+        <div class="card card-pad cta-panel">
+          <div class="flex-between wrap">
+            <div>
+              <h2>Have something to sell or a room to let?</h2>
+              <p class="mb-0 cta-copy">
+                Post it in minutes and reach students in Lafia.
+              </p>
+            </div>
+            <div class="flex gap-1 wrap mt-2">
+              <a class="btn btn-accent" href="pages/post-listing.html">Post a listing</a>
+              <a class="btn btn-outline on-hero"
+                 href="pages/signup.html">Create free account</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Shared footer injected by ui.js -->
+  <footer id="site-footer"></footer>
+
+  <!-- Shared bottom navigation (mobile) injected by ui.js -->
+  <nav id="bottom-nav" aria-label="Mobile navigation"></nav>
+
+  <!-- Scripts: order matters (api View ui View auth View marketplace) -->
+  <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/marketplace.js"></script>
+</body>
+</html>

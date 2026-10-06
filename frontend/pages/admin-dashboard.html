@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0a0a0a">
+  <meta name="description" content="Administrator dashboard – moderate listings and manage users on Campus Marketplace.">
+  <title>Admin dashboard · Campus Marketplace</title>
+
+  <link rel="icon" type="image/svg+xml" href="../assets/images/logo.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/responsive.css">
+</head>
+<body data-page="admin">
+
+  <div class="admin-dashboard" id="admin-dashboard">
+
+    <!-- Mobile scrim for the off-canvas sidebar -->
+    <div class="dash-backdrop" data-dash-backdrop hidden></div>
+
+    <!-- ===================== SIDEBAR ===================== -->
+    <aside class="dash-sidebar" id="dash-sidebar" aria-label="Dashboard navigation">
+      <div class="dash-brand">
+        <a class="dash-brand-link" href="../index.html">
+          <span class="dash-brand-logo" aria-hidden="true">CM</span>
+          <span class="dash-brand-text">
+            <strong>Campus Market</strong>
+            <small>Admin console</small>
+          </span>
+        </a>
+        <button class="dash-collapse" id="sidebar-collapse" type="button" aria-label="Collapse sidebar" title="Collapse sidebar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="m15 18-6-6 6-6"/><path d="M7 6v12"/></svg>
+        </button>
+      </div>
+
+      <nav class="dash-nav">
+        <p class="dash-nav-label">Workspace</p>
+        <button type="button" class="dash-nav-item active" data-tab="overview" data-label="Overview">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+          <span class="dash-nav-text">Overview</span>
+        </button>
+        <button type="button" class="dash-nav-item" data-tab="queue" data-label="Moderation">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.2-2.9 7.4-7 9-4.1-1.6-7-4.8-7-9V6z"/><path d="m9 12 2 2 4-4"/></svg>
+          <span class="dash-nav-text">Moderation</span>
+          <span class="dash-pill hidden" id="nav-pending-badge">0</span>
+        </button>
+        <button type="button" class="dash-nav-item" data-tab="listings" data-label="Listings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16l-1 13H5z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>
+          <span class="dash-nav-text">Listings</span>
+        </button>
+        <button type="button" class="dash-nav-item" data-tab="users" data-label="Users">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 20v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1"/><circle cx="9.5" cy="8" r="3.5"/><path d="M21 20v-1a4 4 0 0 0-3-3.9"/><path d="M15.5 4.6a3.5 3.5 0 0 1 0 6.8"/></svg>
+          <span class="dash-nav-text">Users</span>
+        </button>
+        <p class="dash-nav-label">Configure</p>
+        <button type="button" class="dash-nav-item" data-tab="settings" data-label="Branding">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10"/><path d="M18 6h2"/><circle cx="16" cy="6" r="2"/><path d="M4 12h4"/><path d="M12 12h8"/><circle cx="10" cy="12" r="2"/><path d="M4 18h12"/><path d="M20 18h0"/><circle cx="18" cy="18" r="2"/></svg>
+          <span class="dash-nav-text">Branding</span>
+        </button>
+      </nav>
+
+      <div class="dash-user">
+        <div class="dash-user-card">
+          <span class="dash-user-avatar" id="dash-user-avatar">A</span>
+          <span class="dash-user-meta">
+            <strong id="dash-user-name">Administrator</strong>
+            <small id="dash-user-role">admin</small>
+          </span>
+        </div>
+        <div class="dash-user-actions">
+          <a class="dash-icon-btn" href="../index.html" title="View the public site" aria-label="View the public site">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+          </a>
+          <button type="button" class="dash-icon-btn is-danger" data-action="logout" title="Log out" aria-label="Log out">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ===================== MAIN ===================== -->
+    <div class="dash-main">
+
+      <!-- Top bar -->
+      <header class="dash-topbar">
+        <button type="button" class="dash-icon-btn dash-burger" id="sidebar-toggle" aria-label="Toggle navigation" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg>
+        </button>
+
+        <div class="dash-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input id="dash-search-input" type="search" placeholder="Search listings and users…" autocomplete="off" aria-label="Search listings and users">
+          <kbd>/</kbd>
+        </div>
+
+        <span class="dash-topbar-spacer"></span>
+
+        <div class="dash-topbar-actions">
+          <button type="button" class="dash-icon-btn" id="refresh-dashboard" title="Refresh data" aria-label="Refresh data">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>
+          </button>
+
+          <div class="dash-quick">
+            <button type="button" class="dash-btn dash-btn-primary" id="quick-actions-toggle" aria-haspopup="true" aria-expanded="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m13 2-2 9h6l-8 11 2-9H5z"/></svg>
+              Quick actions
+            </button>
+            <div class="dash-menu hidden" id="quick-actions-menu" role="menu">
+              <button type="button" data-tab="queue" data-label="Review the moderation queue" data-quick="queue">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.2-2.9 7.4-7 9-4.1-1.6-7-4.8-7-9V6z"/></svg>
+                Review moderation queue
+              </button>
+              <button type="button" data-tab="users" data-quick="users">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 20v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1"/><circle cx="9.5" cy="8" r="3.5"/></svg>
+                Manage users
+              </button>
+              <div class="dash-menu-sep"></div>
+              <a href="post-listing.html" role="menuitem">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+                Create a listing
+              </a>
+              <a href="home.html" role="menuitem">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+                Open the marketplace
+              </a>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Scrollable content -->
+      <div class="dash-content">
+
+        <!-- Page heading -->
+        <div class="dash-heading">
+          <div>
+            <span class="dash-eyebrow">Control centre</span>
+            <h1>
+              Admin dashboard
+              <span class="badge badge-rejected hidden" id="pending-badge">0</span>
+            </h1>
+            <p>Review submissions, moderate listings and manage student accounts across the marketplace.</p>
+          </div>
+        </div>
+
+        <!-- Segmented quick-switch (kept as #admin-tabs for the smoke tests) -->
+        <div class="tabs" id="admin-tabs" role="tablist" aria-label="Dashboard sections">
+          <button class="active" type="button" data-tab="queue" role="tab">Moderation
+            <span class="count" id="tab-pending-count">0</span></button>
+          <button type="button" data-tab="listings" role="tab">All listings</button>
+          <button type="button" data-tab="users" role="tab">Users</button>
+        </div>
+
+        <!-- ===================== OVERVIEW ===================== -->
+        <section class="dash-panel" data-panel="overview">
+          <div class="dash-stats">
+            <article class="dash-stat">
+              <div class="dash-stat-top">
+                <span class="dash-stat-label">Total users</span>
+                <span class="dash-stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 20v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1"/><circle cx="9.5" cy="8" r="3.5"/><path d="M21 20v-1a4 4 0 0 0-3-3.9"/><path d="M15.5 4.6a3.5 3.5 0 0 1 0 6.8"/></svg></span>
+              </div>
+              <div class="dash-stat-value" id="stat-users">0</div>
+              <div class="dash-stat-foot">
+                <span class="dash-trend up" id="stat-new-week-trend">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><path d="M7 17 17 7"/><path d="M9 7h8v8"/></svg>
+                  <span id="stat-new-week">0</span>
+                </span>
+                <span class="dash-stat-note">new this week</span>
+              </div>
+            </article>
+
+            <article class="dash-stat">
+              <div class="dash-stat-top">
+                <span class="dash-stat-label">Verified</span>
+                <span class="dash-stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.2-2.9 7.4-7 9-4.1-1.6-7-4.8-7-9V6z"/><path d="m9 12 2 2 4-4"/></svg></span>
+              </div>
+              <div class="dash-stat-value" id="stat-verified">0</div>
+              <div class="dash-stat-foot">
+                <span class="dash-trend up">Verified</span>
+                <span class="dash-stat-note">trusted accounts</span>
+              </div>
+            </article>
+
+            <article class="dash-stat">
+              <div class="dash-stat-top">
+                <span class="dash-stat-label">All listings</span>
+                <span class="dash-stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16l-1 13H5z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg></span>
+              </div>
+              <div class="dash-stat-value" id="stat-listings">0</div>
+              <div class="dash-stat-foot">
+                <span class="dash-trend flat" id="stat-published-trend">
+                  <span id="stat-published">0</span>
+                </span>
+                <span class="dash-stat-note">published live</span>
+              </div>
+            </article>
+
+            <article class="dash-stat">
+              <div class="dash-stat-top">
+                <span class="dash-stat-label">Awaiting review</span>
+                <span class="dash-stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+              </div>
+              <div class="dash-stat-value" id="stat-pending">0</div>
+              <div class="dash-stat-foot">
+                <span class="dash-trend down">Needs action</span>
+                <span class="dash-stat-note">pending submissions</span>
+              </div>
+            </article>
+
+            <article class="dash-stat">
+              <div class="dash-stat-top">
+                <span class="dash-stat-label">Listing views</span>
+                <span class="dash-stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></span>
+              </div>
+              <div class="dash-stat-value" id="stat-views">0</div>
+              <div class="dash-stat-foot">
+                <span class="dash-trend up">Engagement</span>
+                <span class="dash-stat-note">across all listings</span>
+              </div>
+            </article>
+
+            <article class="dash-stat">
+              <div class="dash-stat-top">
+                <span class="dash-stat-label">Reviews left</span>
+                <span class="dash-stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.6 5.6 6.1.8-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6L3.3 9.4l6.1-.8z"/></svg></span>
+              </div>
+              <div class="dash-stat-value" id="stat-reviews">0</div>
+              <div class="dash-stat-foot">
+                <span class="dash-trend up">Community</span>
+                <span class="dash-stat-note">reputation signals</span>
+              </div>
+            </article>
+          </div>
+
+          <div class="dash-cols">
+            <div class="card">
+              <div class="card-head"><h3>Listings by type</h3></div>
+              <div class="card-body">
+                <ul class="spec-list" id="listing-breakdown">
+                  <li><span class="k">Loading…</span><span class="v">—</span></li>
+                </ul>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-head"><h3>Recent activity</h3></div>
+              <div class="card-body" id="activity-list"><p class="text-muted">Loading…</p></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===================== MODERATION QUEUE ===================== -->
+        <section class="dash-panel hidden" data-panel="queue">
+          <div class="dash-panel-head">
+            <div>
+              <h2>Pending submissions</h2>
+              <p>Approve to publish, reject with a reason, or flag to hide. The queue refreshes itself every minute.</p>
+            </div>
+          </div>
+          <div class="dash-queue" id="pending-list">
+            <div class="dash-skeleton"></div>
+          </div>
+        </section>
+
+        <!-- ===================== ALL LISTINGS ===================== -->
+        <section class="dash-panel hidden" data-panel="listings">
+          <div class="dash-panel-head">
+            <div>
+              <h2>All listings</h2>
+              <p>Every product, room, event and service with its moderation status.</p>
+            </div>
+          </div>
+
+          <form id="listing-filters" class="filter-panel">
+            <div class="filter-grid">
+              <div class="form-group">
+                <label for="listing-search">Search</label>
+                <input id="listing-search" type="search" placeholder="Title or description">
+              </div>
+              <div class="form-group">
+                <label for="listing-status">Status</label>
+                <select id="listing-status">
+                  <option value="">All statuses</option>
+                  <option value="pending">Pending</option>
+                  <option value="published">Published</option>
+                  <option value="rejected">Rejected</option>
+                  <option value="sold">Sold</option>
+                  <option value="archived">Archived</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="listing-type">Type</label>
+                <select id="listing-type">
+                  <option value="">All types</option>
+                  <option value="product">Products</option>
+                  <option value="accommodation">Accommodation</option>
+                  <option value="event">Events</option>
+                  <option value="service">Services</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>&nbsp;</label>
+                <button class="dash-btn dash-btn-primary" type="submit" style="width:100%;justify-content:center">Apply filters</button>
+              </div>
+            </div>
+          </form>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Listing</th><th>Owner</th><th>Price</th><th>Location</th>
+                  <th>Status</th><th>Posted</th><th style="text-align:right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="listings-body">
+                <tr><td colspan="7" class="text-muted">Open the tab to load listings…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ===================== USERS ===================== -->
+        <section class="dash-panel hidden" data-panel="users">
+          <div class="dash-panel-head">
+            <div>
+              <h2>User management</h2>
+              <p>Verify students, suspend rule breakers or grant administrator rights.</p>
+            </div>
+          </div>
+
+          <div class="filter-panel">
+            <div class="filter-grid">
+              <div class="form-group">
+                <label for="user-search">Search users</label>
+                <input id="user-search" type="search" placeholder="Name, email or phone">
+              </div>
+              <div class="form-group">
+                <label for="user-type">Account type</label>
+                <select id="user-type">
+                  <option value="">All types</option>
+                  <option value="student">Students</option>
+                  <option value="landlord">Landlords</option>
+                  <option value="service_provider">Service providers</option>
+                  <option value="admin">Administrators</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>User</th><th>Phone</th><th>Type</th><th>Verified</th>
+                  <th>Status</th><th>Joined</th><th style="text-align:right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="users-body">
+                <tr><td colspan="7" class="text-muted">Open the tab to load users…</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination" id="users-pagination"></div>
+        </section>
+
+        <!-- ===================== SETTINGS / BRANDING ===================== -->
+        <section class="dash-panel hidden" data-panel="settings">
+          <div class="dash-panel-head">
+            <div>
+              <h2>Branding &amp; appearance</h2>
+              <p>Shape the identity students see. Changes preview instantly and are saved to this device.</p>
+            </div>
+          </div>
+
+          <div class="dash-settings-grid">
+            <div class="card card-pad">
+              <h3 style="margin-top:0">Brand identity</h3>
+              <form id="branding-form">
+                <div class="dash-field-grid">
+                  <div class="form-group">
+                    <label for="brand-site-name">Site name</label>
+                    <input id="brand-site-name" name="site_name" type="text" placeholder="Campus Marketplace" autocomplete="off">
+                  </div>
+                  <div class="form-group">
+                    <label for="brand-tagline">Tagline</label>
+                    <input id="brand-tagline" name="tagline" type="text" placeholder="Buy, sell and rent around UNILAFIA" autocomplete="off">
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="brand-color">Brand colour</label>
+                  <div class="dash-color-row">
+                    <input id="brand-color" name="brand_color" type="color" value="#2563eb" aria-label="Pick the brand colour">
+                    <input id="brand-color-hex" type="text" value="#2563eb" spellcheck="false" autocomplete="off" aria-label="Brand colour hex value">
+                  </div>
+                  <div class="dash-swatches" id="brand-swatches" role="group" aria-label="Suggested brand colours"></div>
+                </div>
+
+                <div class="form-group">
+                  <label for="brand-accent">Accent treatment</label>
+                  <select id="brand-accent" name="accent">
+                    <option value="blue">Electric blue (default)</option>
+                    <option value="violet">Violet</option>
+                    <option value="emerald">Emerald</option>
+                    <option value="amber">Amber</option>
+                  </select>
+                </div>
+
+                <div class="dash-form-actions">
+                  <button class="dash-btn dash-btn-primary" type="submit">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg>
+                    Save branding
+                  </button>
+                  <button class="dash-btn dash-btn-ghost" type="button" id="branding-reset">Reset to defaults</button>
+                </div>
+              </form>
+            </div>
+
+            <div class="card card-pad">
+              <h3 style="margin-top:0">Live preview</h3>
+              <div class="dash-preview">
+                <div class="dash-preview-brand">
+                  <span class="dash-preview-mark" id="preview-mark">CM</span>
+                  <span>
+                    <strong id="preview-name">Campus Marketplace</strong>
+                    <small id="preview-tagline">Buy, sell and rent around UNILAFIA</small>
+                  </span>
+                </div>
+                <div class="dash-swatches" style="margin-top:16px">
+                  <span class="dash-swatch" id="preview-swatch" style="background:#2563eb"></span>
+                  <span class="dash-swatch" id="preview-swatch-soft" style="background:rgba(37,99,235,.25)"></span>
+                </div>
+              </div>
+              <ul class="spec-list" style="margin-top:16px">
+                <li><span class="k">Storage</span><span class="v">Saved on this device</span></li>
+                <li><span class="k">Applies to</span><span class="v">Dashboard preview</span></li>
+                <li><span class="k">Server sync</span><span class="v">Not configured</span></li>
+              </ul>
+              <p class="text-muted" style="font-size:.8rem;margin-top:12px">
+                The API has no settings endpoint yet, so branding persists in this browser only.
+                Wire it to a <code>/api/admin/settings</code> route to publish it to every visitor.
+              </p>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/api.js"></script>
+  <script src="../js/ui.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/admin.js"></script>
+</body>
+</html>

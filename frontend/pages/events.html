@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f766e">
+  <meta name="description" content="Campus events and adverts at Federal University of Lafia – career fairs, sports, concerts, workshops and student announcements.">
+  <title>Events & adverts · Campus Marketplace</title>
+
+  <link rel="icon" type="image/svg+xml" href="../assets/images/logo.svg">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/responsive.css">
+</head>
+<body data-page="events">
+
+  <header id="site-header"></header>
+
+  <main>
+    <section>
+      <div class="container">
+        <h1>Campus events &amp; adverts</h1>
+        <p class="mb-0">
+          Career fairs, inter-faculty matches, concerts, workshops and student announcements –
+          all posted by students and reviewed by admins.
+        </p>
+      </div>
+    </section>
+
+    <!-- Category chips -->
+    <section>
+      <div class="container">
+        <div class="chip-row" id="event-category-chips">
+          <button class="chip active" data-value="all">All events</button>
+          <button class="chip" data-value="academic">Academic Academic</button>
+          <button class="chip" data-value="career">Career Career</button>
+          <button class="chip" data-value="social">Social Social</button>
+          <button class="chip" data-value="sports">Sports Sports</button>
+          <button class="chip" data-value="religious">Religious Religious</button>
+          <button class="chip" data-value="entertainment">Entertainment Entertainment</button>
+          <button class="chip" data-value="advert">Adverts Adverts</button>
+          <button class="chip" data-value="others">Other Others</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="filter-panel mb-3">
+          <form id="event-filter-form" class="filter-grid">
+            <div class="form-group">
+              <label for="ev-q">Search events</label>
+              <input id="ev-q" name="q" type="search" placeholder="e.g. career fair">
+            </div>
+            <div class="form-group">
+              <label for="ev-from">From date</label>
+              <input id="ev-from" name="date_from" type="date">
+            </div>
+            <div class="form-group">
+              <label for="ev-to">To date</label>
+              <input id="ev-to" name="date_to" type="date">
+            </div>
+            <div class="form-group">
+              <label for="ev-location">Location</label>
+              <input id="ev-location" name="location" type="text" placeholder="e.g. Auditorium">
+            </div>
+            <div class="form-group">
+              <label class="checkbox-row" for="events-upcoming">
+                <input id="events-upcoming" type="checkbox">
+                <span>Upcoming only</span>
+              </label>
+            </div>
+            <div class="form-group">
+              <div class="filter-actions">
+                <button class="btn btn-primary" type="submit">Apply</button>
+                <button class="btn btn-outline" type="button" data-action="reset">Reset</button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <div class="section-head">
+          <div>
+            <h2 class="mb-0">All events</h2>
+            <p class="mb-0"><span id="event-count">Loading…</span></p>
+          </div>
+          <a class="btn btn-primary btn-sm" href="post-listing.html#event">Post Post an event</a>
+        </div>
+
+        <div class="grid grid-cards" id="event-grid">
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+        </div>
+        <div class="pagination" id="event-pagination"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer id="site-footer"></footer>
+  <nav id="bottom-nav" aria-label="Mobile navigation"></nav>
+
+  <script src="../js/api.js"></script>
+  <script src="../js/ui.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/marketplace.js"></script>
+</body>
+</html>

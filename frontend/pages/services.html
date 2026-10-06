@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f766e">
+  <meta name="description" content="Student services at UNILAFIA – laundry, printing, tutoring, repairs, cleaning and more, offered by fellow students.">
+  <title>Student services · Campus Marketplace</title>
+
+  <link rel="icon" type="image/svg+xml" href="../assets/images/logo.svg">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/responsive.css">
+</head>
+<body data-page="services">
+
+  <header id="site-header"></header>
+
+  <main>
+    <section>
+      <div class="container">
+        <h1>Student services</h1>
+        <p class="mb-0">
+          Laundry, printing, project typing, phone repair, tutorials and more –
+          hire a fellow student and keep money within the campus community.
+        </p>
+      </div>
+    </section>
+
+    <section>
+      <div class="container">
+        <div class="chip-row" id="service-category-chips">
+          <button class="chip active" data-value="all">All services</button>
+          <button class="chip" data-value="laundry">👕 Laundry</button>
+          <button class="chip" data-value="printing">🖨 Printing &amp; typing</button>
+          <button class="chip" data-value="tutoring">📖 Tutoring</button>
+          <button class="chip" data-value="tech-repair">🔧 Device repair</button>
+          <button class="chip" data-value="cleaning">🧹 Cleaning</button>
+          <button class="chip" data-value="barbing">💈 Barbing &amp; styling</button>
+          <button class="chip" data-value="delivery">🛵 Delivery</button>
+          <button class="chip" data-value="photography">📸 Photography</button>
+          <button class="chip" data-value="catering">🍲 Catering</button>
+          <button class="chip" data-value="others">Other Others</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="filter-panel mb-3">
+          <form id="service-filter-form" class="filter-grid">
+            <div class="form-group">
+              <label for="sv-q">Search services</label>
+              <input id="sv-q" name="q" type="search" placeholder="e.g. laundry, typing">
+            </div>
+            <div class="form-group">
+              <label for="sv-min">Min price (₦)</label>
+              <input id="sv-min" name="min_price" type="number" min="0" placeholder="0">
+            </div>
+            <div class="form-group">
+              <label for="sv-max">Max price (₦)</label>
+              <input id="sv-max" name="max_price" type="number" min="0" placeholder="10000">
+            </div>
+            <div class="form-group">
+              <label for="sv-location">Location</label>
+              <input id="sv-location" name="location" type="text" placeholder="e.g. Hostel">
+            </div>
+            <div class="form-group">
+              <div class="filter-actions">
+                <button class="btn btn-primary" type="submit">Apply</button>
+                <button class="btn btn-outline" type="button" data-action="reset">Reset</button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <div class="section-head">
+          <div>
+            <h2 class="mb-0">Available services</h2>
+            <p class="mb-0"><span id="service-count">Loading…</span></p>
+          </div>
+          <a class="btn btn-primary btn-sm" href="post-listing.html">Post Offer a service</a>
+        </div>
+
+        <div class="grid grid-cards" id="service-grid">
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+        </div>
+        <div class="pagination" id="service-pagination"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer id="site-footer"></footer>
+  <nav id="bottom-nav" aria-label="Mobile navigation"></nav>
+
+  <script src="../js/api.js"></script>
+  <script src="../js/ui.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/marketplace.js"></script>
+</body>
+</html>
