@@ -1,8 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "flask",
-  "fluid": true,
   "buildCommand": "python build_vercel.py",
+  "outputDirectory": "public",
+  "rewrites": [
+    { "source": "/(.+)", "destination": "/$1" }
+  ],
   "functions": {
     "app.py": {
       "maxDuration": 30
