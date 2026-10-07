@@ -1,11 +1,26 @@
-# --- Crawl only the public marketing pages ---
+# Lafia Marketplace — robots.txt
+#
+# Public and indexable: the marketing landing page and the two auth screens.
+# Those three are the only pages served with data-zone="marketing" (index.html,
+# pages/login.html, pages/signup.html).
+#
+# Every other page under /pages/ is served with data-zone="app": the route
+# guard redirects guests to the landing page, so those URLs are kept out of
+# the index rather than advertised.
+
 User-agent: *
 Allow: /
-Disallow: /api/
-Disallow: /admin/
-Disallow: /login
-Disallow: /signup
+
+# The guarded application surfaces.
 Disallow: /pages/
 
-# Sitemap (generated at the deployed origin; update this path when the domain changes)
-Sitemap: /sitemap.xml
+# Never crawled.
+Disallow: /api/
+Disallow: /pages/admin-dashboard.html
+
+# The public auth screens stay crawlable: the longer Allow wins over the
+# broader Disallow above (longest match wins in robots.txt).
+Allow: /pages/login.html
+Allow: /pages/signup.html
+
+Sitemap: https://campus-market-hub-n5ii.vercel.app/sitemap.xml
