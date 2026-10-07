@@ -13,7 +13,7 @@
   --brand-light: #e7f1ed;
   --ink: #18231d;
   --body: #46534b;
-  --muted: #66736b;
+  --muted: #5b675f;
   --line: #dce3dd;
   --line-strong: #c8d2ca;
   --surface: #fff;
@@ -66,7 +66,8 @@ a { color: var(--brand-dark); }
 .btn-primary:hover { background: var(--brand-dark); border-color: var(--brand-dark); }
 .btn-outline { background: #fff; border-color: var(--line-strong); color: var(--ink); }
 .btn-outline:hover { border-color: var(--brand); color: var(--brand-dark); background: var(--brand-softer); }
-.btn-accent { background: #a86b20; border-color: #a86b20; color: #fff; }
+.btn-accent { background: #925710; border-color: #925710; color: #fff; }
+.btn-accent:hover { background: #78470c; border-color: #78470c; color: #fff; }
 .btn-ghost { color: var(--body); }
 .btn-ghost:hover { color: var(--brand-dark); background: var(--brand-softer); }
 .btn-sm { min-height: 34px; padding-inline: 11px; }
@@ -128,6 +129,8 @@ label, legend { color: var(--ink); font-weight: 650; }
 .mk-kicker { color: var(--brand-dark); font-size: .75rem; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
 .mk-feature__link { color: var(--brand-dark); font-weight: 700; }
 .mk-footer { background: #18231d; }
+.mk-footer .mk-brand__text strong { color: #fff; }
+.mk-footer .mk-brand__text small { color: #d0d8d2; }
 .mk-nav, .mk-nav.is-stuck { padding-block: 7px; background: #fff; border-bottom: 1px solid var(--line); box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
 .mk-nav__links a { padding: 8px 10px; border-radius: 6px; }
 .mk-brand__mark { border-radius: 7px; box-shadow: none; }
@@ -333,6 +336,14 @@ body[data-page="admin"], body[data-page="profile"] { background: var(--canvas); 
 .admin-dashboard .table-wrap, .user-dashboard .table-wrap,
 .admin-dashboard .filter-panel, .user-dashboard .filter-panel { box-shadow: none; }
 .admin-dashboard .btn:hover, .user-dashboard .btn:hover { transform: none; }
+.admin-dashboard .btn-primary, .user-dashboard .btn-primary,
+.admin-dashboard .btn-success, .user-dashboard .btn-success,
+.admin-dashboard .btn-danger, .user-dashboard .btn-danger,
+.admin-dashboard .btn-accent, .user-dashboard .btn-accent { color: #fff; }
+.admin-dashboard .btn-primary:hover, .user-dashboard .btn-primary:hover,
+.admin-dashboard .btn-success:hover, .user-dashboard .btn-success:hover,
+.admin-dashboard .btn-danger:hover, .user-dashboard .btn-danger:hover,
+.admin-dashboard .btn-accent:hover, .user-dashboard .btn-accent:hover { color: #fff; }
 .admin-dashboard :focus-visible, .user-dashboard :focus-visible { box-shadow: var(--focus-ring); }
 .ud-profile { border-radius: 9px; box-shadow: none; }
 .ud-profile::before { display: none; }
@@ -356,6 +367,16 @@ body[data-page="admin"], body[data-page="profile"] { background: var(--canvas); 
 .admin-dashboard .tabs { border-radius: 8px; background: var(--surface-2); }
 .admin-dashboard .tabs button { border-radius: 6px; }
 .admin-dashboard .tabs button.active { color: #fff; box-shadow: none; }
+.admin-dashboard .badge-published, .admin-dashboard .badge-approved,
+.user-dashboard .badge-published, .user-dashboard .badge-approved { background: #e8f3eb; color: #17603b; border-color: #c5dfcc; }
+.admin-dashboard .badge-pending, .admin-dashboard .badge-featured,
+.user-dashboard .badge-pending, .user-dashboard .badge-featured { background: #f8f1e6; color: #80500e; border-color: #e8d6b8; }
+.admin-dashboard .badge-rejected, .admin-dashboard .badge-flagged,
+.user-dashboard .badge-rejected, .user-dashboard .badge-flagged { background: #f8eceb; color: #893b3b; border-color: #ebd0ce; }
+.admin-dashboard .badge-verified, .user-dashboard .badge-verified { background: #e7f1ed; color: #105542; border-color: #c6ddd4; }
+.admin-dashboard .badge-admin, .user-dashboard .badge-admin { background: #f0eaf8; color: #513476; border-color: #ddd0ee; }
+.admin-dashboard .badge-sold, .admin-dashboard .badge-archived,
+.user-dashboard .badge-sold, .user-dashboard .badge-archived { background: #eef2ef; color: #48534c; border-color: #dce3dd; }
 .admin-dashboard .dash-pill-btn { border-radius: 6px; background: #fff; }
 .admin-dashboard .dash-pill-btn:hover { color: var(--ink); background: var(--surface-2); }
 .admin-dashboard .dash-pill-btn.active { color: #fff; background: var(--brand); box-shadow: none; }
