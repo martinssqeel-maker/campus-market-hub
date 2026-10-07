@@ -119,7 +119,14 @@ function service(id, over = {}) {
   }, over);
 }
 
-const PRODUCTS = Array.from({ length: 14 }, (_, i) => product(i + 1, { title: "Item " + (i + 1) + " for sale" }));
+/* One fixture carries a real, decodable image so gallery, cover-image and lazy
+   loading behaviour are exercised against actual pixels rather than nothing. */
+const SAMPLE_IMAGE = "/uploads/sample-1.jpg";
+
+const PRODUCTS = Array.from({ length: 14 }, (_, i) => product(i + 1, {
+  title: "Item " + (i + 1) + " for sale",
+  ...(i === 0 ? { image_url: SAMPLE_IMAGE } : {})
+}));
 const ROOMS = Array.from({ length: 9 }, (_, i) => room(i + 1));
 const EVENTS = Array.from({ length: 8 }, (_, i) => event(i + 1));
 const SERVICES = Array.from({ length: 7 }, (_, i) => service(i + 1));
@@ -165,8 +172,15 @@ function apiResponse(url) {
     room_types: ["single", "self-contain", "hostel", "flat", "shared"],
     event_categories: ["academic", "career", "social", "sports", "religious", "entertainment", "advert", "others"],
     service_categories: ["laundry", "printing", "tutoring", "tech-repair", "cleaning", "barbing", "delivery", "photography", "catering", "others"],
-    conditions: ["new", "used", "refurbished"],
+    conditions: ["new", "used", "fairly used", "refurbished"],
     genders: ["any", "male", "female"],
+    promotion_plans: [
+      { id: "free", label: "Free", price: 0, days: 3, detail: "Standard placement for 3 days", points: ["Listed and searchable"] },
+      { id: "7d", label: "7 days", price: 1000, days: 7, detail: "Promoted placement for a week", points: ["Promoted badge"] },
+      { id: "30d", label: "30 days", price: 3500, days: 30, detail: "Promoted placement for a month", points: ["Priority inside its category"] },
+      { id: "premium", label: "Premium Promotion", price: 10000, days: 30, featured: true, detail: "Priority placement plus eligible external advertising exposure", points: ["Top of its category"] }
+    ],
+    provider_registration_fee: { amount: 2500, currency: "NGN", note: "One-time fee to be considered for the provider directory. Payment does not imply verification." },
     sort_options: [{ value: "-created_at", label: "Newest first" }],
     user_types: ["student", "landlord", "service_provider"],
     listing_types: ["product", "accommodation", "event", "service"]
@@ -351,6 +365,16 @@ function serveStatic(res, pathname) {
     res.writeHead(200, headers(stored.mime)).end(stored.bytes);
     return;
   }
+  /* A deterministic stand-in image so fixtures with an image_url render real
+     pixels. Uploaded files take precedence above. */
+  if (rel === "/uploads/sample-1.jpg") {
+    fs.readFile(path.join(FRONTEND, "assets", "logo.png"), (err, data) => {
+      if (err) { res.writeHead(404).end("no sample image"); return; }
+      res.writeHead(200, headers("image/png")).end(data);
+    });
+    return;
+  }
+
   const target = path.join(FRONTEND, rel);
   if (!target.startsWith(FRONTEND)) { res.writeHead(403).end("forbidden"); return; }
 

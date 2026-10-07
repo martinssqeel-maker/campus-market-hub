@@ -306,7 +306,7 @@ small { font-size: .8rem; }
 }
 .card-pad { padding: 18px; }
 .card-head { padding: 16px 18px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.card-head h3 { margin: 0; }
+.card-head h2, .card-head h3 { margin: 0; }
 .card-body { padding: 18px; }
 .card-footer { padding: 14px 18px; border-top: 1px solid var(--line); background: #fbfdff; }
 
@@ -876,7 +876,9 @@ body[data-page="profile"] { background: #0a0a0a; }
   --d-line-strong: rgba(255, 255, 255, .16);
   --d-text: #f5f5f5;
   --d-text-2: #a1a1aa;
-  --d-text-3: #6b6b74;
+  /* Lifted from #6b6b74, which measured 3.6:1 on the console surfaces — below
+     the 4.5:1 floor for the 11-14px labels it is used for. */
+  --d-text-3: #8b8b95;
   --d-brand: #2563eb;
   --d-brand-hover: #1d4ed8;
   --d-brand-soft: rgba(37, 99, 235, .16);
@@ -1390,7 +1392,8 @@ body[data-page="profile"] { background: #0a0a0a; }
   padding: 1.25rem 1.5rem;
   border-bottom: 1px solid var(--d-line);
 }
-.admin-dashboard .card-head h3, .user-dashboard .card-head h3 { font-size: 1rem; }
+.admin-dashboard .card-head h2, .admin-dashboard .card-head h3,
+.user-dashboard .card-head h2, .user-dashboard .card-head h3 { font-size: 1rem; }
 .admin-dashboard .card-body, .user-dashboard .card-body { padding: 1.5rem; }
 
 /* Panel grid (overview bottom row etc.) */

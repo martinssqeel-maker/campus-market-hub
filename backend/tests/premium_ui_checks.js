@@ -7,7 +7,8 @@
  *   1. the route guard blocks guests from every Zone 2 page
  *   2. the logged-in app shell renders consistently on every Zone 2 page
  *   3. auth pages stay public and keep their form contract
- *   4. the landing page renders real listings, counters and marketing sections
+ *   4. the public landing page is marketing-only (never a listing feed) while
+ *      the live aggregate counters still come from the API
  *   5. no duplicated-word copy defects remain anywhere
  *   6. every page has a title, description and favicon
  *
@@ -329,15 +330,25 @@ function scanForDefects(label, text, where) {
     /^\d/.test(doc.getElementById("stat-products").textContent) &&
     Number(doc.getElementById("stat-products").textContent.replace(/[^\d]/g, "")) > 0,
     "stat-products=" + doc.getElementById("stat-products").textContent);
-  check("landing: features grid has 4 cards", doc.querySelectorAll(".mk-feature").length === 4);
+  check("landing: four pillars rendered", doc.querySelectorAll(".mk-feature.pl-card").length === 4,
+    doc.querySelectorAll(".mk-feature.pl-card").length + " pillars");
   check("landing: how-it-works has 3 steps", doc.querySelectorAll(".mk-step").length === 3);
-  check("landing: live preview rendered real cards",
-    doc.querySelectorAll("#featured-grid .listing-card").length >= 4,
-    doc.querySelectorAll("#featured-grid .listing-card").length + " cards");
-  check("landing: category strip rendered", doc.querySelectorAll("#category-strip .chip").length > 0);
-  check("landing: rooms preview rendered", doc.querySelectorAll("#rooms-grid .listing-card").length > 0);
-  check("landing: events rendered", doc.querySelectorAll("#events-list article").length > 0);
-  check("landing: testimonials has 3 cards", doc.querySelectorAll(".mk-quote").length === 3);
+  /* The product spec is explicit: the public URL is a marketing experience and
+     must not render marketplace listings, rooms, events or provider feeds. */
+  check("landing: no marketplace listing feeds on the public page",
+    doc.querySelectorAll("#featured-grid, #rooms-grid, #events-list, #listing-grid").length === 0 &&
+    doc.querySelectorAll(".listing-card").length === 0,
+    doc.querySelectorAll(".listing-card").length + " listing cards");
+  check("landing: trust and safety section rendered",
+    doc.querySelectorAll("#safety .trust-item").length >= 4,
+    doc.querySelectorAll("#safety .trust-item").length + " trust items");
+  check("landing: Game Centre promoted on the landing page",
+    !!doc.querySelector("#game") && /Game Centre/.test(doc.getElementById("game").textContent));
+  check("landing: role benefits rendered for six audiences",
+    doc.querySelectorAll("#built-for .role-card").length === 6,
+    doc.querySelectorAll("#built-for .role-card").length + " role cards");
+  check("landing: vision section explains the product",
+    !!doc.querySelector("#vision") && /Lafia/.test(doc.getElementById("vision").textContent));
   check("landing: FAQ has 5 items", doc.querySelectorAll("#faq details").length === 5);
   check("landing: final CTA banner", !!doc.querySelector(".mk-banner"));
   check("landing: footer has 4 columns", doc.querySelectorAll("#site-footer .mk-footer__grid > *").length === 4);

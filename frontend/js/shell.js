@@ -88,7 +88,22 @@
     chart: '<path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/>',
     store: '<path d="M4 9h16l-1 11H5z"/><path d="M3 9l1.6-4.4A1 1 0 0 1 5.5 4h13a1 1 0 0 1 .9.6L21 9"/><path d="M9 9v1a3 3 0 0 0 6 0V9"/>',
     info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 8h.01"/>',
-    share: '<path d="M12 3v12"/><path d="m7.5 7.5 4.5-4.5 4.5 4.5"/><path d="M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/>'
+    share: '<path d="M12 3v12"/><path d="m7.5 7.5 4.5-4.5 4.5 4.5"/><path d="M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/>',
+    /* Game Centre + engagement */
+    game: '<rect x="2" y="7" width="20" height="11" rx="4"/><path d="M7 12.5h3"/><path d="M8.5 11v3"/><path d="M15.5 11.5h.01"/><path d="M18 13.5h.01"/>',
+    trophy: '<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 5H5.5A2.5 2.5 0 0 0 8 9.5"/><path d="M16 5h2.5A2.5 2.5 0 0 1 16 9.5"/><path d="M12 13v4"/><path d="M9 20h6"/><path d="M10 17h4l1 3H9z"/>',
+    flame: '<path d="M12 21c3.6 0 6-2.3 6-5.6 0-4.2-4.2-5.6-4.6-11.4-2.4.8-3.6 2.6-3.6 4.4 0 1 .3 1.7.3 2.3 0 1.1-.8 1.6-1.6 1.6-.9 0-1.4-.6-1.6-1.4-.6.8-.9 1.7-.9 2.7C6 18 8.4 21 12 21Z"/>',
+    target: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/>',
+    /* Messaging + UI */
+    message: '<path d="M21 12a8 8 0 0 1-11.6 7.1L5 20l1.2-3.6A8 8 0 1 1 21 12Z"/>',
+    send: '<path d="m21 3-9.5 9.5"/><path d="M21 3l-6.5 18-4-8-8-4z"/>',
+    expand: '<path d="M9 4H4v5"/><path d="M15 20h5v-5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/>',
+    archive: '<rect x="3" y="4" width="18" height="4" rx="1.5"/><path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/>',
+    block: '<circle cx="12" cy="12" r="9"/><path d="m6 6 12 12"/>',
+    layers: '<path d="m12 3 8 4.5-8 4.5-8-4.5z"/><path d="m4 12 8 4.5 8-4.5"/><path d="m4 16.5 8 4.5 8-4.5"/>',
+    /* Ratings. Drawn as a solid shape and filled by .stars in premium.css — the
+       product never uses a text glyph as an icon. */
+    star: '<path d="M12 3.4l2.6 5.4 5.9.9-4.3 4.2 1 5.9-5.2-2.8-5.2 2.8 1-5.9-4.3-4.2 5.9-.9z"/>'
   };
 
   function icon(name, size) {
@@ -196,12 +211,20 @@
   /* =======================================================================
      ZONE 1 — marketing navbar, drawer, footer
      ======================================================================= */
+  /* Marketing navigation points only at marketing sections. There is no link
+     into the marketplace itself: the public zone is a landing page, and the
+     app is reached through Get started / Sign in. */
   var MARKETING_LINKS = [
-    { label: "Features", href: "#features" },
-    { label: "Categories", href: "#categories" },
+    { label: "Pillars", href: "#pillars" },
     { label: "How it works", href: "#how" },
-    { label: "Explore", href: "#preview" },
+    { label: "Safety", href: "#safety" },
+    { label: "Game Centre", href: "#game" },
     { label: "FAQ", href: "#faq" }
+  ];
+  var MARKETING_FOOTER = [
+    { label: "Game Centre", href: "#game" },
+    { label: "Trust and safety", href: "#safety" },
+    { label: "Why we are building this", href: "#vision" }
   ];
 
   function brandMarkup(compact) {
@@ -273,16 +296,24 @@
       '<div class="mk-drawer__head">' + brandMarkup(true) +
         '<button type="button" class="modal-close" aria-label="Close menu">' + icon("close", 18) + "</button>" +
       "</div>" +
+      PILLARS.map(function (pillar) {
+        return '<a href="' + esc(page(pillar.page)) + '">' +
+          '<span class="mk-drawer__lead">' + icon(pillar.icon, 18) + esc(pillar.label) + "</span>" +
+          icon("chevronRight", 16) + "</a>";
+      }).join("") +
+      '<a href="' + esc(page("game-centre.html")) + '">' +
+        '<span class="mk-drawer__lead">' + icon("game", 18) + "Game Centre</span>" +
+        icon("chevronRight", 16) + "</a>" +
+      '<div class="mk-drawer__sep" aria-hidden="true"></div>' +
       MARKETING_LINKS.map(function (link) {
         return '<a href="' + esc(link.href) + '">' + esc(link.label) + icon("chevronRight", 16) + "</a>";
       }).join("") +
-      '<a href="' + esc(page("home.html")) + '">Browse the marketplace' + icon("chevronRight", 16) + "</a>" +
       '<div class="mk-drawer__foot">' +
         (user
-          ? '<a class="btn btn-outline btn-block" href="' + esc(page("profile.html")) + '">My profile</a>' +
+          ? '<a class="btn btn-outline btn-block" href="' + esc(page("profile.html")) + '">My dashboard</a>' +
             '<a class="btn btn-primary btn-block" href="' + esc(page("post-listing.html")) + '">Post a listing</a>'
-          : '<a class="btn btn-outline btn-block" href="' + esc(page("login.html")) + '">Log in</a>' +
-            '<a class="btn btn-primary btn-block" href="' + esc(page("signup.html")) + '">Create free account</a>') +
+          : '<a class="btn btn-outline btn-block" href="' + esc(page("login.html")) + '">Sign in</a>' +
+            '<a class="btn btn-primary btn-block" href="' + esc(page("signup.html")) + '">Get started</a>') +
       "</div>";
 
     drawer.querySelector(".modal-close").addEventListener("click", closeDrawer);
@@ -320,26 +351,27 @@
               '<a href="#preview" aria-label="Explore listings">' + icon("compass", 18) + "</a>" +
             "</div>" +
           "</div>" +
-          "<div><h4>Marketplace</h4><ul>" +
-            '<li><a href="' + esc(page("home.html")) + '">All listings</a></li>' +
-            '<li><a href="' + esc(page("home.html")) + '?category=phones">Phones &amp; tablets</a></li>' +
-            '<li><a href="' + esc(page("home.html")) + '?category=laptops">Laptops</a></li>' +
-            '<li><a href="' + esc(page("home.html")) + '?category=accessories">Accessories</a></li>' +
+          "<div><h3>The four pillars</h3><ul>" +
+            '<li><a href="' + esc(page("home.html")) + '">Gadgets</a></li>' +
+            '<li><a href="' + esc(page("accommodation.html")) + '">Accommodation</a></li>' +
+            '<li><a href="' + esc(page("events.html")) + '">Events</a></li>' +
+            '<li><a href="' + esc(page("services.html")) + '">Service providers</a></li>' +
           "</ul></div>" +
-          "<div><h4>Explore</h4><ul>" +
-            '<li><a href="' + esc(page("accommodation.html")) + '">Hostels &amp; lodges</a></li>' +
-            '<li><a href="' + esc(page("services.html")) + '">Services</a></li>' +
-            '<li><a href="' + esc(page("events.html")) + '">Events &amp; adverts</a></li>' +
-            '<li><a href="' + esc(page("post-listing.html")) + '">Post a listing</a></li>' +
+          "<div><h3>Platform</h3><ul>" +
+            MARKETING_FOOTER.map(function (link) {
+              return '<li><a href="' + esc(link.href) + '">' + esc(link.label) + "</a></li>";
+            }).join("") +
           "</ul></div>" +
-          "<div><h4>Account</h4><ul>" +
+          "<div><h3>Account</h3><ul>" +
             (user
-              ? '<li><a href="' + esc(page("profile.html")) + '">My profile</a></li>' +
+              ? '<li><a href="' + esc(page("profile.html")) + '">My dashboard</a></li>' +
+                '<li><a href="' + esc(page("messages.html")) + '">Messages</a></li>' +
                 '<li><a href="' + esc(page("favorites.html")) + '">Saved items</a></li>' +
                 '<li><button type="button" data-shell-logout>Log out</button></li>'
-              : '<li><a href="' + esc(page("login.html")) + '">Log in</a></li>' +
-                '<li><a href="' + esc(page("signup.html")) + '">Create an account</a></li>') +
-            '<li><a href="#faq">Safety guidance</a></li>' +
+              : '<li><a href="' + esc(page("signup.html")) + '">Get started</a></li>' +
+                '<li><a href="' + esc(page("login.html")) + '">Sign in</a></li>' +
+                '<li><a href="#faq">Help and safety</a></li>') +
+            '<li><a href="#faq">Terms and privacy</a></li>' +
           "</ul></div>" +
         "</div>" +
         '<div class="mk-footer__bottom">' +
@@ -370,13 +402,41 @@
   /* =======================================================================
      ZONE 2 — app top bar + mobile bottom nav
      ======================================================================= */
+  /* The design bible fixes this bar exactly: Home | Saved | Sell | Messages |
+     Profile. Game Centre is intentionally NOT a tab — it is promoted on Home. */
   var BOTTOM_LINKS = [
     { id: "home", label: "Home", icon: "home", href: page("home.html") },
-    { id: "explore", label: "Explore", icon: "compass", href: page("home.html") + "#marketplace" },
-    { id: "post", label: "Sell", icon: "plus", href: page("post-listing.html"), fab: true },
-    { id: "favorites", label: "Saved", icon: "heart", href: page("favorites.html") },
+    { id: "saved", label: "Saved", icon: "heart", href: page("favorites.html") },
+    { id: "sell", label: "Sell", icon: "plus", href: page("post-listing.html"), fab: true },
+    { id: "messages", label: "Messages", icon: "message", href: page("messages.html") },
     { id: "profile", label: "Profile", icon: "user", href: page("profile.html") }
   ];
+
+  /* The four marketplace pillars — used by the drawer and the home page. */
+  var PILLARS = [
+    { id: "gadgets", label: "Gadgets", icon: "tag", page: "home.html", blurb: "Phones, laptops, power banks and student tech" },
+    { id: "accommodation", label: "Accommodation", icon: "bed", page: "accommodation.html", blurb: "Hostels, lodges, self-contains and flats" },
+    { id: "events", label: "Events", icon: "calendar", page: "events.html", blurb: "Concerts, seminars and community happenings" },
+    { id: "providers", label: "Service providers", icon: "tools", page: "services.html", blurb: "Repairs, printing, barbing, tutoring and more" }
+  ];
+
+  /* Lafia neighbourhoods used by the location picker. Kept in one place so the
+     search, the home feed and the post form all speak the same language. */
+  var LOCATIONS = [
+    "Lafia", "Angwan Rimi", "Bukan Sidi", "Mararaba", "Tudun Amba", "Akun",
+    "Shendam Road", "Jos Road", "Makurdi Road", "FULAFIA campus"
+  ];
+  var LOCATION_KEY = "cm_location";
+
+  function getLocation() {
+    try { return window.localStorage.getItem(LOCATION_KEY) || "Lafia"; }
+    catch (e) { return "Lafia"; }
+  }
+
+  function setLocation(value) {
+    try { window.localStorage.setItem(LOCATION_KEY, value); } catch (e) { /* private mode */ }
+    try { window.dispatchEvent(new CustomEvent("cm:location", { detail: { location: value } })); } catch (e) { /* older engines */ }
+  }
 
   function renderAppHeader() {
     var host = document.getElementById("site-header");
@@ -391,6 +451,17 @@
     host.innerHTML =
       '<div class="container app-topbar__inner">' +
         brandMarkup(true) +
+        /* Location is first-class: it is always visible, never buried. */
+        '<div class="app-menu-wrap loc-wrap">' +
+          '<button type="button" class="app-loc" id="app-loc" aria-haspopup="true"' +
+            ' aria-expanded="false" aria-label="Change your location">' +
+            icon("pin", 16) +
+            '<span class="app-loc__text" id="app-loc-text">' + esc(getLocation()) + "</span>" +
+            icon("chevronDown", 14) +
+          "</button>" +
+          '<div class="popover popover--left hidden" id="app-loc-popover" role="dialog"' +
+            ' aria-label="Choose your location"></div>' +
+        "</div>" +
         '<form class="app-search" id="app-search" role="search" autocomplete="off">' +
           icon("search", 17) +
           '<label class="sr-only" for="app-search-input">Search Lafia Marketplace</label>' +
@@ -401,6 +472,14 @@
         '<div class="app-actions">' +
           '<a class="btn btn-primary btn-sm app-post-cta" href="' + esc(page("post-listing.html")) + '">' +
             icon("plus", 16) + "Post listing</a>" +
+          '<div class="app-menu-wrap">' +
+            '<button type="button" class="icon-btn" id="app-bell" aria-haspopup="true"' +
+              ' aria-expanded="false" aria-label="Notifications">' + icon("bell", 19) +
+              '<span class="icon-btn__count hidden" id="app-bell-count">0</span>' +
+            "</button>" +
+            '<div class="popover hidden" id="app-notif-panel" role="dialog"' +
+              ' aria-label="Notifications"></div>' +
+          "</div>" +
           (user
             ? '<div class="app-menu-wrap">' +
                 '<button type="button" class="app-avatar" id="app-avatar" aria-haspopup="true" aria-expanded="false">' +
@@ -411,8 +490,10 @@
                 '<div class="app-menu hidden" id="app-menu" role="menu">' +
                   '<div class="app-menu__head"><strong>' + esc(user.name) + "</strong>" +
                     "<small>" + esc(String(user.user_type || "member").replace(/_/g, " ")) + "</small></div>" +
-                  '<a href="' + esc(page("profile.html")) + '" role="menuitem">' + icon("user", 17) + "My profile</a>" +
+                  '<a href="' + esc(page("profile.html")) + '" role="menuitem">' + icon("user", 17) + "My dashboard</a>" +
+                  '<a href="' + esc(page("messages.html")) + '" role="menuitem">' + icon("message", 17) + "Messages</a>" +
                   '<a href="' + esc(page("favorites.html")) + '" role="menuitem">' + icon("heart", 17) + "Saved items</a>" +
+                  '<a href="' + esc(page("game-centre.html")) + '" role="menuitem">' + icon("game", 17) + "Game Centre</a>" +
                   '<a href="' + esc(page("post-listing.html")) + '" role="menuitem">' + icon("plus", 17) + "Post a listing</a>" +
                   adminLink +
                   '<div class="app-menu__sep"></div>' +
@@ -420,13 +501,321 @@
                     icon("logout", 17) + "Log out</button>" +
                 "</div>" +
               "</div>"
-            : '<a class="btn btn-outline btn-sm" href="' + esc(page("login.html")) + '">Log in</a>') +
+            : '<a class="btn btn-outline btn-sm" href="' + esc(page("login.html")) + '">Sign in</a>') +
         "</div>" +
       "</div>";
 
     wireAppSearch();
     wireAvatarMenu();
+    wireLocation();
+    wireNotifications();
     wireLogout(host);
+  }
+
+  /* -----------------------------------------------------------------------
+     Location picker
+     ----------------------------------------------------------------------- */
+  function wireLocation() {
+    var button = document.getElementById("app-loc");
+    var panel = document.getElementById("app-loc-popover");
+    var label = document.getElementById("app-loc-text");
+    if (!button || !panel) return;
+
+    renderLocationPanel(panel, label);
+
+    button.addEventListener("click", function (event) {
+      event.stopPropagation();
+      var open = panel.classList.contains("hidden");
+      panel.classList.toggle("hidden", !open);
+      button.setAttribute("aria-expanded", open ? "true" : "false");
+      if (open) closeOtherPopovers(panel);
+    });
+
+    document.addEventListener("click", function (event) {
+      if (panel.classList.contains("hidden")) return;
+      if (!event.target.closest(".loc-wrap")) {
+        panel.classList.add("hidden");
+        button.setAttribute("aria-expanded", "false");
+      }
+    });
+
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape" && !panel.classList.contains("hidden")) {
+        panel.classList.add("hidden");
+        button.setAttribute("aria-expanded", "false");
+        button.focus();
+      }
+    });
+
+    /* A location chosen anywhere else in the product (for example "near me"
+       on the home feed) keeps this control in sync. */
+    window.addEventListener("cm:location", function () {
+      if (label) label.textContent = getLocation();
+      renderLocationPanel(panel, label);
+    });
+  }
+
+  function renderLocationPanel(panel, label) {
+    var active = getLocation();
+    panel.innerHTML =
+      '<div class="popover__head"><strong>Your location</strong><small>Used for nearby results</small></div>' +
+      '<div class="popover__list">' +
+        LOCATIONS.map(function (area) {
+          return '<button type="button" class="popover__item' + (area === active ? " is-active" : "") +
+            '" data-area="' + esc(area) + '">' + icon("pin", 16) + esc(area) +
+            (area === active ? "<small>Current</small>" : "") + "</button>";
+        }).join("") +
+      "</div>" +
+      '<div class="app-menu__sep"></div>' +
+      '<button type="button" class="popover__item" data-area-detect>' +
+        icon("target", 16) + "Use my current location" +
+      "</button>";
+
+    panel.querySelectorAll("[data-area]").forEach(function (node) {
+      node.addEventListener("click", function () {
+        setLocation(node.dataset.area);
+        if (label) label.textContent = node.dataset.area;
+        renderLocationPanel(panel, label);
+        panel.classList.add("hidden");
+        var button = document.getElementById("app-loc");
+        if (button) { button.setAttribute("aria-expanded", "false"); button.focus(); }
+      });
+    });
+
+    var detect = panel.querySelector("[data-area-detect]");
+    if (detect) {
+      detect.addEventListener("click", function () {
+        if (!window.navigator || !window.navigator.geolocation) {
+          if (window.UI) window.UI.toast("This device cannot share its location", "info");
+          return;
+        }
+        detect.setAttribute("aria-busy", "true");
+        /* Never gate the UI on a permission prompt: resolve or fail quietly. */
+        window.navigator.geolocation.getCurrentPosition(function () {
+          detect.removeAttribute("aria-busy");
+          setLocation("Near me");
+          if (label) label.textContent = "Near me";
+          renderLocationPanel(panel, label);
+          panel.classList.add("hidden");
+          if (window.UI) window.UI.toast("Showing results near you", "success");
+        }, function () {
+          detect.removeAttribute("aria-busy");
+          if (window.UI) window.UI.toast("We could not get your location — pick an area instead", "info");
+        }, { timeout: 6000, maximumAge: 300000 });
+      });
+    }
+  }
+
+  function closeOtherPopovers(except) {
+    document.querySelectorAll(".popover").forEach(function (node) {
+      if (node !== except) node.classList.add("hidden");
+    });
+  }
+
+  /* -----------------------------------------------------------------------
+     Notification centre
+
+     Every entry is derived from the signed-in user's own data — never from a
+     fabricated feed. When the platform has nothing to report the panel says so
+     instead of inventing activity.
+     ----------------------------------------------------------------------- */
+  function unseenKey(user) {
+    return "cm_notif_seen_" + ((user && user.id) || "anon");
+  }
+
+  function readSeen(user) {
+    try { return JSON.parse(window.localStorage.getItem(unseenKey(user)) || "[]") || []; }
+    catch (e) { return []; }
+  }
+
+  function writeSeen(user, ids) {
+    try { window.localStorage.setItem(unseenKey(user), JSON.stringify(ids.slice(-200))); }
+    catch (e) { /* private mode */ }
+  }
+
+  function buildNotifications(user, listings) {
+    var rows = [];
+    var groups = ["products", "accommodation", "events", "services"];
+
+    groups.forEach(function (group) {
+      (listings[group] || []).forEach(function (item) {
+        var id = group + ":" + item.id + ":" + item.status;
+        if (item.status === "pending") {
+          rows.push({
+            id: id, kind: "review", icon: "clock", href: page("profile.html"),
+            title: "Awaiting review",
+            body: item.title + " is in the moderation queue and will go live once it is approved.",
+            at: item.created_at
+          });
+        } else if (item.status === "rejected") {
+          rows.push({
+            id: id, kind: "alert", icon: "info", href: page("profile.html"),
+            title: "Needs changes",
+            body: item.title + " was not approved. Open your dashboard to see the reason and edit it.",
+            at: item.created_at
+          });
+        } else if (item.status === "published") {
+          rows.push({
+            id: id, kind: "live", icon: "check", href: page("profile.html"),
+            title: "Live on the marketplace",
+            body: item.title + " is public and can receive messages and offers.",
+            at: item.created_at
+          });
+        }
+      });
+    });
+
+    if (user && !user.verified) {
+      rows.push({
+        id: "account:verify", kind: "account", icon: "shieldCheck", href: page("profile.html"),
+        title: "Verify your account",
+        body: "Verified accounts are trusted more and can be listed in the service provider directory.",
+        at: null
+      });
+    }
+
+    rows.sort(function (a, b) { return new Date(b.at || 0) - new Date(a.at || 0); });
+    return rows.slice(0, 25);
+  }
+
+  function wireNotifications() {
+    var button = document.getElementById("app-bell");
+    var panel = document.getElementById("app-notif-panel");
+    var count = document.getElementById("app-bell-count");
+    if (!button || !panel) return;
+
+    var user = currentUser();
+    var seen = readSeen(user);
+
+    panel.innerHTML =
+      '<div class="popover__head"><strong>Notifications</strong><small id="notif-summary">Loading…</small></div>' +
+      '<div class="notif-list" id="notif-list">' +
+        '<div class="skeleton skeleton-row" style="margin:8px"></div>' +
+        '<div class="skeleton skeleton-row" style="margin:8px"></div>' +
+      "</div>";
+
+    button.addEventListener("click", function (event) {
+      event.stopPropagation();
+      var open = panel.classList.contains("hidden");
+      panel.classList.toggle("hidden", !open);
+      button.setAttribute("aria-expanded", open ? "true" : "false");
+      if (open) {
+        closeOtherPopovers(panel);
+        markAllSeen(seen, count, renderedNotifications);
+      }
+    });
+
+    document.addEventListener("click", function (event) {
+      if (panel.classList.contains("hidden")) return;
+      if (!event.target.closest("#app-bell") && !event.target.closest("#app-notif-panel")) {
+        panel.classList.add("hidden");
+        button.setAttribute("aria-expanded", "false");
+      }
+    });
+
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape" && !panel.classList.contains("hidden")) {
+        panel.classList.add("hidden");
+        button.setAttribute("aria-expanded", "false");
+        button.focus();
+      }
+    });
+
+    loadNotifications(user, panel, count, seen);
+  }
+
+  function loadNotifications(user, panel, count, seen) {
+    var list = panel.querySelector("#notif-list");
+    var summary = panel.querySelector("#notif-summary");
+
+    if (!user || !window.API) {
+      paintNotifications([], list, summary, count, seen);
+      return;
+    }
+
+    window.API.users.listings(user.id).then(function (payload) {
+      paintNotifications(buildNotifications(user, payload.data || {}), list, summary, count, seen);
+    }).catch(function () {
+      /* Honest failure state with a retry, never a blank panel. */
+      if (list) {
+        list.innerHTML =
+          '<div class="popover__empty">' +
+            "<strong>We could not load notifications</strong>" +
+            "<p>Check your connection and try again.</p>" +
+            '<button type="button" class="btn btn-outline btn-sm" data-retry>Try again</button>' +
+          "</div>";
+        var retry = list.querySelector("[data-retry]");
+        if (retry) retry.addEventListener("click", function () { loadNotifications(user, panel, count, seen); });
+      }
+      if (summary) summary.textContent = "Unavailable";
+      if (count) count.classList.add("hidden");
+    });
+  }
+
+  /* The most recently rendered rows, so "mark as read" can persist real ids. */
+  var renderedNotifications = [];
+
+  function paintNotifications(rows, list, summary, count, seen) {
+    if (!list) return;
+    var unread = rows.filter(function (row) { return seen.indexOf(row.id) === -1; });
+    list.dataset.rows = "";
+    renderedNotifications = rows;
+
+    if (count) {
+      count.classList.toggle("hidden", unread.length === 0);
+      count.textContent = String(unread.length);
+    }
+    if (summary) {
+      summary.textContent = rows.length ? (unread.length ? unread.length + " new" : "Up to date") : "";
+    }
+
+    if (!rows.length) {
+      list.innerHTML =
+        '<div class="popover__empty">' +
+          '<span class="empty-mark" aria-hidden="true">' + icon("bell", 22) + "</span>" +
+          "<strong>You are all caught up</strong>" +
+          "<p>Listing reviews, offers and replies will land here as they happen.</p>" +
+        "</div>";
+      return;
+    }
+
+    list.innerHTML = rows.map(function (row) {
+      return '<button type="button" class="notif-item' + (unread.indexOf(row) === -1 ? "" : " is-unread") +
+        '" data-href="' + esc(row.href) + '">' +
+        '<span class="notif-item__mark" aria-hidden="true">' + icon(row.icon, 17) + "</span>" +
+        '<span class="notif-item__body"><strong>' + esc(row.title) + "</strong><p>" + esc(row.body) + "</p>" +
+          (row.at ? "<time>" + esc(relativeTime(row.at)) + "</time>" : "") +
+        "</span></button>";
+    }).join("");
+
+    list.querySelectorAll("[data-href]").forEach(function (node) {
+      node.addEventListener("click", function () { window.location.href = node.dataset.href; });
+    });
+  }
+
+  /** Persist every notification currently rendered as "seen", in place, so the
+      same array instance stays authoritative for later repaints. */
+  function markAllSeen(seen, count, rendered) {
+    (rendered || []).forEach(function (row) {
+      if (seen.indexOf(row.id) === -1) seen.push(row.id);
+    });
+    writeSeen(currentUser(), seen);
+    if (count) count.classList.add("hidden");
+    document.querySelectorAll("#notif-list .notif-item").forEach(function (node) {
+      node.classList.remove("is-unread");
+    });
+    var summary = document.getElementById("notif-summary");
+    if (summary && rendered && rendered.length) summary.textContent = "Up to date";
+  }
+
+  function relativeTime(value) {
+    var then = new Date(value).getTime();
+    if (isNaN(then)) return "";
+    var seconds = Math.floor((Date.now() - then) / 1000);
+    if (seconds < 60) return "just now";
+    if (seconds < 3600) return Math.floor(seconds / 60) + " min ago";
+    if (seconds < 86400) return Math.floor(seconds / 3600) + " h ago";
+    return Math.floor(seconds / 86400) + " d ago";
   }
 
   function wireAvatarMenu() {
@@ -519,7 +908,13 @@
     if (!host) return;
 
     var active = (document.body && document.body.dataset.page) || "";
-    var map = { home: "home", marketplace: "home", product: "explore", accommodation: "explore", events: "explore", services: "explore", post: "post", favorites: "favorites", profile: "profile" };
+    /* Every browse surface lives under Home in the tab bar — the bar no longer
+       has a generic "Explore" slot, by design. */
+    var map = {
+      home: "home", marketplace: "home", product: "home",
+      accommodation: "home", events: "home", services: "home",
+      post: "sell", favorites: "saved", messages: "messages", profile: "profile"
+    };
     var activeId = map[active] || "";
 
     host.className = "app-bottomnav";
@@ -531,12 +926,27 @@
       var inner = link.fab
         ? '<i aria-hidden="true">' + icon(link.icon, 24) + "</i>"
         : icon(link.icon, 22);
+      if (link.id === "messages") inner += '<span class="app-nav-badge hidden" data-msg-badge>0</span>';
       return '<a href="' + esc(link.href) + '"' + (cls.length ? ' class="' + cls.join(" ") + '"' : "") +
         (link.id === activeId ? ' aria-current="page"' : "") + ">" + inner +
         "<span>" + esc(link.label) + "</span></a>";
     }).join("");
 
     document.body.classList.add("has-app-shell");
+    paintMessageBadge();
+    window.addEventListener("cm:messages", paintMessageBadge);
+  }
+
+  /** Unread conversation badge on the Messages tab — real counts only. */
+  function paintMessageBadge() {
+    var badge = document.querySelector("[data-msg-badge]");
+    if (!badge) return;
+    var count = 0;
+    try {
+      count = (window.Messaging && window.Messaging.unreadCount) ? window.Messaging.unreadCount() : 0;
+    } catch (e) { count = 0; }
+    badge.textContent = String(count);
+    badge.classList.toggle("hidden", !count);
   }
 
   /* =======================================================================
@@ -690,6 +1100,12 @@
     renderShell: renderShell,
     absolutiseMeta: absolutiseMeta,
     openDrawer: openDrawer,
-    closeDrawer: closeDrawer
+    closeDrawer: closeDrawer,
+    /* Location is first-class for the whole product. */
+    PILLARS: PILLARS,
+    LOCATIONS: LOCATIONS,
+    getLocation: getLocation,
+    setLocation: setLocation,
+    paintMessageBadge: paintMessageBadge
   };
 })(window, document);

@@ -290,6 +290,45 @@
       });
     },
 
+    /**
+     * Live password strength meter. Deliberately favours passphrases over
+     * punctuation rules — the advice is what actually makes a password strong.
+     */
+    initPasswordMeter: function () {
+      var input = document.getElementById("su-password");
+      var meter = document.getElementById("su-password-meter");
+      if (!input || !meter) return;
+
+      var label = meter.querySelector(".meter__label");
+      var base = label ? label.textContent : "";
+      var ADVICE = [
+        "Too short — aim for at least 6 characters",
+        "Weak — add a number as well",
+        "Fair — mix letters and numbers",
+        "Strong — a longer phrase would be even better",
+        "Very strong — easy to remember, hard to guess"
+      ];
+
+      function score(value) {
+        if (!value) return 0;
+        var points = 0;
+        if (value.length >= 6) points++;
+        if (value.length >= 10) points++;
+        if (/[A-Za-z]/.test(value) && /\d/.test(value)) points++;
+        if (/[^A-Za-z0-9]/.test(value) || value.length >= 14) points++;
+        return Math.max(1, Math.min(4, points));
+      }
+
+      function paint() {
+        var level = score(input.value);
+        meter.dataset.level = String(level);
+        if (label) label.textContent = level ? ADVICE[level - 1] : base;
+      }
+
+      input.addEventListener("input", paint);
+      paint();
+    },
+
     /** Show/hide password buttons. */
     initPasswordToggles: function () {
       document.querySelectorAll("[data-toggle-password]").forEach(function (button) {
@@ -306,6 +345,7 @@
     init: function () {
       Auth.initLoginPage();
       Auth.initSignupPage();
+      Auth.initPasswordMeter();
       Auth.initPasswordToggles();
       Auth.preserveNext();
     }

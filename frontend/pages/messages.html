@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en" data-zone="app">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0b8371">
+  <title>Messages · Lafia Marketplace</title>
+  <meta name="description" content="Talk to buyers, sellers, landlords and service providers inside Lafia Marketplace — quick replies, offers and listing context in one thread.">
+  <meta name="robots" content="noindex">
+
+  <link rel="icon" type="image/svg+xml" href="../assets/images/logo.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/responsive.css">
+  <link rel="stylesheet" href="../css/premium.css">
+
+  <script src="../js/shell.js"></script>
+</head>
+<body data-page="messages">
+
+  <header id="site-header"></header>
+
+  <main>
+    <div class="page-head">
+      <div class="container page-head__inner">
+        <div>
+          <span class="mk-kicker">In-app messaging</span>
+          <h1>Messages</h1>
+          <p id="msg-count">Loading…</p>
+        </div>
+        <div class="page-head__actions">
+          <a class="btn btn-outline" href="home.html">Browse listings</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="container" style="padding-bottom:var(--sp-10)">
+
+      <div class="chip-row mb-3" id="msg-filters" role="group" aria-label="Filter conversations">
+        <button class="chip active" data-value="all" type="button">All conversations</button>
+        <button class="chip" data-value="unread" type="button">Unread</button>
+        <button class="chip" data-value="archived" type="button">Archived</button>
+      </div>
+
+      <div class="msg-shell" id="msg-shell" data-view="list">
+        <div class="msg-list" id="msg-list" aria-label="Conversations">
+          <div class="skeleton skeleton-row"></div>
+          <div class="skeleton skeleton-row"></div>
+          <div class="skeleton skeleton-row"></div>
+        </div>
+        <div id="msg-pane">
+          <div class="skeleton skeleton-pane"></div>
+        </div>
+      </div>
+
+      <div class="card card-pad mt-3">
+        <h3>Keeping conversations safe</h3>
+        <ul class="spec-list">
+          <li><span class="k">Keep it in the app</span><span class="v">Reported threads stay on record</span></li>
+          <li><span class="k">Never send money first</span><span class="v">Inspect before you pay</span></li>
+          <li><span class="k">Meet in public</span><span class="v">Busy, well-lit places only</span></li>
+        </ul>
+      </div>
+    </div>
+  </main>
+
+  <nav id="bottom-nav" aria-label="App navigation"></nav>
+
+  <script src="../js/api.js"></script>
+  <script src="../js/ui.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/engage.js"></script>
+  <script src="../js/marketplace.js"></script>
+</body>
+</html>

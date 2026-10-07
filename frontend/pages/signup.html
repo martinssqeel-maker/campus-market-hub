@@ -98,7 +98,13 @@
                 <button class="password-toggle" type="button" data-toggle-password="su-password"
                         aria-label="Show password">Show</button>
               </div>
-              <span class="field-hint">Use at least one letter and one number.</span>
+              <div class="meter" id="su-password-meter" data-level="0">
+                <span class="meter__track" aria-hidden="true">
+                  <span class="meter__seg"></span><span class="meter__seg"></span>
+                  <span class="meter__seg"></span><span class="meter__seg"></span>
+                </span>
+                <span class="meter__label" role="status" aria-live="polite">At least 6 characters, with a letter and a number.</span>
+              </div>
               <span class="field-error" role="alert"></span>
             </div>
             <div class="form-group">
@@ -146,6 +152,10 @@
           </div>
 
           <button class="btn btn-primary btn-block btn-lg" type="submit">Create account</button>
+          <p class="form-note text-center mt-2">
+            Your phone number is shared only inside the app, and only with people you message.
+            It is never printed on a public listing.
+          </p>
         </form>
 
         <div class="divider">or</div>

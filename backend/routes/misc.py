@@ -11,7 +11,7 @@ GET /api/popular         trending searches / popular categories
 from flask import Blueprint, current_app, request
 from sqlalchemy import func, or_
 
-from config import secret_warnings
+from config import promotion_plans, provider_registration_fee, secret_warnings
 from extensions import db
 from models import Accommodation, Event, Product, Service, User
 from storage import get_storage
@@ -167,8 +167,12 @@ def meta():
             "room_types": ROOM_TYPES,
             "event_categories": EVENT_CATEGORIES,
             "service_categories": SERVICE_CATEGORIES,
-            "conditions": ["new", "used", "refurbished"],
+            "conditions": ["new", "used", "fairly used", "refurbished"],
             "genders": ["any", "male", "female"],
+            # Business rules live in configuration, not in the UI bundle, so
+            # pricing changes ship without a frontend deploy (§19, §46).
+            "promotion_plans": promotion_plans(),
+            "provider_registration_fee": provider_registration_fee(),
             "sort_options": [
                 {"value": "-created_at", "label": "Newest first"},
                 {"value": "created_at", "label": "Oldest first"},

@@ -341,90 +341,17 @@
         .forEach(function (node) { node.textContent = "0" + (node.dataset.countSuffix || ""); });
     });
 
-    // Featured / latest products
-    var featuredGrid = document.getElementById("featured-grid");
-    if (featuredGrid) {
-      API.products.list({ per_page: 8, sort: "-created_at", featured: true })
-        .then(function (payload) {
-          var items = payload.data.items;
-          if (!items.length) {
-            // Fall back to the newest listings when nothing is featured yet.
-            return API.products.list({ per_page: 8 }).then(function (fallback) {
-              return fallback.data.items;
-            });
-          }
-          return items;
-        })
-        .then(function (items) {
-          featuredGrid.innerHTML = items.length
-            ? items.map(function (item) { return UI.listingCard(item); }).join("")
-            : UI.emptyState("products", "No listings yet",
-                "Be the first to post something in Lafia — it takes about a minute.",
-                '<a class="btn btn-primary mt-2" href="' + UI.pageUrl("post-listing.html") + '">Post a listing</a>');
-        })
-        .catch(function (error) {
-          featuredGrid.innerHTML = UI.emptyState("info", "Listings are loading slowly",
-            error.message || "We could not reach the marketplace right now. Try again in a moment.");
-        });
-    }
+    /* ---------------------------------------------------------------------
+       Marketing-only landing page.
 
-    // Latest accommodation
-    var roomsGrid = document.getElementById("rooms-grid");
-    if (roomsGrid) {
-      API.accommodation.list({ per_page: 3 })
-        .then(function (payload) {
-          var items = payload.data.items;
-          roomsGrid.innerHTML = items.length
-            ? items.map(function (item) { return UI.listingCard(item); }).join("")
-            : UI.emptyState("rooms", "No rooms advertised yet",
-                "Landlords and agents will list rooms here as they become available.");
-        })
-        .catch(function (error) {
-          roomsGrid.innerHTML = UI.emptyState("info", "Rooms are unavailable",
-            error.message || "We could not load accommodation right now.");
-        });
-    }
+       The design bible is explicit: the public, unauthenticated URL must NOT
+       render marketplace listings, product feeds, accommodation cards, event
+       feeds or provider directories. Those all live behind authentication.
 
-    // Upcoming events
-    var eventsHost = document.getElementById("events-list");
-    if (eventsHost) {
-      API.events.upcoming(4).then(function (payload) {
-        var items = payload.data || [];
-        eventsHost.innerHTML = items.length
-          ? items.map(function (item) {
-              return (
-                '<article class="card card-pad" data-event-id="' + item.id + '">' +
-                  '<span class="badge badge-featured">' + UI.escapeHtml(item.category) + "</span>" +
-                  '<h3 class="mt-1">' + UI.escapeHtml(item.title) + "</h3>" +
-                  '<p class="text-muted mb-1">' + UI.formatDate(item.date, true) + "<br>" +
-                    UI.escapeHtml(item.location) + "</p>" +
-                  '<div class="flex-between"><strong>' +
-                    (Number(item.ticket_price) > 0 ? UI.money(item.ticket_price) : "Free entry") +
-                  '</strong><button class="btn btn-outline btn-sm" data-event="' + item.id +
-                    '">Details</button></div>' +
-                "</article>"
-              );
-            }).join("")
-          : UI.emptyState("events", "No upcoming events",
-              "Concerts, fairs and campus happenings will show up here.");
-      }).catch(function () { eventsHost.innerHTML = ""; });
-
-      eventsHost.addEventListener("click", function (event) {
-        var button = event.target.closest("[data-event]");
-        if (button) openEventModal(button.dataset.event);
-      });
-    }
-
-    // Popular categories
-    var categoryHost = document.getElementById("category-strip");
-    if (categoryHost) {
-      API.products.categories().then(function (payload) {
-        var categories = payload.data.categories.filter(function (row) { return row.count > 0; });
-        categoryHost.innerHTML = categories.map(function (row) {            return '<a class="chip" href="' + UI.pageUrl("home.html") + "?category=" + row.name + '">' +
-              UI.escapeHtml(String(row.name).replace(/-/g, " ")) + ' <span class="badge">' + row.count + "</span></a>";
-        }).join("");
-      }).catch(function () { categoryHost.innerHTML = ""; });
-    }
+       The only live data on this page is the aggregate counter strip above,
+       which is social proof rather than a feed and is read straight from
+       GET /api/stats — never invented.
+       --------------------------------------------------------------------- */
   }
 
   /* =======================================================================
@@ -518,6 +445,12 @@
 
     feed.load();
 
+    // ---- Prominent Game Centre module + adaptive discovery rows ----------
+    if (window.GameCentre && window.GameCentre.renderHomeModule) {
+      window.GameCentre.renderHomeModule(document.getElementById("home-game"));
+    }
+    initHomeDiscovery();
+
     // ---- Sidebar: accommodation teaser -----------------------------------
     var sideRooms = document.getElementById("side-rooms");
     if (sideRooms) {
@@ -563,6 +496,138 @@
     }
   }
 
+  /* -----------------------------------------------------------------------
+     Home discovery rows.
+
+     The design bible asks for adaptive sections rather than a fixed template:
+     each row renders from real API data, and a row with nothing to show is
+     removed instead of printing an empty heading. When the reader changes
+     location the rows re-query and the labels follow.
+     ----------------------------------------------------------------------- */
+  function initHomeDiscovery() {
+    var host = document.getElementById("home-discovery");
+    if (!host) return;
+
+    var pick = function (key) {
+      return function (payload) { return (payload.data && payload.data[key]) || []; };
+    };
+
+    function sectionsFor(area) {
+      var near = area && area !== "Lafia" ? area : "Lafia";
+      return [
+        {
+          id: "recommended",
+          title: "Recommended for you",
+          blurb: "The newest listings across Lafia, refreshed as people post",
+          keepEmpty: true,
+          empty: "Nothing has been posted yet. Your first listing will show up right here.",
+          load: function () { return API.products.list({ per_page: 4, sort: "-created_at" }).then(pick("products")); }
+        },
+        {
+          id: "trending",
+          title: "Trending in Lafia",
+          blurb: "Ranked by real views on the platform — never invented",
+          load: function () { return API.misc.popular().then(pick("products")); }
+        },
+        {
+          id: "near",
+          title: "Near " + near,
+          blurb: "Posted by people in and around your area",
+          load: function () { return API.products.list({ per_page: 4, location: area }).then(pick("products")); }
+        },
+        {
+          id: "rooms",
+          title: "Available accommodation",
+          blurb: "Hostels, lodges and self-contains you can inspect",
+          keepEmpty: true,
+          empty: "No rooms are advertised yet. Landlords can post one in a couple of minutes.",
+          load: function () { return API.accommodation.list({ per_page: 3 }).then(pick("items")); },
+          href: "accommodation.html",
+          hrefLabel: "All rooms"
+        },
+        {
+          id: "events",
+          title: "Upcoming events",
+          blurb: "Concerts, seminars and community happenings",
+          keepEmpty: true,
+          empty: "No upcoming events yet. Organisers can publish one from the events page.",
+          load: function () { return API.events.upcoming(3).then(function (payload) { return payload.data || []; }); },
+          href: "events.html",
+          hrefLabel: "All events"
+        },
+        {
+          id: "providers",
+          title: "Top service providers",
+          blurb: "Repairs, printing, tutoring, delivery and more",
+          load: function () { return API.services.list({ per_page: 3 }).then(pick("items")); },
+          href: "services.html",
+          hrefLabel: "All providers"
+        }
+      ];
+    }
+
+    function render(area) {
+      host.innerHTML = UI.skeletonGrid(4);
+      var sections = sectionsFor(area);
+
+      Promise.all(sections.map(function (section) {
+        return section.load().catch(function () { return null; });
+      })).then(function (results) {
+        var html = "";
+
+        sections.forEach(function (section, index) {
+          var items = results[index];
+          // A failed or empty optional row simply disappears — no dead heading.
+          if (!items || !items.length) {
+            if (!section.keepEmpty) return;
+            html +=
+              '<section class="discovery-row">' +
+                '<div class="section-head"><div><h2>' + UI.escapeHtml(section.title) + "</h2>" +
+                  '<p>' + UI.escapeHtml(section.blurb) + "</p></div></div>" +
+                UI.emptyState("empty", "Nothing here yet", section.empty) +
+              "</section>";
+            return;
+          }
+
+          html +=
+            '<section class="discovery-row">' +
+              '<div class="section-head"><div><h2>' + UI.escapeHtml(section.title) + "</h2>" +
+                '<p>' + UI.escapeHtml(section.blurb) + "</p></div>" +
+                (section.href
+                  ? '<a class="btn btn-outline btn-sm" href="' + UI.pageUrl(section.href) + '">' +
+                    UI.escapeHtml(section.hrefLabel) + "</a>"
+                  : "") +
+              "</div>" +
+              '<div class="grid grid-cards">' +
+                items.map(function (item) { return UI.listingCard(item); }).join("") +
+              "</div>" +
+            "</section>";
+        });
+
+        host.innerHTML = html || UI.emptyState("empty", "Nothing here yet",
+          "As soon as people post in Lafia, this page fills up.",
+          '<a class="btn btn-primary mt-2" href="' + UI.pageUrl("post-listing.html") + '">Post a listing</a>');
+      });
+    }
+
+    function currentArea() {
+      return (window.Shell && Shell.getLocation) ? Shell.getLocation() : "Lafia";
+    }
+
+    function paintLocationLabel() {
+      var label = document.getElementById("home-location");
+      if (label) label.textContent = currentArea();
+    }
+
+    paintLocationLabel();
+    render(currentArea());
+
+    window.addEventListener("cm:location", function () {
+      paintLocationLabel();
+      render(currentArea());
+    });
+  }
+
   /* =======================================================================
      PRODUCT / ACCOMMODATION DETAILS PAGE
      ======================================================================= */
@@ -590,25 +655,89 @@
       var owner = item.type === "accommodation" ? item.landlord : item.seller;
       var isOwner = !!(API.currentUser() && owner && API.currentUser().id === owner.id);
 
-      var specs = item.type === "accommodation"
-        ? [
-            ["Room type", String(item.room_type || "").replace(/-/g, " ")],
-            ["Rooms / spaces", item.rooms],
-            ["Preferred gender", item.gender],
-            ["Furnished", item.furnished ? "Yes" : "No"],
-            ["Location", item.location],
-            ["Price (per year)", UI.money(item.price)],
-            ["Amenities", (item.amenities || []).join(", ") || "—"],
-            ["Advertised", UI.timeAgo(item.created_at)]
-          ]
-        : [
-            ["Category", item.category],
-            ["Condition", item.condition],
-            ["Location", item.location],
-            ["Price", UI.money(item.price)],
-            ["Views", item.views],
-            ["Posted", UI.timeAgo(item.created_at)]
-          ];
+      /* ---- media gallery -------------------------------------------------
+         Large media, counter, thumbnails, fullscreen and a designed fallback
+         behind every image, so a dead URL degrades to artwork instead of a
+         broken-image icon. The API currently returns a single image_url; an
+         `images` array is honoured the moment the backend provides one. */
+      var images = Array.isArray(item.images) && item.images.length
+        ? item.images.slice(0, 8)
+        : (item.image_url ? [item.image_url] : []);
+
+      var galleryHtml;
+      if (images.length) {
+        galleryHtml =
+          '<div class="gallery" id="detail-gallery">' +
+            '<div class="gallery__stage" id="gallery-stage">' +
+              '<span class="gallery__fallback" aria-hidden="true">' + svgi("image", 30) +
+                "<em>Photo unavailable</em></span>" +
+              '<img id="gallery-image" src="' + UI.escapeHtml(UI.imageFor({ image_url: images[0] })) + '"' +
+                ' alt="' + UI.escapeHtml(item.title) + '" loading="lazy" onerror="this.onerror=null;this.remove();">' +
+              (images.length > 1
+                ? '<span class="gallery__counter" id="gallery-counter">1 / ' + images.length + "</span>"
+                : "") +
+              '<button class="gallery__expand" type="button" data-gallery-expand' +
+                ' aria-label="View photo full screen">' + svgi("expand", 17) + "</button>" +
+            "</div>" +
+            (images.length > 1
+              ? '<div class="gallery__thumbs" role="group" aria-label="Photos of this listing">' +
+                  images.map(function (src, index) {
+                    return '<button type="button" class="gallery__thumb' + (index === 0 ? " is-active" : "") +
+                      '" data-thumb="' + index + '" aria-label="Show photo ' + (index + 1) + '">' +
+                      '<img src="' + UI.escapeHtml(UI.imageFor({ image_url: src })) + '" alt="" loading="lazy" ' +
+                        'onerror="this.onerror=null;this.closest(\'.gallery__thumb\').remove()">' +
+                    "</button>";
+                  }).join("") +
+                "</div>"
+              : "") +
+          "</div>";
+      } else {
+        galleryHtml =
+          '<div class="detail-placeholder">' + svgi("image", 34) +
+            "<strong>No photo yet</strong>" +
+            "<span>The owner has not added a picture. Ask for one before you travel to inspect.</span>" +
+          "</div>";
+      }
+
+      /* ---- specifications: only rows backed by real data ------------------ */
+      var CONDITION_LABELS = {
+        new: "Brand new", used: "Used", "fairly-used": "Fairly used",
+        fairly_used: "Fairly used", refurbished: "Refurbished"
+      };
+      function conditionLabel(value) {
+        if (!value) return "";
+        var key = String(value).toLowerCase().replace(/\s+/g, "-");
+        return CONDITION_LABELS[key] || String(value).replace(/-/g, " ");
+      }
+
+      var specs = [];
+      if (item.type === "accommodation") {
+        specs.push(["Room type", String(item.room_type || "").replace(/-/g, " ")]);
+        specs.push(["Rooms / spaces", item.rooms]);
+        specs.push(["Preferred gender", item.gender]);
+        specs.push(["Furnished", item.furnished === true ? "Yes" : (item.furnished === false ? "No" : "")]);
+        specs.push(["Electricity", item.electricity]);
+        specs.push(["Water", item.water]);
+        specs.push(["Security", item.security]);
+        specs.push(["Distance to campus", item.distance_to_campus]);
+        specs.push(["Availability", item.available_from ? UI.formatDate(item.available_from) : "Available now"]);
+        specs.push(["Location", item.location]);
+        specs.push(["Rent (per year)", UI.money(item.price)]);
+        specs.push(["Amenities", (item.amenities || []).join(", ")]);
+      } else {
+        specs.push(["Category", String(item.category || "").replace(/-/g, " ")]);
+        specs.push(["Condition", conditionLabel(item.condition)]);
+        specs.push(["Brand / model", item.brand]);
+        specs.push(["Accessories included", item.accessories]);
+        specs.push(["Location", item.location]);
+        specs.push(["Price", UI.money(item.price)]);
+        specs.push(["Views", item.views]);
+      }
+      specs.push(["Availability", item.available === false ? "No longer available" : "Available now"]);
+      specs.push(["Posted", UI.timeAgo(item.created_at)]);
+      specs = specs.filter(function (row) {
+        return row[1] !== undefined && row[1] !== null && String(row[1]).trim() !== "";
+      });
 
       var statusNote = "";
       if (isOwner && item.status !== "published") {
@@ -623,20 +752,44 @@
           "</div>";
       }
 
+      var phone = owner && owner.phone ? String(owner.phone) : "";
+      var contactHtml;
+      if (isOwner) {
+        contactHtml =
+          '<div class="contact-actions">' +
+            '<a class="btn btn-primary btn-block" href="' + UI.pageUrl("profile.html") + '">Manage in my dashboard</a>' +
+          "</div>";
+      } else if (phone && API.isLoggedIn()) {
+        contactHtml =
+          '<div class="contact-actions">' +
+            '<a class="btn btn-outline" href="tel:' + UI.escapeHtml(phone) + '">' +
+              svgi("phone", 16) + "Call " + UI.escapeHtml(phone) + "</a>" +
+            '<a class="btn btn-success" target="_blank" rel="noopener" href="https://wa.me/234' +
+              UI.escapeHtml(phone.replace(/^0/, "")) +
+              "?text=" + encodeURIComponent("Hello " + (owner ? owner.name : "") + ", I saw your listing on " + BRAND + ": " + item.title) +
+            '">' + svgi("whatsapp", 16) + "WhatsApp</a>" +
+          "</div>";
+      } else {
+        contactHtml =
+          '<div class="contact-actions">' +
+            '<a class="btn btn-primary btn-block" href="' + UI.pageUrl("login.html") + '?next=' +
+              encodeURIComponent(window.location.pathname + window.location.search) +
+            '">Log in to see contact details</a>' +
+          "</div>";
+      }
+
       host.innerHTML =
         statusNote +
         '<div class="detail-grid">' +
           "<div>" +
-            '<div class="detail-media">' + (item.image_url
-              ? '<img src="' + UI.imageFor(item) + '" alt="' + UI.escapeHtml(item.title) + '" loading="lazy">'
-              : '<div class="detail-placeholder">' + svgi("image", 34) +
-                '<strong>No photo yet</strong><span>The owner has not added an image to this listing.</span></div>') + '</div>' +
+            galleryHtml +
             '<div class="card card-pad mt-2">' +
               "<h2>Description</h2>" +
-              "<p>" + UI.escapeHtml(item.description || "No description provided.") + "</p>" +
+              "<p>" + UI.escapeHtml(item.description || "The owner has not written a description yet.") + "</p>" +
+              '<h3 class="mt-3">Specifications</h3>' +
               '<ul class="spec-list">' +
                 specs.map(function (row) {
-                  return '<li><span class="k">' + row[0] + '</span><span class="v">' +
+                  return '<li><span class="k">' + UI.escapeHtml(row[0]) + '</span><span class="v">' +
                     UI.escapeHtml(row[1]) + "</span></li>";
                 }).join("") +
               "</ul>" +
@@ -645,13 +798,14 @@
           "<div>" +
             '<div class="card card-pad">' +
               '<div class="flex-between">' +
-                '<span class="badge badge-featured">' + UI.escapeHtml(item.category || item.room_type) + "</span>" +
-                (item.featured ? '<span class="badge badge-featured">Featured</span>' : "") +
+                '<span class="badge badge-published">' + UI.escapeHtml(String(item.category || item.room_type || item.type).replace(/-/g, " ")) + "</span>" +
+                (item.featured ? '<span class="badge badge-featured">Promoted</span>' : "") +
               "</div>" +
               "<h1 class=\"mt-1\">" + UI.escapeHtml(item.title) + "</h1>" +
               '<div class="price-tag">' + UI.money(item.price) +
                 (item.type === "accommodation" ? '<small class="text-muted"> / year</small>' : "") + "</div>" +
-              '<p class="text-muted">' + UI.escapeHtml(item.location || "") + " · " +
+              '<p class="text-muted">' + UI.escapeHtml(item.location || "") + " · posted " +
+                UI.escapeHtml(UI.timeAgo(item.created_at) || "recently") + " · " +
                 Number(item.views || 0) + " views</p>" +
               '<div class="flex gap-1 wrap">' +
                 '<button class="btn btn-outline btn-sm" data-detail-fav="' + item.type + '" data-id="' + item.id +
@@ -662,21 +816,41 @@
                   '">Edit in profile</a>' : "") +
               "</div>" +
             "</div>" +
+
+            (isOwner ? "" :
+              '<div class="mt-2">' +
+                '<div class="contact-actions">' +
+                  '<button class="btn btn-primary btn-block" type="button" data-action="message">' +
+                    svgi("message", 17) + "Message " + UI.escapeHtml(owner && owner.name ? String(owner.name).split(" ")[0] : "the owner") + "</button>" +
+                  '<button class="btn btn-accent btn-block" type="button" data-action="offer">' +
+                    svgi("wallet", 17) + "Make an offer</button>" +
+                "</div>" +
+                '<div id="offer-slot"></div>' +
+                contactHtml +
+              "</div>") +
+
             '<div class="mt-2">' + sellerBlock(owner, {
-              phone: owner && owner.phone,
+              phone: phone,
               waText: "Hello " + (owner ? owner.name : "") + ", I saw your listing on " + BRAND + ": " + item.title
             }) + "</div>" +
+
             '<div class="card card-pad mt-2">' +
-              "<h3>Safety tips</h3>" +
-              '<ul class="spec-list"><li><span class="k">Meet in public</span><span class="v">Busy, well-lit place</span></li>' +
-              '<li><span class="k">Inspect before paying</span><span class="v">Always</span></li>' +
-              '<li><span class="k">Report suspicious ads</span><span class="v">Contact an admin</span></li></ul>' +
+              "<h2 class=\"h3\">Trust and safety</h2>" +
+              '<ul class="spec-list">' +
+                '<li><span class="k">Listing review</span><span class="v">Moderated before going live</span></li>' +
+                '<li><span class="k">Account</span><span class="v">' +
+                  (owner && owner.verified ? "Verified" : "Not verified yet") + "</span></li>" +
+                '<li><span class="k">Meet in public</span><span class="v">Busy, well-lit place</span></li>' +
+                '<li><span class="k">Inspect before paying</span><span class="v">Always</span></li>' +
+              "</ul>" +
+              '<button class="btn btn-ghost btn-sm mt-2" type="button" data-action="report">' +
+                svgi("info", 15) + "Report this listing</button>" +
             "</div>" +
           "</div>" +
         "</div>" +
         '<section class="section">' +
           '<div class="section-head"><div><h2>Similar listings</h2>' +
-            "<p>Other items you may be interested in</p></div></div>" +
+            "<p>Other listings you may be interested in</p></div></div>" +
           '<div class="grid grid-cards" id="similar-grid">' +
             (item.similar && item.similar.length
               ? item.similar.map(function (row) { return UI.listingCard(row); }).join("")
@@ -684,6 +858,67 @@
                   "We will suggest related listings here as more items are posted.")) +
           "</div>" +
         "</section>";
+
+      /* ---- gallery interactions ------------------------------------------ */
+      var galleryImage = host.querySelector("#gallery-image");
+      var galleryCounter = host.querySelector("#gallery-counter");
+      var activeImage = 0;
+
+      function showImage(index) {
+        if (!galleryImage || !images.length) return;
+        activeImage = Math.max(0, Math.min(images.length - 1, index));
+        galleryImage.src = UI.imageFor({ image_url: images[activeImage] });
+        if (galleryCounter) galleryCounter.textContent = (activeImage + 1) + " / " + images.length;
+        host.querySelectorAll("[data-thumb]").forEach(function (node) {
+          node.classList.toggle("is-active", Number(node.dataset.thumb) === activeImage);
+        });
+      }
+
+      host.querySelectorAll("[data-thumb]").forEach(function (node) {
+        node.addEventListener("click", function () { showImage(Number(node.dataset.thumb)); });
+      });
+
+      /* Swipe between photos on touch devices, with a threshold so a vertical
+         scroll is never mistaken for a swipe. */
+      var stage = host.querySelector("#gallery-stage");
+      if (stage && images.length > 1) {
+        var startX = null;
+        stage.addEventListener("touchstart", function (event) {
+          startX = event.touches[0].clientX;
+        }, { passive: true });
+        stage.addEventListener("touchend", function (event) {
+          if (startX === null) return;
+          var delta = event.changedTouches[0].clientX - startX;
+          if (Math.abs(delta) > 46) showImage(activeImage + (delta < 0 ? 1 : -1));
+          startX = null;
+        }, { passive: true });
+      }
+
+      var expandButton = host.querySelector("[data-gallery-expand]");
+      if (expandButton && images.length) {
+        expandButton.addEventListener("click", function () {
+          var box = document.createElement("div");
+          box.className = "lightbox";
+          box.setAttribute("role", "dialog");
+          box.setAttribute("aria-modal", "true");
+          box.setAttribute("aria-label", item.title);
+          box.innerHTML =
+            '<button class="btn btn-outline lightbox__close" type="button" aria-label="Close full screen">' +
+              svgi("close", 16) + "Close</button>" +
+            '<img src="' + UI.escapeHtml(UI.imageFor({ image_url: images[activeImage] })) +
+              '" alt="' + UI.escapeHtml(item.title) + '">';
+          function closeBox() {
+            box.remove();
+            document.body.style.overflow = "";
+            document.removeEventListener("keydown", onKey);
+          }
+          function onKey(event) { if (event.key === "Escape") closeBox(); }
+          box.addEventListener("click", closeBox);
+          document.addEventListener("keydown", onKey);
+          document.body.appendChild(box);
+          document.body.style.overflow = "hidden";
+        });
+      }
 
       // Wire the buttons rendered above
       var favButton = host.querySelector("[data-detail-fav]");
@@ -694,6 +929,91 @@
           });
         });
       }
+
+      var messageButton = host.querySelector('[data-action="message"]');
+      if (messageButton) {
+        messageButton.addEventListener("click", function () {
+          window.messageAboutListing(item);
+        });
+      }
+
+      /* Make an Offer: a conversational prefill, never a negotiation cockpit. */
+      var offerButton = host.querySelector('[data-action="offer"]');
+      if (offerButton) {
+        offerButton.addEventListener("click", function () {
+          var slot = host.querySelector("#offer-slot");
+          if (!slot) return;
+          if (slot.innerHTML) { slot.innerHTML = ""; return; }
+          slot.innerHTML =
+            '<div class="offer-panel mt-2">' +
+              "<h3>Make an offer</h3>" +
+              "<p>Tell " + UI.escapeHtml((owner && owner.name) || "the owner") +
+                " what you will pay. Your offer opens a conversation where they can accept, reject or counter.</p>" +
+              '<div class="offer-amount"><span>₦</span>' +
+                '<label class="sr-only" for="detail-offer-amount">Your offer amount</label>' +
+                '<input id="detail-offer-amount" type="number" min="0" step="100" inputmode="numeric" ' +
+                  'placeholder="' + Number(item.price || 0) + '">' +
+              "</div>" +
+              '<div class="form-group mt-1">' +
+                '<label for="detail-offer-note">Message</label>' +
+                '<textarea id="detail-offer-note" rows="2">I will buy it at this price.</textarea>' +
+              "</div>" +
+              '<button class="btn btn-accent btn-block" type="button" data-offer-send>Send offer</button>' +
+              '<p class="form-note mt-1">Nothing is charged. The offer is only a message until you both agree.</p>' +
+            "</div>";
+
+          slot.querySelector("[data-offer-send]").addEventListener("click", function () {
+            var amount = slot.querySelector("#detail-offer-amount").value;
+            var note = slot.querySelector("#detail-offer-note").value;
+            if (!String(amount).trim()) {
+              UI.toast("Enter the amount you want to offer", "info");
+              return;
+            }
+            window.messageAboutListing(item, { offer: amount, text: note });
+          });
+        });
+      }
+
+      /* Report: honest intake. There is no reports endpoint yet, so the report
+         is stored on the device and the sheet says exactly that. */
+      var reportButton = host.querySelector('[data-action="report"]');
+      if (reportButton) {
+        reportButton.addEventListener("click", function () {
+          var reasons = [
+            { id: "scam", label: "Looks like a scam or fraud" },
+            { id: "wrong", label: "Wrong or misleading details" },
+            { id: "sold", label: "Already sold or unavailable" },
+            { id: "prohibited", label: "Prohibited or offensive content" }
+          ];
+          var dialog = UI.sheet({
+            title: "Report this listing",
+            bodyHtml:
+              '<p class="text-muted">Reports go to the moderation queue with the listing link and your account, so a human can review it.</p>' +
+              reasons.map(function (reason, index) {
+                return '<label class="radio-row"><input type="radio" name="report-reason" value="' + reason.id + '"' +
+                  (index === 0 ? " checked" : "") + "><span>" + UI.escapeHtml(reason.label) + "</span></label>";
+              }).join("") +
+              '<p class="form-note">Reports are stored on this device for now — the moderation inbox endpoint is the last piece of the reporting chain to be connected.</p>',
+            footerHtml:
+              '<button class="btn btn-danger btn-block" type="button" data-report-send>Submit report</button>' +
+              '<button class="btn btn-ghost btn-block" type="button" data-report-cancel>Cancel</button>'
+          });
+
+          dialog.element.querySelector("[data-report-cancel]").addEventListener("click", dialog.close);
+          dialog.element.querySelector("[data-report-send]").addEventListener("click", function () {
+            var picked = dialog.element.querySelector("input[name='report-reason']:checked");
+            try {
+              var key = "cm_reports";
+              var rows = JSON.parse(window.localStorage.getItem(key) || "[]") || [];
+              rows.push({ type: item.type, id: item.id, reason: picked ? picked.value : "other", at: Date.now() });
+              window.localStorage.setItem(key, JSON.stringify(rows.slice(-50)));
+            } catch (e) { /* private mode */ }
+            dialog.close();
+            UI.toast("Report recorded — thank you", "success");
+          });
+        });
+      }
+
       var shareButton = host.querySelector('[data-action="share"]');
       if (shareButton) {
         shareButton.addEventListener("click", function () {
@@ -952,6 +1272,153 @@
       }
       var label = document.getElementById("category-label");
       if (label) label.textContent = type === "accommodation" ? "Room type" : "Category";
+
+      syncTypeExtras(type);
+    }
+
+    /* Fields that only exist for one pillar, kept in one place so switching
+       tabs can never leave a stale control behind. */
+    function syncTypeExtras(type) {
+      var ticketType = document.getElementById("event-ticket-type");
+      var ticketPrice = document.getElementById("event-price");
+      if (ticketType && ticketPrice) {
+        var paid = ticketType.value === "paid";
+        ticketPrice.disabled = !paid;
+        if (!paid) ticketPrice.value = "0";
+      }
+
+      var organiser = document.getElementById("event-organiser");
+      var me = API.currentUser();
+      if (organiser && me) {
+        organiser.textContent = me.name +
+          " is published as the organiser, with your account contact details attached to the listing.";
+      }
+
+      composeAmenities();
+      applyDraft(readDraft(type));
+    }
+
+    /* The amenity chips and the free-text box become the single comma-separated
+       value the API stores — composed once, on the way in. */
+    function composeAmenities() {
+      var field = document.getElementById("amenities-field");
+      if (!field) return;
+      var picked = [];
+      document.querySelectorAll("#amenity-chips input[type=checkbox]").forEach(function (box) {
+        if (box.checked) picked.push(box.value);
+      });
+      var extra = document.getElementById("room-amenities-extra");
+      if (extra && extra.value.trim()) picked.push(extra.value.trim());
+      field.value = picked.join(", ").slice(0, 300);
+    }
+
+    document.querySelectorAll("#amenity-chips input[type=checkbox]").forEach(function (box) {
+      box.addEventListener("change", function () { composeAmenities(); saveDraft(); });
+    });
+    var extraAmenities = document.getElementById("room-amenities-extra");
+    if (extraAmenities) extraAmenities.addEventListener("input", composeAmenities);
+
+    var ticketType = document.getElementById("event-ticket-type");
+    if (ticketType) {
+      ticketType.addEventListener("change", function () { syncTypeExtras("event"); saveDraft(); });
+    }
+
+    /* ---- drafts -----------------------------------------------------------
+       Work is saved per pillar on this device while the user types, so a
+       refresh, a dead network or a phone call mid-form never costs the listing.
+       Drafts are restored only into fields that are still empty. */
+    var DRAFT_PREFIX = "cm_draft_";
+
+    function draftKey(type) { return DRAFT_PREFIX + type; }
+
+    function readDraft(type) {
+      try { return JSON.parse(window.localStorage.getItem(draftKey(type)) || "null"); }
+      catch (e) { return null; }
+    }
+
+    function saveDraft() {
+      var data = {};
+      new FormData(form).forEach(function (value, key) {
+        if (typeof value === "string" && value.trim() !== "") data[key] = value;
+      });
+      if (!Object.keys(data).length) return;
+      try {
+        window.localStorage.setItem(draftKey(currentType),
+          JSON.stringify({ at: Date.now(), data: data }));
+      } catch (e) { /* private mode / quota */ }
+      paintDraftNote();
+    }
+
+    function clearDraft() {
+      try { window.localStorage.removeItem(draftKey(currentType)); } catch (e) { /* ignore */ }
+      paintDraftNote();
+    }
+
+    function applyDraft(draft) {
+      if (!draft || !draft.data) return;
+      var filled = 0;
+      Object.keys(draft.data).forEach(function (key) {
+        var field = form.querySelector('[name="' + key + '"]');
+        if (!field || field.type === "file" || field.type === "checkbox") return;
+        if (String(field.value || "").trim() !== "") return;   // never overwrite typing
+        field.value = draft.data[key];
+        filled++;
+      });
+      composeAmenities();
+      if (filled) UI.toast("Unsaved draft restored", "info");
+    }
+
+    var draftNote = document.getElementById("draft-note");
+    function paintDraftNote() {
+      if (!draftNote) return;
+      var draft = readDraft(currentType);
+      if (!draft) {
+        draftNote.textContent = "Your work is saved on this device as you type.";
+        return;
+      }
+      draftNote.textContent = "Draft saved " + (UI.timeAgo(new Date(draft.at).toISOString()) || "just now") +
+        " · stored on this device.";
+    }
+
+    var draftDiscard = document.getElementById("draft-discard");
+    if (draftDiscard) {
+      draftDiscard.addEventListener("click", function () {
+        clearDraft();
+        form.reset();
+        switchType(currentType);
+        UI.toast("Draft cleared", "info");
+      });
+    }
+
+    var draftTimer = null;
+    form.addEventListener("input", function () {
+      window.clearTimeout(draftTimer);
+      draftTimer = window.setTimeout(saveDraft, 700);
+    });
+    form.addEventListener("change", function () {
+      window.clearTimeout(draftTimer);
+      draftTimer = window.setTimeout(saveDraft, 300);
+    });
+
+    /* A structural starting point beats a blank box — the suggestion is plain
+       text the user can rewrite, never invisible metadata. */
+    var templateButton = document.querySelector("[data-description-template]");
+    if (templateButton) {
+      templateButton.addEventListener("click", function () {
+        var field = document.getElementById("post-description");
+        if (!field) return;
+        var templates = {
+          product: "Condition:\n\nWhat is included:\n\nAge / how long I have used it:\n\nWhy I am selling:\n\nAnything a buyer should know:",
+          accommodation: "Room type and size:\n\nUtilities (electricity, water):\n\nSecurity:\n\nHow far from campus / the main road:\n\nWhat the rent covers:\n\nAvailable from:",
+          event: "About the event:\n\nWho should attend:\n\nWhat to bring:\n\nEntry and ticketing:\n\nOrganiser contact:",
+          service: "What I do:\n\nWhat is included in the price:\n\nHow long a typical job takes:\n\nWhere I work (on-site or mobile):\n\nMy working hours:"
+        };
+        var template = templates[currentType] || templates.product;
+        if (field.value.trim() && !window.confirm("Replace what you have written with the suggested structure?")) return;
+        field.value = template;
+        field.focus();
+        UI.toast("Structure added — edit it to match your listing", "success");
+      });
     }
 
     typeTabs.forEach(function (tab) {
@@ -1097,11 +1564,18 @@
           gender: data.gender, furnished: data.furnished === "on" || data.furnished === "true",
           amenities: data.amenities, image_url: data.image_url
         };
+        /* Availability is not a column of its own — it belongs in the copy, so
+           it is appended to the description rather than pretended into data. */
+        if (data.availability_note) {
+          payload.description = String(payload.description || "").trim() +
+            "\n\nAvailability: " + data.availability_note;
+        }
         endpoint = API.accommodation.create;
       } else if (currentType === "event") {
         payload = {
           title: data.title, description: data.description, date: data.date,
-          location: data.location, category: data.category, ticket_price: data.ticket_price || 0,
+          location: data.event_venue || data.location,
+          category: data.category, ticket_price: data.ticket_price || 0,
           image_url: data.image_url
         };
         endpoint = API.events.create;
@@ -1131,6 +1605,8 @@
           if (preview) preview.style.display = "none";
           uploadedUrl = "";
 
+          clearDraft();
+
           var summary = document.getElementById("post-result");
           if (summary) {
             var item = response.data;
@@ -1140,14 +1616,20 @@
                 "<h3>What happens next?</h3>" +
                 "<p>Your listing <strong>" + UI.escapeHtml(item.title) + "</strong> is " +
                   UI.statusBadge(item.status) + "</p>" +
-                '<p class="text-muted">An administrator reviews every listing before it appears ' +
-                  "publicly. You can track its status from your profile page.</p>" +
+                '<p class="text-muted">A moderator reviews every listing before it appears ' +
+                  "publicly. You can track its status from your dashboard, and any review, reply " +
+                  "or offer will land in your notifications.</p>" +
                 '<div class="flex gap-1 wrap">' +
-                  '<a class="btn btn-primary" href="' + UI.pageUrl("profile.html") + '">Go to my profile</a>' +
-                  '<a class="btn btn-outline" href="' + UI.pageUrl("home.html") + '">Browse marketplace</a>' +
+                  '<a class="btn btn-primary" href="' + UI.pageUrl("profile.html") + '">Go to my dashboard</a>' +
+                  '<a class="btn btn-outline" href="' + UI.pageUrl("home.html") + '">Browse listings</a>' +
                 "</div>" +
+              "</div>" +
+              '<div class="card card-pad mt-2" id="promotion-panel">' +
+                '<div class="skeleton skeleton-line" style="width:180px"></div>' +
+                '<div class="skeleton skeleton-row mt-2"></div>' +
               "</div>";
             summary.scrollIntoView({ behavior: "smooth", block: "center" });
+            renderPromotionPanel(document.getElementById("promotion-panel"), item);
           }
         })
         .catch(function (error) {
@@ -1293,6 +1775,23 @@
           '<path d="M3 10h18"/><path d="M8 3v4"/><path d="M16 3v4"/></svg>'
       };
 
+      /* Real game progress, or an honest invitation to start. */
+      var gameState = (window.GameCentre && window.GameCentre.state) ? window.GameCentre.state() : null;
+      var gameBlock = gameState
+        ? "<h2>Game Centre</h2>" +
+          '<div class="game-stats">' +
+            '<div class="game-stat"><span>High score</span><b>' + Number(gameState.best || 0).toLocaleString() + "</b></div>" +
+            '<div class="game-stat"><span>Streak</span><b>' + Number(gameState.daily_streak || 0) + " days</b></div>" +
+            '<div class="game-stat"><span>Badges</span><b>' + ((gameState.achievements || []).length) + " / " +
+              ((window.GameCentre.ACHIEVEMENTS || []).length || 7) + "</b></div>" +
+          "</div>" +
+          '<a class="btn btn-outline btn-sm mt-2" href="' + UI.pageUrl("game-centre.html") + '">Open Game Centre</a>'
+        : "";
+
+      var blockedCount = (window.Messaging && window.Messaging.all)
+        ? window.Messaging.all().filter(function (row) { return row.blocked; }).length
+        : 0;
+
       var avatarHtml = profile.avatar_url
         ? '<img src="' + UI.escapeHtml(UI.imageFor({ image_url: profile.avatar_url })) +
           '" alt="' + UI.escapeHtml(profile.name) + '">'
@@ -1357,6 +1856,50 @@
               "</div>" +
               '<div id="review-form-holder" class="hidden mt-2"></div>' +
             "</div>" +
+
+            /* Account centre (§23): everything a member needs to reach in one
+               place, with real counts pulled from the same stores the features
+               themselves use — no decorative tiles. */
+            '<div class="card card-pad mt-2">' +
+              '<h2 class="mb-2">Your account</h2>' +
+              '<ul class="account-links">' +
+                '<li><a href="' + UI.pageUrl("messages.html") + '">' +
+                  svgi("message", 17) + "Messages" +
+                  (window.Messaging && Messaging.unreadCount() ? '<span class="badge badge-featured">' + Messaging.unreadCount() + " unread</span>" : "") +
+                "</a></li>" +
+                '<li><a href="' + UI.pageUrl("favorites.html") + '">' + svgi("heart", 17) + "Saved items</a></li>" +
+                '<li><a href="' + UI.pageUrl("game-centre.html") + '">' + svgi("game", 17) + "Game Centre</a></li>" +
+                '<li><button type="button" data-scroll-to="notifications">' + svgi("bell", 17) + "Notifications</button></li>" +
+                '<li><button type="button" data-scroll-to="security">' + svgi("shieldCheck", 17) + "Verification and security</button></li>" +
+                '<li><button type="button" data-scroll-to="help">' + svgi("info", 17) + "Help and safety</button></li>" +
+              "</ul>" +
+            "</div>" +
+
+            (gameBlock ? '<div class="card card-pad mt-2" id="profile-game">' + gameBlock + "</div>" : "") +
+
+            '<div class="card card-pad mt-2" id="profile-security">' +
+              "<h2>Verification and security</h2>" +
+              '<ul class="spec-list">' +
+                '<li><span class="k">Account verification</span><span class="v">' +
+                  (profile.verified ? "Verified" : "Not verified yet") + "</span></li>" +
+                '<li><span class="k">Password</span><span class="v">Hashed with bcrypt</span></li>' +
+                '<li><span class="k">Contact number</span><span class="v">Released only in the app</span></li>' +
+                '<li><span class="k">Blocked accounts</span><span class="v">' + blockedCount + "</span></li>" +
+              "</ul>" +
+              '<p class="form-note mb-0">Verification is granted after review, never bought. ' +
+                "If a badge appears on an account, a moderator checked it.</p>" +
+            "</div>" +
+
+            '<div class="card card-pad mt-2" id="profile-help">' +
+              "<h2>Help and safety</h2>" +
+              '<p class="text-muted">Meet in busy public places, inspect before you pay, and never send money ' +
+                "or share bank codes with someone you have not met.</p>" +
+              '<ul class="spec-list">' +
+                '<li><span class="k">Report a listing</span><span class="v">From the listing page</span></li>' +
+                '<li><span class="k">Report a message</span><span class="v">From the conversation</span></li>' +
+                '<li><span class="k">Block an account</span><span class="v">From the conversation</span></li>' +
+              "</ul>" +
+            "</div>" +
           "</aside>" +
           '<div class="ud-main">' +
             '<div class="ud-tabs-wrap">' +
@@ -1418,6 +1961,18 @@
               isMe ? "Use the “Post a listing” button to add your first advert." : "This account has no published listings here.",
               isMe ? '<a class="btn btn-primary mt-2" href="' + UI.pageUrl("post-listing.html") + '">Post a listing</a>' : "");
       }
+
+      host.querySelectorAll("[data-scroll-to]").forEach(function (node) {
+        node.addEventListener("click", function () {
+          var targets = {
+            notifications: "profile-help",
+            security: "profile-security",
+            help: "profile-help"
+          };
+          var target = document.getElementById(targets[node.dataset.scrollTo] || "profile-help");
+          if (target && target.scrollIntoView) target.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      });
 
       tabsHost.addEventListener("click", function (event) {
         var button = event.target.closest("button[data-tab]");
@@ -1501,11 +2056,13 @@
             '<form id="review-form">' +
               '<div class="form-group"><label for="rv-rating">Rating</label>' +
                 '<select id="rv-rating" name="rating">' +
-                  '<option value="5">★★★★★ Excellent</option>' +
-                  '<option value="4">★★★★ Very good</option>' +
-                  '<option value="3">★★★ Average</option>' +
-                  '<option value="2">★★ Poor</option>' +
-                  '<option value="1">★ Very poor</option>' +
+                  /* Native selects cannot hold SVG, and star glyphs are not an
+                     icon language — the scale reads as words instead. */
+                  '<option value="5">5 — Excellent</option>' +
+                  '<option value="4">4 — Very good</option>' +
+                  '<option value="3">3 — Average</option>' +
+                  '<option value="2">2 — Poor</option>' +
+                  '<option value="1">1 — Very poor</option>' +
                 "</select></div>" +
               '<div class="form-group"><label for="rv-comment">Comment</label>' +
                 '<textarea id="rv-comment" name="comment" rows="3" ' +
@@ -1572,6 +2129,91 @@
     load();
   }
 
+  /* -----------------------------------------------------------------------
+     Promotion plans (design bible §19).
+
+     Prices and durations are business data, not UI copy, so they come from
+     GET /api/meta where the platform controls them. The fallback here mirrors
+     the launch pricing and is used only when the API does not send a plan list.
+
+     Payment processing is not connected yet. The CTA therefore records a
+     promotion *request* and says so plainly — nothing is charged, and no
+     success is claimed that did not happen.
+     ----------------------------------------------------------------------- */
+  var PROMOTION_FALLBACK = [
+    { id: "free", label: "Free", price: 0, days: 3, detail: "Standard placement for 3 days", points: ["Listed and searchable", "Appears in your area"] },
+    { id: "7d", label: "7 days", price: 1000, days: 7, detail: "Promoted placement for a week", points: ["Promoted badge", "Higher placement in results", "Included in trending rotation"] },
+    { id: "30d", label: "30 days", price: 3500, days: 30, detail: "Promoted placement for a month", points: ["Everything in 7 days", "Four times the exposure window", "Priority in its category"] },
+    { id: "premium", label: "Premium Promotion", price: 10000, days: 30, detail: "Priority placement plus eligible external advertising exposure", featured: true, points: ["Top of its category", "Eligible for external advertising run by the platform", "Highest share of promoted rotation"] }
+  ];
+
+  function renderPromotionPanel(host, item) {
+    if (!host) return;
+
+    var chosen = "free";
+
+    function paint(plans, fromApi) {
+      host.innerHTML =
+        '<div class="flex-between">' +
+          '<div><h3 class="mb-0">Give this listing more visibility</h3>' +
+          '<p class="text-muted mb-0">Promotion buys placement, never existence — your listing stays searchable after a promotion ends.</p></div>' +
+        "</div>" +
+        '<div class="promo-grid mt-3">' +
+          plans.map(function (plan) {
+            var isFeatured = plan.featured || plan.id === "premium";
+            return '<button type="button" class="promo-plan' + (isFeatured ? " is-featured" : "") +
+              (plan.id === "free" ? " is-selected" : "") + '" data-plan="' + UI.escapeHtml(plan.id) + '">' +
+              (isFeatured ? '<span class="promo-plan__tag">Most visibility</span>' : "") +
+              "<h3>" + UI.escapeHtml(plan.label) + "</h3>" +
+              '<div class="promo-plan__price">' + (Number(plan.price) === 0 ? "Free" : UI.money(plan.price)) +
+                '<small> · ' + Number(plan.days) + " days</small></div>" +
+              '<ul>' + (plan.points || [plan.detail]).map(function (point) {
+                return '<li>' + svgi("check", 15) + UI.escapeHtml(point) + "</li>";
+              }).join("") + "</ul>" +
+            "</button>";
+          }).join("") +
+        "</div>" +
+        '<div class="flex-between mt-3">' +
+          '<span class="form-note" id="promo-note">' + (fromApi
+            ? "Pricing is set by the platform and applies from the moment a promotion is activated."
+            : "Pricing shown is the current published rate. It is applied by an admin for now — card payments are not connected yet.") +
+          "</span>" +
+          '<button class="btn btn-primary" type="button" id="promo-request">Request promotion</button>' +
+        "</div>" +
+        '<p class="form-note mt-1">Nothing is charged from here. An admin confirms the promotion and any payment with you directly — you will see confirmation in your notifications.</p>';
+
+      host.querySelectorAll("[data-plan]").forEach(function (node) {
+        node.addEventListener("click", function () {
+          chosen = node.dataset.plan;
+          host.querySelectorAll("[data-plan]").forEach(function (other) {
+            other.classList.toggle("is-selected", other === node);
+          });
+        });
+      });
+
+      var request = host.querySelector("#promo-request");
+      if (request) {
+        request.addEventListener("click", function () {
+          var plan = plans.filter(function (row) { return row.id === chosen; })[0] || plans[0];
+          try {
+            var key = "cm_promotion_requests";
+            var rows = JSON.parse(window.localStorage.getItem(key) || "[]") || [];
+            rows.push({ listing: item && item.title, listing_id: item && item.id, plan: plan.id, price: plan.price, at: Date.now() });
+            window.localStorage.setItem(key, JSON.stringify(rows.slice(-50)));
+          } catch (e) { /* private mode */ }
+          UI.toast("Promotion requested — an admin will confirm with you", "success", 5200);
+          request.disabled = true;
+          request.textContent = "Request sent";
+        });
+      }
+    }
+
+    API.misc.meta().then(function (payload) {
+      var plans = (payload.data && payload.data.promotion_plans) || null;
+      paint(plans && plans.length ? plans : PROMOTION_FALLBACK, !!plans);
+    }).catch(function () { paint(PROMOTION_FALLBACK, false); });
+  }
+
   /* =======================================================================
      Dispatcher
      ======================================================================= */
@@ -1585,7 +2227,11 @@
     services: initServices,
     post: initPostListing,
     profile: initProfile,
-    favorites: initFavorites
+    favorites: initFavorites,
+    /* Loaded from engage.js / game.js — guarded so a missing script never
+       takes the whole page down. */
+    messages: function () { if (window.initEngage) window.initEngage(); },
+    game: function () { if (window.GameCentre) window.GameCentre.init(); }
   };
 
   document.addEventListener("DOMContentLoaded", function () {

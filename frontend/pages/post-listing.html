@@ -56,6 +56,12 @@
           <label for="post-description">Description <span class="req">*</span></label>
           <textarea id="post-description" name="description" maxlength="4000" required
                     placeholder="Describe the item, room, event or service — condition, what is included, why you are selling…"></textarea>
+          <div class="draft-bar">
+            <span class="text-muted"><small>Not sure how to start? Drop in a structure and edit it.</small></span>
+            <button class="btn btn-ghost btn-sm" type="button" data-description-template>
+              Insert a suggested structure
+            </button>
+          </div>
           <span class="field-error" role="alert"></span>
         </div>
 
@@ -83,9 +89,11 @@
               <label for="product-condition">Condition</label>
               <select id="product-condition" name="condition">
                 <option value="used">Used — still in good shape</option>
-                <option value="new">Brand new</option>
-                <option value="refurbished">Refurbished</option>
+                <option value="fairly used">Fairly used — visible wear, works well</option>
+                <option value="new">Brand new — sealed or unused</option>
+                <option value="refurbished">Refurbished — repaired and tested</option>
               </select>
+              <span class="field-hint">Be honest here — disputes almost always start with condition.</span>
             </div>
           </div>
         </div>
@@ -113,11 +121,38 @@
               </select>
             </div>
             <div class="form-group">
-              <label for="room-amenities">Amenities (comma separated)</label>
-              <input id="room-amenities" name="amenities" type="text"
-                     placeholder="Water supply, prepaid meter, tiled floor">
+              <label for="room-availability">Availability</label>
+              <select id="room-availability" name="availability_note">
+                <option value="Available now">Available now</option>
+                <option value="Available this month">Available this month</option>
+                <option value="Available next session">Available next session</option>
+              </select>
+              <span class="field-hint">Added to your description so tenants know when to move.</span>
             </div>
           </div>
+
+          <fieldset class="fieldset">
+            <legend>Amenities, utilities and security</legend>
+            <p class="form-note">Tick everything that is genuinely available. Empty claims cost you inspection requests.</p>
+            <div class="chip-row" id="amenity-chips">
+              <label class="check-chip"><input type="checkbox" value="Water supply"><span>Water supply</span></label>
+              <label class="check-chip"><input type="checkbox" value="Prepaid meter"><span>Prepaid meter</span></label>
+              <label class="check-chip"><input type="checkbox" value="24/7 electricity"><span>24/7 electricity</span></label>
+              <label class="check-chip"><input type="checkbox" value="Borehole"><span>Borehole</span></label>
+              <label class="check-chip"><input type="checkbox" value="Tiled floor"><span>Tiled floor</span></label>
+              <label class="check-chip"><input type="checkbox" value="Kitchen"><span>Kitchen</span></label>
+              <label class="check-chip"><input type="checkbox" value="Ensuite bathroom"><span>Ensuite bathroom</span></label>
+              <label class="check-chip"><input type="checkbox" value="Fenced compound"><span>Fenced compound</span></label>
+              <label class="check-chip"><input type="checkbox" value="Security guard"><span>Security guard</span></label>
+              <label class="check-chip"><input type="checkbox" value="Parking space"><span>Parking space</span></label>
+            </div>
+            <div class="form-group mt-2" style="margin-bottom:0">
+              <label for="room-amenities-extra">Anything else worth mentioning</label>
+              <input id="room-amenities-extra" type="text" placeholder="Balcony, borehole pump, quiet street…">
+            </div>
+            <input id="amenities-field" name="amenities" type="hidden" value="">
+          </fieldset>
+
           <div class="checkbox-row form-group">
             <input id="room-furnished-field" name="furnished" type="checkbox" value="true">
             <label for="room-furnished-field">The room is furnished</label>
@@ -133,9 +168,28 @@
               <span class="field-error" role="alert"></span>
             </div>
             <div class="form-group">
-              <label for="event-price">Ticket price (₦) — 0 for free</label>
-              <input id="event-price" name="ticket_price" type="number" min="0" step="100" value="0">
+              <label for="event-venue">Venue</label>
+              <input id="event-venue" name="event_venue" type="text" placeholder="e.g. FULAFIA Auditorium, Lafia">
+              <span class="field-hint">Used as the listing location so attendees can find it.</span>
             </div>
+          </div>
+          <div class="form-row form-row-2">
+            <div class="form-group">
+              <label for="event-ticket-type">Entry</label>
+              <select id="event-ticket-type">
+                <option value="free">Free entry</option>
+                <option value="paid">Tickets are paid</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="event-price">Ticket price (₦)</label>
+              <input id="event-price" name="ticket_price" type="number" min="0" step="100" value="0" disabled>
+              <span class="field-hint">Leave at 0 for free entry.</span>
+            </div>
+          </div>
+          <div class="card card-pad mb-2">
+            <h2 class="h4 mb-0">Organiser</h2>
+            <p class="text-muted mb-0" id="event-organiser">Your account name is published as the organiser.</p>
           </div>
         </div>
 
@@ -159,6 +213,14 @@
                 <option value="per day">Per day</option>
               </select>
             </div>
+          </div>
+          <div class="card card-pad mb-2">
+            <h2 class="h4 mb-0">Being listed in the provider directory</h2>
+            <p class="text-muted mb-0">
+              Publishing a service here is free and immediate after review. Provider directory
+              registration — a one-time fee, then admin approval, then separate verification — is
+              handled from your dashboard once payments are switched on.
+            </p>
           </div>
         </div>
 
@@ -188,6 +250,10 @@
           <p class="text-muted text-center mt-1">
             <small>Listings are reviewed by a moderator before they appear publicly.</small>
           </p>
+          <div class="draft-bar">
+            <span class="text-muted" id="draft-note"><small>Your work is saved on this device as you type.</small></span>
+            <button class="btn btn-ghost btn-sm" type="button" id="draft-discard">Clear draft</button>
+          </div>
         </div>
       </form>
 
@@ -211,6 +277,7 @@
   <script src="../js/api.js"></script>
   <script src="../js/ui.js"></script>
   <script src="../js/auth.js"></script>
+  <script src="../js/engage.js"></script>
   <script src="../js/marketplace.js"></script>
 </body>
 </html>

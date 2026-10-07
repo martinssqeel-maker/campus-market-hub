@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en" data-zone="app">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0b8371">
+  <title>Game Centre · Lafia Marketplace</title>
+  <meta name="description" content="Game Centre on Lafia Marketplace — a daily challenge, streaks, achievements and a weekly leaderboard built into the platform.">
+  <meta name="robots" content="noindex">
+
+  <link rel="icon" type="image/svg+xml" href="../assets/images/logo.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/responsive.css">
+  <link rel="stylesheet" href="../css/premium.css">
+
+  <script src="../js/shell.js"></script>
+</head>
+<body data-page="game">
+
+  <header id="site-header"></header>
+
+  <main>
+    <div class="page-head">
+      <div class="container page-head__inner">
+        <div>
+          <span class="mk-kicker">Play · Compete · Return</span>
+          <h1>Game Centre</h1>
+          <p>A five-minute break between trades — one polished game, a fresh challenge every day and streaks worth protecting.</p>
+        </div>
+        <div class="page-head__actions">
+          <a class="btn btn-outline" href="home.html">Back to marketplace</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="container" id="game-root" style="padding-bottom:var(--sp-10)">
+
+      <!-- ===================== GAME STAGE ===================== -->
+      <section class="deep-surface game-stage" id="game-board-panel" aria-labelledby="stage-heading">
+        <div class="game-stage__head">
+          <div>
+            <span class="game-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="11" rx="4"/><path d="M7 12.5h3"/><path d="M8.5 11v3"/><path d="M15.5 11.5h.01"/><path d="M18 13.5h.01"/></svg>
+              Game Centre
+            </span>
+            <h2 id="stage-heading" style="margin:var(--sp-3) 0 var(--sp-2)">Market Match</h2>
+            <p style="max-width:56ch;margin:0">Match the pairs before the market closes. Consecutive matches build a combo multiplier — a miss resets it.</p>
+          </div>
+          <div class="game-actions">
+            <button class="btn btn-primary" type="button" data-daily>Play daily challenge</button>
+            <button class="btn btn-outline" type="button" id="game-restart">Restart board</button>
+          </div>
+        </div>
+
+        <div class="mt-3" id="game-levels" role="group" aria-label="Difficulty"></div>
+
+        <div class="mt-3">
+          <div class="game-hud" role="group" aria-label="Game statistics">
+            <div class="game-hud__cell"><span>Score</span><b id="hud-score">0</b></div>
+            <div class="game-hud__cell"><span>Time</span><b id="hud-time">0:00</b></div>
+            <div class="game-hud__cell"><span>Moves</span><b id="hud-moves">0</b></div>
+            <div class="game-hud__cell"><span>Combo</span><b id="hud-combo">×1</b></div>
+          </div>
+        </div>
+
+        <div class="mt-3">
+          <div class="game-board" id="game-board" role="grid" aria-label="Market Match board"></div>
+        </div>
+
+        <p class="mt-3" id="game-status" role="status" aria-live="polite" style="margin:0;font-size:.82rem;color:var(--deep-text-3)">
+          Choose a level, then flip two tiles to find a pair. Arrow keys move between tiles; Enter flips.
+        </p>
+      </section>
+
+      <!-- ===================== PROGRESS ===================== -->
+      <section class="section" aria-labelledby="progress-heading">
+        <div class="section-head">
+          <div>
+            <span class="mk-kicker">Your progress</span>
+            <h2 id="progress-heading">Streaks, scores and stats</h2>
+            <p>Stored against your account on this device — never shared without you.</p>
+          </div>
+        </div>
+        <div class="game-stats" id="game-summary">
+          <div class="skeleton" style="height:104px"></div>
+          <div class="skeleton" style="height:104px"></div>
+          <div class="skeleton" style="height:104px"></div>
+          <div class="skeleton" style="height:104px"></div>
+        </div>
+      </section>
+
+      <!-- ===================== ACHIEVEMENTS ===================== -->
+      <section class="section section-surface" id="achievements" aria-labelledby="ach-heading">
+        <div class="container" style="padding-inline:0">
+          <div class="section-head">
+            <div>
+              <span class="mk-kicker">Achievements</span>
+              <h2 id="ach-heading">Seven badges to collect</h2>
+              <p>Earned automatically as you play. Locked badges show exactly what unlocks them.</p>
+            </div>
+          </div>
+          <div class="ach-grid" id="game-achievements">
+            <div class="skeleton" style="height:72px"></div>
+            <div class="skeleton" style="height:72px"></div>
+            <div class="skeleton" style="height:72px"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== LEADERBOARD ===================== -->
+      <section class="section" aria-labelledby="board-heading">
+        <div class="section-head">
+          <div>
+            <span class="mk-kicker">Weekly leaderboard</span>
+            <h2 id="board-heading">This week's top scores</h2>
+            <p>Real accounts only. The board resets every Monday.</p>
+          </div>
+        </div>
+        <div class="card" id="game-leaderboard"></div>
+      </section>
+
+      <!-- ===================== HISTORY ===================== -->
+      <section class="section" aria-labelledby="history-heading">
+        <div class="section-head">
+          <div>
+            <span class="mk-kicker">Score history</span>
+            <h2 id="history-heading">Your last seven boards</h2>
+            <p>Time, level and score for every board you have cleared.</p>
+          </div>
+        </div>
+        <div class="card card-pad" id="game-history"></div>
+      </section>
+
+      <!-- ===================== ROADMAP ===================== -->
+      <section class="section-tight" aria-labelledby="more-heading">
+        <div class="card card-pad">
+          <h3 id="more-heading">More games are coming</h3>
+          <p class="text-muted mb-1">
+            The Game Centre is built so new games drop in without changing the platform —
+            the same achievements, streak and weekly-board machinery serves every game added later.
+          </p>
+          <p class="form-note mb-0">
+            One game, done properly, beats five unfinished ones. Market Match is the first.
+          </p>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <nav id="bottom-nav" aria-label="App navigation"></nav>
+
+  <script src="../js/api.js"></script>
+  <script src="../js/ui.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/game.js"></script>
+  <script src="../js/engage.js"></script>
+  <script src="../js/marketplace.js"></script>
+</body>
+</html>

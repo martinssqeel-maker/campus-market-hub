@@ -215,6 +215,40 @@
     return { element: backdrop, close: close };
   }
 
+  /**
+   * Bottom sheet — the app's lighter alternative to a modal for choosers,
+   * reports and short forms. Same focus/Escape contract as `modal`.
+   */
+  function sheet(options) {
+    options = options || {};
+    var backdrop = document.createElement("div");
+    backdrop.className = "sheet-backdrop";
+    backdrop.innerHTML =
+      '<div class="sheet" role="dialog" aria-modal="true" aria-label="' + escapeHtml(options.title || "") + '">' +
+        '<span class="sheet__grip" aria-hidden="true"></span>' +
+        '<div class="sheet__head"><h3>' + escapeHtml(options.title || "") + '</h3>' +
+          '<button type="button" class="modal-close" aria-label="Close">' +
+            (window.Shell ? window.Shell.icon("close", 16) : "×") + "</button></div>" +
+        '<div class="sheet__body">' + (options.bodyHtml || "") + "</div>" +
+        (options.footerHtml ? '<div class="sheet__foot">' + options.footerHtml + "</div>" : "") +
+      "</div>";
+
+    function close() {
+      backdrop.remove();
+      document.body.style.overflow = "";
+      document.removeEventListener("keydown", onKey);
+    }
+    function onKey(event) { if (event.key === "Escape") close(); }
+
+    backdrop.querySelector(".modal-close").addEventListener("click", close);
+    backdrop.addEventListener("click", function (event) { if (event.target === backdrop) close(); });
+    document.addEventListener("keydown", onKey);
+
+    document.body.appendChild(backdrop);
+    document.body.style.overflow = "hidden";
+    return { element: backdrop, close: close };
+  }
+
   function confirmDialog(title, message, confirmLabel) {
     return new Promise(function (resolve) {
       var dialog = modal({
@@ -366,13 +400,13 @@
     host.className = "site-footer";
     host.innerHTML =
       '<div class="container"><div class="footer-grid">' +
-        '<div><h4>Lafia Marketplace</h4><p>Buy, sell and rent across Lafia — products, hostels, events and services in one place.</p></div>' +
-        '<div><h4>Explore</h4><ul class="footer-list">' +
+        '<div><h3>Lafia Marketplace</h3><p>Buy, sell and rent across Lafia — products, hostels, events and services in one place.</p></div>' +
+        '<div><h3>Explore</h3><ul class="footer-list">' +
           '<li><a href="' + url("pages/home.html") + '">Marketplace</a></li>' +
           '<li><a href="' + url("pages/accommodation.html") + '">Accommodation</a></li>' +
           '<li><a href="' + url("pages/events.html") + '">Events</a></li>' +
           '<li><a href="' + url("pages/services.html") + '">Services</a></li></ul></div>' +
-        '<div><h4>Account</h4><ul class="footer-list">' + accountLinks + '</ul></div>' +
+        '<div><h3>Account</h3><ul class="footer-list">' + accountLinks + '</ul></div>' +
         '</div><div class="footer-bottom">© ' + new Date().getFullYear() +
         ' Lafia Marketplace · Built for Lafia</div></div>';
     var logout = host.querySelector('[data-action="logout"]');
@@ -483,8 +517,10 @@
    */
   function emptyState(icon, title, message, actionHtml) {
     return (
+      /* <h2>, not <h3>: an empty state is a page-level statement, and the
+         smaller heading level keeps the document outline unbroken. */
       '<div class="empty-state">' + emptyIcon(icon) +
-      "<h3>" + escapeHtml(title) + "</h3>" +
+      "<h2>" + escapeHtml(title) + "</h2>" +
       "<p>" + escapeHtml(message) + "</p>" + (actionHtml || "") + "</div>"
     );
   }
@@ -517,13 +553,18 @@
     });
   }
 
+  /* Ratings are drawn with the product icon set, never with the ★ glyph: it
+     renders as emoji on some platforms and reads as punctuation to a screen
+     reader. The wrapper carries the value as text for assistive tech. */
   function stars(rating) {
     var value = Math.round(Number(rating) || 0);
+    if (value < 1) value = 0;
+    if (value > 5) value = 5;
     var out = "";
     for (var i = 1; i <= 5; i++) {
-      out += i <= value ? "★" : '<span class="empty">★</span>';
+      out += '<span class="star' + (i <= value ? " is-on" : "") + '">' + Shell.icon("star", 14) + "</span>";
     }
-    return '<span class="stars">' + out + "</span>";
+    return '<span class="stars" role="img" aria-label="' + value + ' out of 5">' + out + "</span>";
   }
 
   /* -----------------------------------------------------------------------
@@ -646,6 +687,7 @@
     imageFor: imageFor,
     toast: toast,
     modal: modal,
+    sheet: sheet,
     confirm: confirmDialog,
     listingCard: listingCard,
     statusBadge: statusBadge,

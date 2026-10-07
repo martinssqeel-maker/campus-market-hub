@@ -20,6 +20,7 @@ Production example – see ``docs/DEPLOYMENT.md`` for the full Vercel walkthroug
     export S3_PUBLIC_BASE_URL="https://pub-<hash>.r2.dev"
 """
 
+import json
 import os
 import tempfile
 from datetime import timedelta
@@ -41,6 +42,59 @@ DEFAULT_ADMIN_PHONE = "08030000000"
 
 #: Vercel rejects request bodies larger than 4.5 MB before Flask sees them.
 VERCEL_MAX_UPLOAD_MB = 4
+
+#: Promotion tiers (product spec §19). Promotion buys visibility, never
+#: existence — an expired promotion keeps the listing searchable.
+DEFAULT_PROMOTION_PLANS = [
+    {
+        "id": "free",
+        "label": "Free",
+        "price": 0,
+        "days": 3,
+        "detail": "Standard placement for 3 days",
+        "points": ["Listed and searchable", "Appears in your area"],
+    },
+    {
+        "id": "7d",
+        "label": "7 days",
+        "price": 1000,
+        "days": 7,
+        "detail": "Promoted placement for a week",
+        "points": [
+            "Promoted badge",
+            "Higher placement in results",
+            "Included in the promoted rotation",
+        ],
+    },
+    {
+        "id": "30d",
+        "label": "30 days",
+        "price": 3500,
+        "days": 30,
+        "detail": "Promoted placement for a month",
+        "points": [
+            "Everything in the 7 day plan",
+            "Four times the exposure window",
+            "Priority inside its category",
+        ],
+    },
+    {
+        "id": "premium",
+        "label": "Premium Promotion",
+        "price": 10000,
+        "days": 30,
+        "featured": True,
+        "detail": "Priority placement plus eligible external advertising exposure",
+        "points": [
+            "Top of its category",
+            "Eligible for external advertising run by the platform",
+            "Highest share of the promoted rotation",
+        ],
+    },
+]
+
+#: One-time provider directory registration fee.
+DEFAULT_PROVIDER_FEE = 2500
 
 
 def _str_env(name: str, env=None) -> str | None:
@@ -137,6 +191,41 @@ def resolve_max_upload_mb(env=None) -> int:
     if running_on_vercel(env):
         value = min(value, VERCEL_MAX_UPLOAD_MB)
     return max(1, value)
+
+
+def promotion_plans(env=None) -> list:
+    """Promotion tiers, overridable at deploy time without a code change.
+
+    Ops can set ``PROMOTION_PLANS_JSON`` to a JSON array to change pricing and
+    durations; anything unparseable falls back to the published defaults rather
+    than taking the public API down.
+    """
+    raw = _str_env("PROMOTION_PLANS_JSON", env)
+    if raw:
+        try:
+            parsed = json.loads(raw)
+            if isinstance(parsed, list) and parsed:
+                return parsed
+        except (TypeError, ValueError):
+            pass
+    return [dict(plan) for plan in DEFAULT_PROMOTION_PLANS]
+
+
+def provider_registration_fee(env=None) -> dict:
+    """Provider directory fee. Paying it never implies verification."""
+    raw = _str_env("PROVIDER_REGISTRATION_FEE", env)
+    try:
+        amount = float(raw) if raw else float(DEFAULT_PROVIDER_FEE)
+    except (TypeError, ValueError):
+        amount = float(DEFAULT_PROVIDER_FEE)
+    return {
+        "amount": amount,
+        "currency": "NGN",
+        "note": (
+            "One-time fee to be considered for the provider directory. "
+            "Payment does not imply verification — that is reviewed separately."
+        ),
+    }
 
 
 def secret_warnings(env=None) -> list:

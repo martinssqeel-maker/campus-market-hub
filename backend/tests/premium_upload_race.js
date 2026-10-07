@@ -70,6 +70,11 @@ s.listen(0, "127.0.0.1", async () => {
         const grid = document.getElementById("listing-grid");
         const cards = grid ? Array.from(grid.querySelectorAll(".listing-card")) : [];
         const hit = cards.find(c => /Race guard test listing/.test(c.textContent));
+        /* Home now leads with the Game Centre and discovery rows, so the browse
+           grid starts below the fold. `loading="lazy"` images only fetch when
+           they approach the viewport, so scroll the card in before asserting
+           on real pixels. */
+        if (hit && hit.scrollIntoView) hit.scrollIntoView({ block: "center" });
         const imgEl = hit ? hit.querySelector("img") : null;
         return {
           foundCard: !!hit,
