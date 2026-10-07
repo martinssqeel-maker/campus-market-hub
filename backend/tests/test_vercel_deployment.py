@@ -31,7 +31,7 @@ from flask_jwt_extended import create_access_token               # noqa: E402
 from werkzeug.datastructures import FileStorage                  # noqa: E402
 
 import build_vercel                                              # noqa: E402
-from app import create_app                                       # noqa: E402
+from backend.app import create_app                                # noqa: E402
 from config import (                                             # noqa: E402
     TestingConfig,
     engine_options,
