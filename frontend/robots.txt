@@ -1,0 +1,11 @@
+# --- Crawl only the public marketing pages ---
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /login
+Disallow: /signup
+Disallow: /pages/
+
+# Sitemap (generated at the deployed origin; update this path when the domain changes)
+Sitemap: /sitemap.xml
