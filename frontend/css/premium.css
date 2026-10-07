@@ -1,5 +1,5 @@
 /* ==========================================================================
-   premium.css — Lafia Marketplace design system + the two-zone experience.
+   premium.css — Campus Marketplace design system + the two-zone experience.
 
    Loaded AFTER style.css and responsive.css on every page, so the tokens
    below win the cascade and the whole light-themed site adopts this language.
@@ -44,6 +44,28 @@
   --brand-softer: var(--teal-50);
   --brand-soft: rgba(11, 131, 113, 0.10);
   --brand-ring: rgba(11, 131, 113, 0.28);
+
+  /* ---- Brand ink: the deep navy half of the official logo ----
+     The supplied artwork is deep navy + green, so the token system carries
+     both anchors: green (--brand) drives interaction, navy (--brand-ink)
+     carries identity — brand introduction, dark plates and the admin console.
+     This keeps the palette tonal rather than "one flat green everywhere". */
+  --navy-50: #eef2f9;
+  --navy-100: #d8e0ef;
+  --navy-200: #b3c1dd;
+  --navy-300: #8499c2;
+  --navy-400: #566fa3;
+  --navy-500: #334f86;
+  --navy-600: #1e3a6b;
+  --navy-700: #162d55;
+  --navy-800: #101f3d;
+  --navy-900: #0b172c;
+
+  --brand-ink: var(--navy-800);
+  --brand-ink-strong: var(--navy-900);
+  --brand-ink-soft: rgba(16, 31, 61, 0.10);
+  --brand-ink-line: rgba(16, 31, 61, 0.16);
+  --sh-ink: 0 10px 30px -8px rgba(16, 31, 61, .38);
 
   --accent: #f59e0b;
   --accent-dark: #d97706;
@@ -641,21 +663,33 @@ a.card:hover, .card.is-hoverable:hover {
 }
 .empty-mark svg { width: 26px; height: 26px; }
 
-/* ---------------------------- 3.8 Toasts & modal ------------------------- */
+/* ---------------------------- 3.8 Toasts & modal -------------------------
+   premium.css owns toasts outright. The legacy sheet used to place the same
+   stack from the TOP at z-index 400, which is how a toast could be painted
+   behind the sticky top bar; one definition, declared last, removes the
+   disagreement. The stack sits above the bottom navigation on phones and well
+   clear of the top bar on every breakpoint. */
 .toast-stack {
   position: fixed;
-  z-index: 9000;
+  /* Above the modal backdrop (9500) and the lightbox (9600): a notification
+     must never be swallowed by whatever happens to be open at the time. */
+  z-index: 9900;
   left: 50%;
-  bottom: calc(var(--bottom-nav-height) + 16px);
+  bottom: calc(var(--bottom-nav-height) + 28px + env(safe-area-inset-bottom, 0px));
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   gap: var(--sp-2);
-  width: min(94vw, 380px);
-  pointer-events: none;
+  width: min(94vw, 420px);
+  max-height: calc(100vh - var(--header-height) - var(--bottom-nav-height) - 32px);
+  pointer-events: none;              /* the gap between toasts must not eat taps */
 }
 .toast {
-  padding: 13px 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px 12px 12px 14px;
   border: 1px solid var(--line);
   border-left: 3px solid var(--brand);
   border-radius: var(--r);
@@ -665,11 +699,57 @@ a.card:hover, .card.is-hoverable:hover {
   color: var(--ink);
   font-size: .875rem;
   font-weight: 600;
+  line-height: 1.45;
+  pointer-events: auto;              /* …but the toast itself is tappable */
+  animation: toastIn var(--t-slow) var(--ease-out);
   transition: opacity var(--t) var(--ease), transform var(--t) var(--ease);
 }
 .toast.success { border-left-color: var(--success); }
 .toast.error { border-left-color: var(--danger); }
 .toast.info { border-left-color: var(--info); }
+.toast.warning { border-left-color: var(--warning); }
+.toast__icon {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  margin-top: 1px;
+  border-radius: var(--r-full);
+  background: var(--surface-3);
+  color: var(--body);
+}
+.toast__icon svg { width: 15px; height: 15px; }
+.toast.success .toast__icon { background: var(--success-light); color: #08663f; }
+.toast.error .toast__icon { background: var(--danger-light); color: #991b1b; }
+.toast.info .toast__icon { background: var(--brand-soft); color: var(--brand-strong); }
+.toast.warning .toast__icon { background: var(--warning-soft); color: #8a4b06; }
+.toast__text { flex: 1 1 auto; min-width: 0; overflow-wrap: break-word; word-break: break-word; }
+.toast__close {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  margin: -4px -4px 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-full);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+.toast__close svg { width: 14px; height: 14px; }
+.toast__close:hover { background: var(--surface-3); color: var(--ink); }
+.toast__close:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+/* Leaving animates down, the way it arrived. */
+.toast.is-leaving { opacity: 0; transform: translateY(10px); }
+@keyframes toastIn { from { opacity: 0; transform: translateY(14px) scale(.98); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .toast { animation: none; transition-duration: 1ms; }
+  .toast.is-leaving { transform: none; }
+}
 
 .modal-backdrop {
   position: fixed;
@@ -1015,6 +1095,16 @@ tbody tr:hover { background: var(--surface-2); }
   font-weight: 800;
   letter-spacing: -0.03em;
   box-shadow: var(--sh-brand);
+}
+/* The mark is the owner's logo image rather than a text substitute. A square
+   source in a square box is drawn undistorted; `object-fit` simply states that
+   guarantee, and the white plate keeps the artwork legible on both the light
+   app bar and the dark marketing navigation. */
+img.mk-brand__mark {
+  display: block;
+  object-fit: contain;
+  background: #fff;
+  box-shadow: var(--sh-sm);
 }
 .mk-brand__text { display: grid; line-height: 1.12; min-width: 0; }
 .mk-brand__text strong { font-size: 1.015rem; font-weight: 800; color: var(--ink); letter-spacing: -0.03em; }
@@ -1664,7 +1754,7 @@ body[data-page="profile"] { background: var(--canvas); }
 .user-dashboard .fav-btn.active { color: #fff; background: #f43f5e; border-color: #f43f5e; }
 .user-dashboard .stars .star { color: var(--line-strong); }
 .user-dashboard .dash-topbar { background: rgba(250,250,250,.86); border-bottom: 1px solid var(--line); }
-.user-dashboard .dash-brand-logo { background: linear-gradient(140deg, var(--teal-400), var(--brand-strong)); box-shadow: var(--sh-brand); }
+.user-dashboard .dash-brand-logo { background: var(--mark-plate, var(--brand-ink)); box-shadow: var(--sh-ink); }
 .user-dashboard .dash-brand-text strong { color: var(--ink); }
 .user-dashboard .dash-brand-text small { color: var(--muted); }
 .user-dashboard .dash-btn { background: var(--surface); border-color: var(--line-strong); color: var(--ink); }
@@ -1860,7 +1950,13 @@ h1, h2, h3, h4, p, a, li, td, th, .listing-title, .badge { overflow-wrap: break-
   .filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .contact-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .mk-mock__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .toast-stack { left: auto; right: 20px; bottom: 20px; transform: none; width: 360px; }
+  /* Toasts keep the bottom-centre geometry from the base rule below 1024px.
+     The old override here dropped them to `bottom: 20px` with `right: 20px`,
+     which parked them straight on top of the bottom navigation — still on
+     screen at every width under 1024px — and the sheet below this one
+     right-aligned them without resetting the centring transform, which pushed
+     them off the left edge between 480px and 559px. */
+  .toast-stack { width: min(94vw, 460px); }
   .auth-back { top: var(--sp-6); left: var(--sp-6); }
 }
 
@@ -1905,6 +2001,16 @@ h1, h2, h3, h4, p, a, li, td, th, .listing-title, .badge { overflow-wrap: break-
   /* The bottom nav is a mobile affordance; desktop uses the top bar only. */
   .app-bottomnav { display: none; }
   body.has-app-shell { padding-bottom: 0; }
+  /* With the bottom navigation gone, toasts move to the corner the way a
+     desktop app does. This is the only rule that re-anchors the stack, so
+     there is exactly one toast geometry at every breakpoint. */
+  .toast-stack {
+    left: auto;
+    right: var(--gutter);
+    bottom: var(--gutter);
+    transform: none;
+    width: min(92vw, 420px);
+  }
 }
 
 @media (min-width: 1100px) {
@@ -2089,12 +2195,36 @@ h1, h2, h3, h4, p, a, li, td, th, .listing-title, .badge { overflow-wrap: break-
   top: calc(100% + 10px);
   right: 0;
   width: min(88vw, 320px);
+  /* The "nothing exceeds its container" guard caps .popover at 100%, and for an
+     absolutely positioned panel that means 100% of the 42px bell it hangs from —
+     which is how the notification centre rendered a character wide. An explicit
+     viewport-relative cap, declared later in the sheet, wins over it. */
+  max-width: calc(100vw - 24px);
+  max-height: calc(100vh - var(--header-height) - 24px);
   padding: 6px;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   box-shadow: var(--sh-xl);
+  overflow: auto;
+  overscroll-behavior: contain;
   animation: mkPop var(--t) var(--ease-out);
+}
+/*
+ * The bell sits mid-cluster on a phone, so the notification centre cannot be
+ * anchored to it: at 390px a 320px panel hanging off the bell's right edge
+ * started 21px outside the viewport, and the location picker — which is
+ * anchored to the far left — pulled it out of shape from the other side. The
+ * centre is anchored to the viewport instead, so it is always fully on screen
+ * and always a comfortable reading width. Presentation is inherited from
+ * `.popover`; only the anchoring differs.
+ */
+#app-notif-panel {
+  position: fixed;
+  top: calc(var(--header-height) + 8px);
+  right: var(--gutter);
+  width: min(92vw, 380px);
+  max-width: calc(100vw - 2 * var(--gutter));
 }
 .popover__head {
   display: flex;
@@ -2180,7 +2310,7 @@ h1, h2, h3, h4, p, a, li, td, th, .listing-title, .badge { overflow-wrap: break-
   box-shadow: 0 0 0 2px var(--surface);
 }
 
-.notif-list { max-height: 380px; overflow: auto; }
+.notif-list { max-height: min(52vh, 380px); overflow: auto; overscroll-behavior: contain; }
 .notif-item {
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr);
@@ -2208,7 +2338,10 @@ h1, h2, h3, h4, p, a, li, td, th, .listing-title, .badge { overflow-wrap: break-
 .notif-item.is-unread .notif-item__mark { background: var(--brand); color: #fff; }
 .notif-item__mark svg { width: 17px; height: 17px; }
 .notif-item__body strong { display: block; font-size: .845rem; color: var(--ink); font-weight: 700; }
-.notif-item__body p { margin: 2px 0 0; font-size: .78rem; color: var(--muted); }
+/* A <p> cannot legally sit inside a <span> inside a <button>, so the row body
+   is a span. `p` is kept for any cached markup. */
+.notif-item__body p,
+.notif-item__text { display: block; margin: 2px 0 0; font-size: .78rem; color: var(--muted); }
 .notif-item__body time { display: block; margin-top: 3px; font-size: .7rem; color: var(--muted-2); }
 
 /* ==========================================================================
@@ -3035,4 +3168,106 @@ h1, h2, h3, h4, p, a, li, td, th, .listing-title, .badge { overflow-wrap: break-
   .mk-footer li a, .footer-list a, .crumbs a { display: inline-block; padding-block: 5px; }
   .mk-footer__bottom nav a { display: inline-block; padding-block: 6px; padding-inline: 2px; }
   .auth-switch a { display: inline-block; padding-block: 5px; padding-inline: 2px; }
+}
+
+/* ==========================================================================
+   BRAND SPLASH — the product introduction
+   The locked product name (§A), the official supplied logo (§B) and the
+   prototype's Splash screen (§E). Shown once per browsing session on the
+   landing and auth-entry screens, then removed from the DOM.
+
+   It is pure chrome: aria-hidden + pointer-events:none (so it can never be
+   read, clicked or measured as content), position:fixed (so it can never
+   move layout or add horizontal scroll) and short (so it never delays the
+   app). Deep navy carries the identity here — the green is an accent, which
+   is why the splash reads as a brand moment rather than "teal everywhere".
+   ========================================================================== */
+.brand-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9400;               /* under modals (9500) and toasts (9900) */
+  display: grid;
+  place-items: center;
+  padding: var(--sp-5);
+  background:
+    radial-gradient(120% 88% at 50% 0%, rgba(11, 131, 113, .30), transparent 60%),
+    var(--brand-ink);
+  pointer-events: none;
+  overflow: hidden;
+  animation: splashOut 260ms var(--ease) 560ms both;
+}
+.brand-splash.is-leaving { animation: splashOut 240ms var(--ease) both; }
+
+.brand-splash__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-4);
+  text-align: center;
+  animation: splashIn 560ms var(--ease) both;
+}
+.brand-splash__mark {
+  display: block;
+  width: 104px;
+  height: 104px;
+  border-radius: var(--r-lg);
+  object-fit: contain;
+  background: #fff;
+  box-shadow: var(--sh-ink), 0 0 0 1px rgba(255, 255, 255, .16);
+}
+.brand-splash__name {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(1.45rem, 6vw, 1.9rem);
+  font-weight: 800;
+  letter-spacing: -.02em;
+  line-height: 1.15;
+}
+.brand-splash__tagline {
+  margin: -6px 0 0;
+  color: var(--teal-300);
+  font-size: .88rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.brand-splash__where { margin: 0; color: rgba(255, 255, 255, .74); font-size: .82rem; font-weight: 600; }
+.brand-splash__bar {
+  width: 132px;
+  height: 3px;
+  border-radius: var(--r-full);
+  background: rgba(255, 255, 255, .16);
+  overflow: hidden;
+}
+.brand-splash__bar span {
+  display: block;
+  height: 100%;
+  width: 42%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--teal-400), var(--teal-200));
+  animation: splashBar 820ms var(--ease) both;
+}
+
+@keyframes splashIn {
+  from { opacity: 0; transform: translateY(10px) scale(.94); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes splashOut {
+  to { opacity: 0; visibility: hidden; }
+}
+@keyframes splashBar {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(240%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-splash,
+  .brand-splash__inner,
+  .brand-splash__bar span { animation: none; }
+}
+@media (max-width: 380px) {
+  .brand-splash__mark { width: 88px; height: 88px; }
+}
+@media (min-width: 1024px) {
+  .brand-splash__mark { width: 128px; height: 128px; }
 }

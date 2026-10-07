@@ -165,7 +165,7 @@ function apiResponse(url) {
   const p = url.pathname.replace(/^\/api/, "");
   const q = url.searchParams;
 
-  if (p === "/health") return { service: "Lafia Marketplace API", version: "1.0.0", status: "ok", database: "connected", storage: { configured: true, backend: "local" } };
+  if (p === "/health") return { service: "Campus Marketplace API", version: "1.0.0", status: "ok", database: "connected", storage: { configured: true, backend: "local" } };
   if (p === "/stats") return { products: PRODUCTS.length, accommodation: ROOMS.length, events: EVENTS.length, services: SERVICES.length, users: 42, verified_users: 20, campus: "Lafia" };
   if (p === "/meta") return {
     product_categories: ["phones", "laptops", "electronics", "accessories"],
@@ -238,7 +238,11 @@ function apiResponse(url) {
   const userPath = p.slice("/users/".length);
   if (p.startsWith("/users/")) {
     if (userPath.endsWith("/listings")) return {
-      products: LISTING_STORE.concat(PRODUCTS).slice(0, 4), accommodation: ROOMS.slice(0, 2),
+      products: [
+        product(701, { title: "Pending approval check", status: "pending" }),
+        product(702, { title: "Rejected listing check", status: "rejected" }),
+        ...LISTING_STORE.concat(PRODUCTS).slice(0, 4)
+      ], accommodation: ROOMS.slice(0, 2),
       events: [], services: [], counts: { products: LISTING_STORE.concat(PRODUCTS).length, accommodation: ROOMS.length, events: 0, services: 0 }
     };
     if (userPath.endsWith("/reviews")) return { reviews: [], rating_average: null, rating_count: 0 };
@@ -417,6 +421,6 @@ module.exports = {
 if (require.main === module) {
   const port = Number(process.argv[2] || 5599);
   createServer().listen(port, "127.0.0.1", () => {
-    console.log("Lafia Marketplace stub server on http://127.0.0.1:" + port);
+    console.log("Campus Marketplace stub server on http://127.0.0.1:" + port);
   });
 }

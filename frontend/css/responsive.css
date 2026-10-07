@@ -13,7 +13,7 @@
   .hero-stats { grid-template-columns: repeat(2, 1fr); }
   .stat-grid { grid-template-columns: repeat(2, 1fr); }
   .contact-actions { grid-template-columns: repeat(2, 1fr); }
-  .toast-stack { left: auto; right: 16px; width: 340px; }
+  /* Toast placement is owned by premium.css, which loads after this sheet. */
 }
 
 /* --------------------------------------------------------------------------

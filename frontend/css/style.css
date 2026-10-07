@@ -614,30 +614,10 @@ td .row-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 /* --------------------------------------------------------------------------
    12. Toasts, modals, skeletons, empty states
    -------------------------------------------------------------------------- */
-.toast-stack {
-  position: fixed;
-  z-index: 400;
-  top: calc(var(--header-height) + 10px);
-  left: 12px; right: 12px;
-  display: flex; flex-direction: column; gap: 8px;
-  pointer-events: none;
-}
-.toast {
-  pointer-events: auto;
-  background: var(--surface);
-  border-left: 5px solid var(--brand);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-lg);
-  padding: 12px 14px;
-  font-size: .88rem;
-  font-weight: 600;
-  color: var(--ink);
-  animation: slideIn .25s ease;
-}
-.toast.success { border-left-color: var(--success); }
-.toast.error { border-left-color: var(--danger); }
-.toast.info { border-left-color: var(--brand); }
-@keyframes slideIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+/* Toasts are defined once, in premium.css, which loads after this sheet on
+   every page. This sheet used to position the same stack from the top at
+   z-index 400 — that duplicate is what could paint a toast behind the sticky
+   top bar, so it was removed rather than kept in sync. */
 
 .modal-backdrop {
   position: fixed; inset: 0; z-index: 350;
@@ -1044,11 +1024,22 @@ body[data-page="profile"] { background: #0a0a0a; }
   border-radius: 12px;
   display: grid;
   place-items: center;
-  background: linear-gradient(150deg, #2563eb, #7c3aed);
-  box-shadow: 0 6px 18px rgba(37, 99, 235, .35);
+  overflow: hidden;
+  /* The official logo sits on a plate tinted by the admin's brand colour and
+     defaults to the logo's deep navy — the mark itself is never redrawn. */
+  background: var(--mark-plate, var(--brand-ink, #101f3d));
+  box-shadow: 0 6px 18px var(--mark-shadow, rgba(16, 31, 61, .35));
   color: #fff;
   font-weight: 800;
   font-size: .95rem;
+}
+.dash-brand-logo img,
+.dash-preview-mark img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #fff;
 }
 .dash-brand-text { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
 .dash-brand-text strong { color: var(--d-text); font-weight: 800; font-size: .98rem; letter-spacing: -.02em; }
@@ -1714,7 +1705,8 @@ body[data-page="profile"] { background: #0a0a0a; }
 .dash-preview-brand { display: flex; align-items: center; gap: 12px; }
 .dash-preview-mark {
   width: 42px; height: 42px; border-radius: 13px; flex: none;
-  background: var(--d-brand); display: grid; place-items: center;
+  background: var(--mark-plate, var(--d-brand)); display: grid; place-items: center;
+  overflow: hidden;
   color: #fff; font-weight: 800;
 }
 .dash-preview-brand strong { display: block; color: var(--d-text); font-weight: 800; }

@@ -156,6 +156,66 @@
       return message;
     },
 
+    /**
+     * Record a message delivered to this user by a future messaging transport.
+     * The current app has no server messaging endpoint, so this is an explicit
+     * adapter boundary rather than simulated incoming traffic. Stable transport
+     * ids make repeated delivery idempotent.
+     */
+    receive: function (threadId, payload) {
+      payload = payload || {};
+      var body = String(payload.text || "").trim();
+      if (!body && payload.offer === undefined) return null;
+
+      var threads = readAll();
+      var thread = threads.filter(function (row) { return row.id === threadId; })[0];
+      if (!thread || thread.blocked) return null;
+
+      var messageId = payload.id || uid("m");
+      var existing = (thread.messages || []).filter(function (row) { return row.id === messageId; })[0];
+      if (existing) return existing;
+
+      var message = {
+        id: messageId,
+        mine: false,
+        text: body,
+        at: Number(payload.at) || Date.now()
+      };
+      if (payload.offer !== undefined && payload.offer !== null && payload.offer !== "") {
+        message.offer = Number(payload.offer) || 0;
+        if (!message.text) message.text = "Offer received.";
+      }
+
+      thread.messages = (thread.messages || []).concat([message]).slice(-MAX_MESSAGES);
+      thread.unread = Number(thread.unread || 0) + 1;
+      thread.updated_at = message.at;
+      writeAll(threads);
+
+      var sender = (thread.person && thread.person.name) || "Listing owner";
+      var isOffer = message.offer !== undefined;
+      var title = (isOffer ? "Offer received from " : "New message from ") + sender;
+      var detail = isOffer
+        ? "Offer: " + (window.UI ? UI.money(message.offer) : "₦" + message.offer.toLocaleString()) +
+          ". Open the conversation to respond."
+        : "Open your conversation about " + ((thread.listing && thread.listing.title) || "this listing") +
+          " to read their message.";
+      var href = "messages.html?thread=" + encodeURIComponent(threadId);
+
+      if (window.Shell && Shell.pushNotification) {
+        Shell.pushNotification({
+          id: "message:" + threadId + ":" + message.id,
+          kind: isOffer ? "offer" : "message",
+          icon: isOffer ? "wallet" : "message",
+          href: window.UI ? UI.pageUrl(href) : href,
+          title: title,
+          body: detail,
+          at: message.at
+        });
+      }
+      if (window.UI) UI.toast(title, "info");
+      return message;
+    },
+
     markRead: function (threadId) {
       var threads = readAll();
       threads.forEach(function (row) {
@@ -305,7 +365,7 @@
           '<button type="button" class="icon-btn" data-msg-back aria-label="Back to conversations">' + Shell.icon("arrowLeft", 18) + "</button>" +
           "<span>" +
             "<strong>" + UI.escapeHtml((thread.person && thread.person.name) || "Listing owner") + "</strong>" +
-            "<small>Usually replies through Lafia Marketplace</small>" +
+            "<small>Usually replies through Campus Marketplace</small>" +
           "</span>" +
           '<span class="msg-pane__tools">' +
             '<button type="button" class="icon-btn" data-msg-archive aria-label="Archive conversation" title="Archive">' + Shell.icon("archive", 17) + "</button>" +

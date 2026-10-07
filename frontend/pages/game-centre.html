@@ -4,17 +4,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0b8371">
-  <title>Game Centre · Lafia Marketplace</title>
-  <meta name="description" content="Game Centre on Lafia Marketplace — a daily challenge, streaks, achievements and a weekly leaderboard built into the platform.">
+  <title>Game Centre · Campus Marketplace</title>
+  <meta name="description" content="Game Centre on Campus Marketplace — Market Rush and Market Match, a daily challenge, streaks, achievements and a weekly leaderboard built into the platform.">
   <meta name="robots" content="noindex">
 
-  <link rel="icon" type="image/svg+xml" href="../assets/images/logo.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/images/favicon-32.png">
+  <link rel="apple-touch-icon" href="../assets/images/campus-marketplace-icon-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
   <link rel="stylesheet" href="../css/responsive.css">
   <link rel="stylesheet" href="../css/premium.css">
+  <link rel="stylesheet" href="../css/game.css">
 
   <script src="../js/shell.js"></script>
 </head>
@@ -28,7 +30,7 @@
         <div>
           <span class="mk-kicker">Play · Compete · Return</span>
           <h1>Game Centre</h1>
-          <p>A five-minute break between trades — one polished game, a fresh challenge every day and streaks worth protecting.</p>
+          <p>Two games built for a five-minute break between trades — a fresh challenge every day, streaks worth protecting and one weekly board across both.</p>
         </div>
         <div class="page-head__actions">
           <a class="btn btn-outline" href="home.html">Back to marketplace</a>
@@ -38,8 +40,122 @@
 
     <div class="container" id="game-root" style="padding-bottom:var(--sp-10)">
 
-      <!-- ===================== GAME STAGE ===================== -->
-      <section class="deep-surface game-stage" id="game-board-panel" aria-labelledby="stage-heading">
+      <!-- ===================== CATALOGUE ===================== -->
+      <section class="section-tight" id="game-catalogue" aria-labelledby="catalogue-heading">
+        <div class="section-head">
+          <div>
+            <span class="mk-kicker">Choose a game</span>
+            <h2 id="catalogue-heading">Two ways to play</h2>
+            <p>Scores, streaks, badges and the weekly board are shared across every game in the catalogue.</p>
+          </div>
+        </div>
+
+        <div class="game-catalogue">
+          <article class="game-card is-active" data-game="market-rush" tabindex="0" role="button"
+                   aria-pressed="true" aria-label="Market Rush. New. Ten rounds of exact change against a shrinking clock.">
+            <span class="game-card__art game-card__art--amber" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4.5 13.5H11L10 22l8.5-11.5H12z"/></svg>
+            </span>
+            <div class="game-card__body">
+              <span class="game-card__flag">New</span>
+              <h3>Market Rush</h3>
+              <p>Spend exactly what the basket costs. Build the basket from real Lafia market prices, dodge the bait stalls and beat the shrinking clock — ten rounds, three lives, combos and power-ups.</p>
+              <span class="game-card__meta">10 rounds · 3 lives · exact change</span>
+            </div>
+            <div class="game-card__foot">
+              <button class="btn btn-primary btn-sm" type="button" data-play>Play Market Rush</button>
+              <span class="game-card__stat" data-card-best="market-rush">Not played yet</span>
+            </div>
+          </article>
+
+          <article class="game-card" data-game="market-match" tabindex="0" role="button"
+                   aria-pressed="false" aria-label="Market Match. Daily challenge. Match the pairs before the market closes.">
+            <span class="game-card__art game-card__art--green" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/></svg>
+            </span>
+            <div class="game-card__body">
+              <span class="game-card__flag game-card__flag--green">Daily challenge</span>
+              <h3>Market Match</h3>
+              <p>A memory board built from the four marketplace pillars. Flip two tiles, match the pairs and keep the combo alive — the daily board is the same for everyone in Lafia.</p>
+              <span class="game-card__meta">6 / 8 / 10 pairs · memory and speed</span>
+            </div>
+            <div class="game-card__foot">
+              <button class="btn btn-outline btn-sm" type="button" data-play>Open Market Match</button>
+              <span class="game-card__stat" data-card-best="market-match">Not played yet</span>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ===================== MARKET RUSH STAGE ===================== -->
+      <section class="deep-surface game-stage" id="rush-panel" data-game-stage="market-rush" aria-labelledby="rush-heading">
+        <div class="game-stage__head">
+          <div>
+            <span class="game-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4.5 13.5H11L10 22l8.5-11.5H12z"/></svg>
+              Market Rush
+            </span>
+            <h2 id="rush-heading" style="margin:var(--sp-3) 0 var(--sp-2)">Spend the exact change</h2>
+            <p style="max-width:58ch;margin:0">Every round names a total. Tap market stalls to build a basket that hits it to the naira before the stall closes — tap the same stall again to take it out. Ten rounds, three lives, and the clock gets shorter as you go.</p>
+          </div>
+          <div class="game-actions">
+            <button class="btn btn-primary" type="button" id="rush-start">Start a run</button>
+            <button class="btn btn-outline" type="button" id="rush-pause" aria-pressed="false">Pause</button>
+            <button class="btn btn-outline" type="button" id="rush-daily">Daily challenge</button>
+          </div>
+        </div>
+
+        <div class="mt-3" id="rush-levels" role="group" aria-label="Market difficulty"></div>
+
+        <div id="rush-root">
+          <div class="mt-3">
+            <div class="game-hud rush-hud" role="group" aria-label="Run statistics">
+              <div class="game-hud__cell"><span>Score</span><b id="rush-hud-score">0</b></div>
+              <div class="game-hud__cell"><span>Round</span><b id="rush-hud-round">1/10</b></div>
+              <div class="game-hud__cell"><span>Combo</span><b id="rush-hud-combo">1×</b></div>
+              <div class="game-hud__cell"><span>Lives</span><b id="rush-hud-lives">3</b></div>
+              <div class="game-hud__cell"><span>Clock</span><b id="rush-hud-time">20s</b></div>
+            </div>
+            <div class="rush-timebar" role="presentation"><span id="rush-timebar"></span></div>
+          </div>
+
+          <div class="rush-objective mt-3">
+            <div class="rush-objective__cell">
+              <span>Spend exactly</span>
+              <b id="rush-target">₦0</b>
+            </div>
+            <div class="rush-objective__cell">
+              <span>In the basket</span>
+              <b id="rush-total" class="rush-total">₦0</b>
+            </div>
+          </div>
+
+          <div class="mt-3">
+            <div class="rush-board" id="rush-board" role="group" aria-label="Market stalls"></div>
+          </div>
+
+          <div class="mt-3">
+            <h3 class="rush-label" id="rush-basket-label">Your basket</h3>
+            <div class="rush-basket" id="rush-basket" aria-labelledby="rush-basket-label" aria-live="polite">
+              <span class="rush-basket__empty">Tap a stall to start building your basket</span>
+            </div>
+          </div>
+
+          <div class="mt-3">
+            <h3 class="rush-label" id="rush-powers-label">Power-ups</h3>
+            <div class="rush-powers" id="rush-powerups" role="group" aria-labelledby="rush-powers-label"></div>
+          </div>
+
+          <div class="rush-result" id="rush-result" role="region" aria-label="Run result" hidden></div>
+        </div>
+
+        <p class="mt-3" id="rush-status" role="status" aria-live="polite" style="margin:0;font-size:.82rem;color:var(--deep-text-2)">
+          Pick a difficulty, then spend exactly what the basket costs. Tap a stall again to take it out.
+        </p>
+      </section>
+
+      <!-- ===================== MARKET MATCH STAGE ===================== -->
+      <section class="deep-surface game-stage" id="game-board-panel" data-game-stage="market-match" hidden aria-labelledby="stage-heading">
         <div class="game-stage__head">
           <div>
             <span class="game-badge">
@@ -81,7 +197,7 @@
           <div>
             <span class="mk-kicker">Your progress</span>
             <h2 id="progress-heading">Streaks, scores and stats</h2>
-            <p>Stored against your account on this device — never shared without you.</p>
+            <p>Shown for the game you have open. Stored against your account on this device — never shared without you.</p>
           </div>
         </div>
         <div class="game-stats" id="game-summary">
@@ -98,8 +214,8 @@
           <div class="section-head">
             <div>
               <span class="mk-kicker">Achievements</span>
-              <h2 id="ach-heading">Seven badges to collect</h2>
-              <p>Earned automatically as you play. Locked badges show exactly what unlocks them.</p>
+              <h2 id="ach-heading">Eleven badges to collect</h2>
+              <p>Earned automatically as you play — in either game. Locked badges show exactly what unlocks them.</p>
             </div>
           </div>
           <div class="ach-grid" id="game-achievements">
@@ -116,7 +232,7 @@
           <div>
             <span class="mk-kicker">Weekly leaderboard</span>
             <h2 id="board-heading">This week's top scores</h2>
-            <p>Real accounts only. The board resets every Monday.</p>
+            <p>Real accounts only. The board resets every Monday and covers the game you have open.</p>
           </div>
         </div>
         <div class="card" id="game-leaderboard"></div>
@@ -127,8 +243,8 @@
         <div class="section-head">
           <div>
             <span class="mk-kicker">Score history</span>
-            <h2 id="history-heading">Your last seven boards</h2>
-            <p>Time, level and score for every board you have cleared.</p>
+            <h2 id="history-heading">Your last seven runs</h2>
+            <p>Time, difficulty and score for every run you have finished in the game you have open.</p>
           </div>
         </div>
         <div class="card card-pad" id="game-history"></div>
@@ -143,7 +259,7 @@
             the same achievements, streak and weekly-board machinery serves every game added later.
           </p>
           <p class="form-note mb-0">
-            One game, done properly, beats five unfinished ones. Market Match is the first.
+            Market Rush and Market Match share one score store, one daily streak and one badge list.
           </p>
         </div>
       </section>
@@ -156,6 +272,7 @@
   <script src="../js/ui.js"></script>
   <script src="../js/auth.js"></script>
   <script src="../js/game.js"></script>
+  <script src="../js/rush.js"></script>
   <script src="../js/engage.js"></script>
   <script src="../js/marketplace.js"></script>
 </body>

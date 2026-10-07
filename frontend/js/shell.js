@@ -1,5 +1,5 @@
 /* ==========================================================================
-   shell.js — Lafia Marketplace shared shell, route guard and motion layer.
+   shell.js — Campus Marketplace shared shell, route guard and motion layer.
 
    Loaded in <head> so the route guard can run *before* the browser paints the
    page body (scroll down to "ROUTE GUARD" for that part).
@@ -38,13 +38,21 @@
      Brand
      ----------------------------------------------------------------------- */
   var BRAND = {
-    name: "Lafia Marketplace",
-    short: "Lafia Market",
-    initials: "LM",
-    tagline: "Built for Lafia",
-    /* The campus remains a flagship audience, so it lives in the fine print
-       rather than in the name itself. */
-    sub: "Lafia, Nasarawa State"
+    name: "Campus Marketplace",
+    /* The compact wordmark for tight spaces keeps the full product name — the
+       top bar truncates with an ellipsis rather than inventing a second name
+       for the product. */
+    short: "Campus Marketplace",
+    initials: "CM",
+    /* Taken from the supplied artwork, which signs off "BUY. SELL. CONNECT." */
+    tagline: "Buy. Sell. Connect.",
+    sub: "Lafia, Nasarawa State",
+    /* The official logo supplied by the project owner. Used as-is: never
+       stretched, recoloured or replaced with a generated mark. The 192px export
+       is a plain aria-proportional downscale of the master artwork and is what
+       the UI renders; the master JPG stays the social-preview image. */
+    logo: "assets/images/campus-marketplace-icon-192.png",
+    logoMaster: "assets/images/campus-marketplace-logo.jpg"
   };
 
   /* -----------------------------------------------------------------------
@@ -94,6 +102,7 @@
     trophy: '<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 5H5.5A2.5 2.5 0 0 0 8 9.5"/><path d="M16 5h2.5A2.5 2.5 0 0 1 16 9.5"/><path d="M12 13v4"/><path d="M9 20h6"/><path d="M10 17h4l1 3H9z"/>',
     flame: '<path d="M12 21c3.6 0 6-2.3 6-5.6 0-4.2-4.2-5.6-4.6-11.4-2.4.8-3.6 2.6-3.6 4.4 0 1 .3 1.7.3 2.3 0 1.1-.8 1.6-1.6 1.6-.9 0-1.4-.6-1.6-1.4-.6.8-.9 1.7-.9 2.7C6 18 8.4 21 12 21Z"/>',
     target: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/>',
+    flag: '<path d="M5 21V4"/><path d="M5 5h11l-2.2 3.5L16 12H5z"/>',
     /* Messaging + UI */
     message: '<path d="M21 12a8 8 0 0 1-11.6 7.1L5 20l1.2-3.6A8 8 0 1 1 21 12Z"/>',
     send: '<path d="m21 3-9.5 9.5"/><path d="M21 3l-6.5 18-4-8-8-4z"/>',
@@ -157,7 +166,7 @@
     return '<div class="cm-gate" role="alert">' +
       '<div class="cm-gate__spinner" aria-hidden="true"></div>' +
       "<strong>Taking you to sign in…</strong>" +
-      "<p>This part of Lafia Marketplace needs an account.</p>" +
+      "<p>This part of Campus Marketplace needs an account.</p>" +
       '<a class="btn btn-primary" href="' + esc(target) + '">Continue to sign in</a>' +
       "</div>";
   }
@@ -227,9 +236,17 @@
     { label: "Why we are building this", href: "#vision" }
   ];
 
+  /**
+   * The brand lockup: the owner's logo, then the product name as real text so
+   * it stays selectable, searchable and legible at any size. The image is in
+   * the first viewport of every page, so `loading="lazy"` resolves immediately;
+   * it is declared for the same reason every other image in the product declares
+   * it — one rule, no exceptions to reason about.
+   */
   function brandMarkup(compact) {
     return '<a class="mk-brand" href="' + esc(url("index.html")) + '" aria-label="' + esc(BRAND.name) + ' home">' +
-      '<span class="mk-brand__mark" aria-hidden="true">' + BRAND.initials + "</span>" +
+      '<img class="mk-brand__mark" src="' + esc(url(BRAND.logo)) + '" alt="" width="38" height="38"' +
+        ' loading="lazy" decoding="async">' +
       '<span class="mk-brand__text"><strong>' + esc(BRAND.name) + "</strong>" +
       "<small>" + esc(compact ? "Lafia, Nigeria" : BRAND.tagline) + "</small></span></a>";
   }
@@ -422,8 +439,13 @@
 
   /* Lafia neighbourhoods used by the location picker. Kept in one place so the
      search, the home feed and the post form all speak the same language. */
+  /*
+   * Lafia areas, in the order a local would scan them: the town itself first,
+   * then the districts students and residents actually search by — including
+   * Gandu — then the trunk roads and the campus.
+   */
   var LOCATIONS = [
-    "Lafia", "Angwan Rimi", "Bukan Sidi", "Mararaba", "Tudun Amba", "Akun",
+    "Lafia", "Gandu", "Angwan Rimi", "Bukan Sidi", "Mararaba", "Tudun Amba", "Akun",
     "Shendam Road", "Jos Road", "Makurdi Road", "FULAFIA campus"
   ];
   var LOCATION_KEY = "cm_location";
@@ -464,7 +486,7 @@
         "</div>" +
         '<form class="app-search" id="app-search" role="search" autocomplete="off">' +
           icon("search", 17) +
-          '<label class="sr-only" for="app-search-input">Search Lafia Marketplace</label>' +
+          '<label class="sr-only" for="app-search-input">Search Campus Marketplace</label>' +
           '<input id="app-search-input" type="search" placeholder="Search listings, rooms, services…">' +
           '<div id="app-search-suggestions" class="suggestions hidden" role="listbox"></div>' +
         "</form>" +
@@ -623,6 +645,21 @@
     return "cm_notif_seen_" + ((user && user.id) || "anon");
   }
 
+  /*
+   * Some notifications are not derived from listings — a game result, a badge
+   * unlock, a streak — they are events the app generated itself. They are kept
+   * in their own small log so the centre can show them beside listing reviews,
+   * and so they survive a reload like every other kind of progress.
+   */
+  function logKey(user) {
+    return "cm_notif_log_" + ((user && user.id) || "anon");
+  }
+
+  function readLog(user) {
+    try { return JSON.parse(window.localStorage.getItem(logKey(user)) || "[]") || []; }
+    catch (e) { return []; }
+  }
+
   function readSeen(user) {
     try { return JSON.parse(window.localStorage.getItem(unseenKey(user)) || "[]") || []; }
     catch (e) { return []; }
@@ -636,6 +673,15 @@
   function buildNotifications(user, listings) {
     var rows = [];
     var groups = ["products", "accommodation", "events", "services"];
+
+    /* Real events the app recorded: game results, high scores, badge unlocks. */
+    readLog(user).forEach(function (row) {
+      rows.push({
+        id: row.id, kind: row.kind || "game", icon: row.icon || "game",
+        href: row.href || page("game-centre.html"),
+        title: row.title, body: row.body || "", at: row.at || null
+      });
+    });
 
     groups.forEach(function (group) {
       (listings[group] || []).forEach(function (item) {
@@ -701,7 +747,12 @@
       button.setAttribute("aria-expanded", open ? "true" : "false");
       if (open) {
         closeOtherPopovers(panel);
-        markAllSeen(seen, count, renderedNotifications);
+        /* Repaint first, then mark read. Anything that arrived since the last
+           paint (a game result, an offer reply) is then both visible and
+           correctly counted before it is cleared. */
+        loadNotifications(user, panel, count, seen, function () {
+          markAllSeen(seen, count, renderedNotifications);
+        });
       }
     });
 
@@ -724,17 +775,19 @@
     loadNotifications(user, panel, count, seen);
   }
 
-  function loadNotifications(user, panel, count, seen) {
+  function loadNotifications(user, panel, count, seen, afterPaint) {
     var list = panel.querySelector("#notif-list");
     var summary = panel.querySelector("#notif-summary");
 
     if (!user || !window.API) {
       paintNotifications([], list, summary, count, seen);
+      if (afterPaint) afterPaint();
       return;
     }
 
     window.API.users.listings(user.id).then(function (payload) {
       paintNotifications(buildNotifications(user, payload.data || {}), list, summary, count, seen);
+      if (afterPaint) afterPaint();
     }).catch(function () {
       /* Honest failure state with a retry, never a blank panel. */
       if (list) {
@@ -746,6 +799,8 @@
           "</div>";
         var retry = list.querySelector("[data-retry]");
         if (retry) retry.addEventListener("click", function () { loadNotifications(user, panel, count, seen); });
+        /* The failure is the panel's, not the page's — say so on the bell too. */
+        if (count) count.classList.add("hidden");
       }
       if (summary) summary.textContent = "Unavailable";
       if (count) count.classList.add("hidden");
@@ -783,7 +838,8 @@
       return '<button type="button" class="notif-item' + (unread.indexOf(row) === -1 ? "" : " is-unread") +
         '" data-href="' + esc(row.href) + '">' +
         '<span class="notif-item__mark" aria-hidden="true">' + icon(row.icon, 17) + "</span>" +
-        '<span class="notif-item__body"><strong>' + esc(row.title) + "</strong><p>" + esc(row.body) + "</p>" +
+        '<span class="notif-item__body"><strong>' + esc(row.title) + '</strong>' +
+          '<span class="notif-item__text">' + esc(row.body) + "</span>" +
           (row.at ? "<time>" + esc(relativeTime(row.at)) + "</time>" : "") +
         "</span></button>";
     }).join("");
@@ -806,6 +862,47 @@
     });
     var summary = document.getElementById("notif-summary");
     if (summary && rendered && rendered.length) summary.textContent = "Up to date";
+  }
+
+  /*
+   * Record an event the app generated (a game result, a badge unlock) so it is
+   * waiting in the centre rather than only flashing past in a toast.
+   */
+  function pushNotification(entry) {
+    if (!entry || !entry.title) return null;
+    var user = currentUser();
+    var row = {
+      id: entry.id || ("local:" + Date.now() + ":" + Math.random().toString(36).slice(2, 8)),
+      kind: entry.kind || "game",
+      icon: entry.icon || "game",
+      href: entry.href || page("game-centre.html"),
+      title: String(entry.title),
+      body: String(entry.body || ""),
+      at: entry.at || Date.now()
+    };
+
+    var log = readLog(user);
+    if (log.some(function (item) { return item.id === row.id; })) return row;
+    log.unshift(row);
+    try { window.localStorage.setItem(logKey(user), JSON.stringify(log.slice(0, 40))); }
+    catch (e) { /* private mode — the toast still carries the news */ }
+
+    scheduleNotifRefresh();
+    return row;
+  }
+
+  /* A single run can award three badges; repaint the centre once, not three times. */
+  var notifRefreshTimer = null;
+
+  function scheduleNotifRefresh() {
+    var panel = document.getElementById("app-notif-panel");
+    var count = document.getElementById("app-bell-count");
+    if (!panel || !count || notifRefreshTimer) return;
+    notifRefreshTimer = window.setTimeout(function () {
+      notifRefreshTimer = null;
+      var user = currentUser();
+      loadNotifications(user, panel, count, readSeen(user));
+    }, 80);
   }
 
   function relativeTime(value) {
@@ -1065,8 +1162,57 @@
     });
   }
 
+  /* ------------------------------------------------------------------
+     Brand splash — §A (locked name) / §B (official logo) / §E (the
+     prototype's Splash screen, rebuilt).
+
+     One branded introduction per browsing session, on the landing and
+     auth-entry screens only. It never blocks, never delays the app, is
+     skipped entirely under prefers-reduced-motion, and removes itself from
+     the DOM — so nothing downstream has to know it ever existed.
+     ------------------------------------------------------------------ */
+  var SPLASH_KEY = "cm_splash_seen";
+
+  function brandSplash() {
+    if (zone() !== "marketing") return;
+    try {
+      if (window.sessionStorage && window.sessionStorage.getItem(SPLASH_KEY)) return;
+      if (window.sessionStorage) window.sessionStorage.setItem(SPLASH_KEY, "1");
+    } catch (e) { /* private mode — fall back to once per page load */ }
+    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (reduce && reduce.matches) return;
+    if (!document.body) return;
+
+    var host = document.createElement("div");
+    host.className = "brand-splash";
+    host.id = "brand-splash";
+    host.setAttribute("aria-hidden", "true");
+    host.innerHTML =
+      '<div class="brand-splash__inner">' +
+        '<img class="brand-splash__mark" src="' + esc(url(BRAND.logo)) + '" alt=""' +
+          ' width="104" height="104" loading="lazy" decoding="async">' +
+        '<p class="brand-splash__name">' + esc(BRAND.name) + "</p>" +
+        '<p class="brand-splash__tagline">' + esc(BRAND.tagline) + "</p>" +
+        '<span class="brand-splash__where">' + esc(BRAND.sub) + "</span>" +
+        '<span class="brand-splash__bar"><span></span></span>' +
+      "</div>";
+    document.body.appendChild(host);
+
+    var gone = false;
+    function dismiss() {
+      if (gone) return;
+      gone = true;
+      host.classList.add("is-leaving");
+      window.setTimeout(function () {
+        if (host.parentNode) host.parentNode.removeChild(host);
+      }, 260);
+    }
+    window.setTimeout(dismiss, 560);
+  }
+
   function renderShell() {
     if (GUARD.status === "redirect") return;   // never build chrome for a guest
+    brandSplash();
     renderHeader();
     renderFooter();
     if (zone() === "app") renderAppBottomNav();
@@ -1098,6 +1244,7 @@
     renderFooter: renderFooter,
     renderBottomNav: renderAppBottomNav,
     renderShell: renderShell,
+    brandSplash: brandSplash,
     absolutiseMeta: absolutiseMeta,
     openDrawer: openDrawer,
     closeDrawer: closeDrawer,
@@ -1106,6 +1253,7 @@
     LOCATIONS: LOCATIONS,
     getLocation: getLocation,
     setLocation: setLocation,
-    paintMessageBadge: paintMessageBadge
+    paintMessageBadge: paintMessageBadge,
+    pushNotification: pushNotification
   };
 })(window, document);

@@ -163,28 +163,102 @@
   /* -----------------------------------------------------------------------
      Toasts
      ----------------------------------------------------------------------- */
+  /* How many toasts may share the screen. Beyond this the oldest leaves first,
+     so a burst of events (a game run awards several achievements at once) never
+     buries the page or stacks notifications on top of each other. */
+  var TOAST_LIMIT = 4;
+
   function toastStack() {
     var stack = document.querySelector(".toast-stack");
     if (!stack) {
       stack = document.createElement("div");
       stack.className = "toast-stack";
+      /* A live region, so a screen reader announces the text without focus. */
+      stack.setAttribute("role", "region");
+      stack.setAttribute("aria-label", "Notifications");
       document.body.appendChild(stack);
     }
     return stack;
   }
 
+  function toastGlyph(kind) {
+    var name = kind === "success" ? "check" : kind === "error" ? "block" : "info";
+    return window.Shell && window.Shell.icon ? window.Shell.icon(name, 15) : "";
+  }
+
+  function stopToastClock(node) {
+    if (node.__toastTimer) {
+      window.clearTimeout(node.__toastTimer);
+      node.__toastTimer = null;
+    }
+  }
+
+  function dismissToast(node) {
+    if (!node || node.dataset.leaving) return;
+    node.dataset.leaving = "1";
+    stopToastClock(node);
+    node.classList.add("is-leaving");
+    window.setTimeout(function () { node.remove(); }, 240);
+  }
+
+  function armToast(node, life) {
+    stopToastClock(node);
+    node.__toastTimer = window.setTimeout(function () { dismissToast(node); }, life);
+  }
+
+  /**
+   * Show a message. Auto-dismisses, and can also be dismissed by hand — the
+   * toast is a real button target with a close control, so a notification can
+   * be got rid of without waiting, and hovering or focusing one pauses its
+   * clock so it cannot vanish mid-read.
+   */
   function toast(message, type, timeout) {
-    if (!message) return;
+    if (!message) return null;
+    var kind = type === "success" || type === "error" ? type : (type || "info");
+    var text = String(message);
+    var life = timeout || 3800;
+    var stack = toastStack();
+
+    /* Never stack the same sentence twice: restore the one already on screen. */
+    var onScreen = Array.prototype.slice.call(stack.children).filter(function (node) {
+      return node.dataset.message === text && !node.dataset.leaving;
+    })[0];
+    if (onScreen) {
+      onScreen.classList.remove("is-leaving");
+      armToast(onScreen, life);
+      return onScreen;
+    }
+
     var node = document.createElement("div");
-    node.className = "toast " + (type || "info");
-    node.setAttribute("role", "status");
-    node.textContent = message;
-    toastStack().appendChild(node);
-    window.setTimeout(function () {
-      node.style.opacity = "0";
-      node.style.transform = "translateY(-6px)";
-      window.setTimeout(function () { node.remove(); }, 250);
-    }, timeout || 3800);
+    node.className = "toast " + kind;
+    node.dataset.message = text;
+    node.setAttribute("role", kind === "error" ? "alert" : "status");
+    node.innerHTML =
+      '<span class="toast__icon" aria-hidden="true">' + toastGlyph(kind) + "</span>" +
+      '<span class="toast__text"></span>' +
+      '<button class="toast__close" type="button" aria-label="Dismiss notification">' +
+        (window.Shell && window.Shell.icon ? window.Shell.icon("close", 14) : "×") + "</button>";
+    /* The message is written as text, never parsed as HTML. */
+    node.querySelector(".toast__text").textContent = text;
+
+    node.querySelector(".toast__close").addEventListener("click", function (event) {
+      event.stopPropagation();
+      dismissToast(node);
+    });
+    node.addEventListener("mouseenter", function () { stopToastClock(node); node.classList.add("is-paused"); });
+    node.addEventListener("mouseleave", function () { node.classList.remove("is-paused"); armToast(node, life); });
+    node.addEventListener("focusin", function () { stopToastClock(node); });
+    node.addEventListener("focusout", function () { armToast(node, life); });
+
+    stack.appendChild(node);
+    /* Retire the oldest live toasts. Already-leaving nodes are skipped, so the
+       list can never fail to shrink (and this can never spin). */
+    var live = Array.prototype.slice.call(stack.children).filter(function (child) {
+      return !child.dataset.leaving;
+    });
+    live.slice(0, Math.max(0, live.length - TOAST_LIMIT)).forEach(dismissToast);
+    armToast(node, life);
+    return node;
   }
 
   /* -----------------------------------------------------------------------
@@ -334,8 +408,8 @@
     host.innerHTML =
       '<div class="container header-inner">' +
         '<a class="brand" href="' + url("index.html") + '">' +
-          '<img src="' + url("assets/images/logo.svg") + '" alt="Lafia Marketplace logo">' +
-          '<span class="brand-text"><strong>Lafia Marketplace</strong>' +
+          '<img src="' + url("assets/images/campus-marketplace-icon-192.png") + '" alt="Campus Marketplace logo">' +
+          '<span class="brand-text"><strong>Campus Marketplace</strong>' +
           "<small>Buy, sell and rent across Lafia</small></span>" +
         "</a>" +
         '<div class="header-shell">' +
@@ -400,7 +474,7 @@
     host.className = "site-footer";
     host.innerHTML =
       '<div class="container"><div class="footer-grid">' +
-        '<div><h3>Lafia Marketplace</h3><p>Buy, sell and rent across Lafia — products, hostels, events and services in one place.</p></div>' +
+        '<div><h3>Campus Marketplace</h3><p>Buy, sell and rent across Lafia — products, hostels, events and services in one place.</p></div>' +
         '<div><h3>Explore</h3><ul class="footer-list">' +
           '<li><a href="' + url("pages/home.html") + '">Marketplace</a></li>' +
           '<li><a href="' + url("pages/accommodation.html") + '">Accommodation</a></li>' +
@@ -408,7 +482,7 @@
           '<li><a href="' + url("pages/services.html") + '">Services</a></li></ul></div>' +
         '<div><h3>Account</h3><ul class="footer-list">' + accountLinks + '</ul></div>' +
         '</div><div class="footer-bottom">© ' + new Date().getFullYear() +
-        ' Lafia Marketplace · Built for Lafia</div></div>';
+        ' Campus Marketplace · Built for Lafia</div></div>';
     var logout = host.querySelector('[data-action="logout"]');
     if (logout) logout.addEventListener("click", function () { Auth.logout(); });
   }

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   game.js — Lafia Marketplace Game Centre
+   game.js — Campus Marketplace Game Centre
 
    The design bible asks for exactly one genuinely polished game in V1, with a
    daily challenge, high score, weekly leaderboard, streaks, achievements and
@@ -29,25 +29,54 @@
     { id: "expert", label: "Expert", pairs: 10, cols: 5, par: 190, blurb: "10 pairs" }
   ];
 
+  /**
+   * The catalogue. The design bible now wants a Game Centre that lists games
+   * rather than a single stage, so each entry carries the identity the card
+   * renders with. Adding a third game means adding an entry here and a stage to
+   * the page — the store, achievements, streak, weekly board and history are
+   * already shared.
+   */
   var GAMES = [
+    {
+      id: "market-rush",
+      name: "Market Rush",
+      tagline: "Spend exactly what the basket costs before the stall closes",
+      blurb: "Ten rounds of exact change against a shrinking clock. Build the basket, dodge the bait stalls, chase the combo.",
+      icon: "bolt",
+      accent: "amber",
+      badge: "New",
+      levels: [],
+      meta: "10 rounds · 3 lives · combos and power-ups"
+    },
     {
       id: "market-match",
       name: "Market Match",
       tagline: "Match the pairs before the market closes",
+      blurb: "A memory board built from the four marketplace pillars. Flip two tiles, match the pairs, keep the combo alive.",
       icon: "grid",
+      accent: "green",
+      badge: "Daily challenge",
       levels: LEVELS,
+      meta: "6 / 8 / 10 pairs · memory and speed",
       tileIcons: TILE_ICONS
     }
   ];
 
   var ACHIEVEMENTS = [
+    /* Shared across the catalogue. */
     { id: "first_game", label: "Open for business", detail: "Finished your first game", icon: "store" },
     { id: "first_daily", label: "Daily habit", detail: "Completed a daily challenge", icon: "calendar" },
     { id: "streak_3", label: "Three in a row", detail: "3-day daily challenge streak", icon: "flame" },
     { id: "streak_7", label: "Week strong", detail: "7-day daily challenge streak", icon: "flame" },
-    { id: "flawless", label: "Photographic", detail: "Finished a game without a single miss", icon: "sparkle" },
+    /* Market Match. */
+    { id: "flawless", label: "Photographic", detail: "Finished Market Match without a single miss", icon: "sparkle" },
     { id: "speed", label: "Lightning hands", detail: "Cleared Classic in under 60 seconds", icon: "bolt" },
-    { id: "score_2000", label: "Market master", detail: "Scored 2,000 or more in one game", icon: "trophy" }
+    { id: "score_2000", label: "Market master", detail: "Scored 2,000 or more in one game", icon: "trophy" },
+    /* Market Rush — earned on the exact-change board. */
+    { id: "rush_first", label: "Market runner", detail: "Finished a run of Market Rush", icon: "store" },
+    { id: "rush_combo5", label: "Bulk buyer", detail: "Built a five-round combo in one run", icon: "flame" },
+    { id: "rush_exact10", label: "Sharp change", detail: "Landed ten exact baskets in one run", icon: "target" },
+    { id: "rush_1500", label: "Market mogul", detail: "Scored 1,500 or more in Market Rush", icon: "wallet" }
   ];
 
   var STORE_KEY = "cm_game";
@@ -63,6 +92,13 @@
     return STORE_KEY + ":" + (user ? "u" + user.id : "anon");
   }
 
+  /*
+   * The store keeps the top-level fields as Market Match's record (they were
+   * written before the catalogue existed and other surfaces read them), and
+   * gains two additions:
+   *   sessions  — runs across the whole Game Centre, for the Home module
+   *   by_game   — per-game record, history and daily runs for every other game
+   */
   var EMPTY = {
     games: 0,
     best: 0,
@@ -72,7 +108,10 @@
     daily: {},
     daily_streak: 0,
     daily_best_streak: 0,
-    last_played: null
+    last_played: null,
+    sessions: 0,
+    by_game: {},
+    daily_runs: {}
   };
 
   function load() {
@@ -146,6 +185,401 @@
   }
 
   /* =======================================================================
+     SHARED STORE — one record, one streak, one achievements list
+
+     Market Match's record lives in the top-level fields because it was written
+     before the catalogue existed and other surfaces already read it. Every
+     other game gets a block in `by_game`, so scores never mix and the panels
+     can show the game you are actually looking at.
+     ======================================================================= */
+
+  function byGame(state, gameId) {
+    state.by_game = state.by_game || {};
+    if (!state.by_game[gameId]) {
+      state.by_game[gameId] = { games: 0, best: 0, best_by_level: {}, history: [], daily: {} };
+    }
+    var block = state.by_game[gameId];
+    block.history = block.history || [];
+    block.best_by_level = block.best_by_level || {};
+    block.daily = block.daily || {};
+    return block;
+  }
+
+  /** The view the shared panels render: either the legacy record or a block. */
+  function statsFor(state, gameId) {
+    if (!gameId || gameId === "market-match") {
+      return {
+        games: Number(state.games || 0),
+        best: Number(state.best || 0),
+        best_by_level: state.best_by_level || {},
+        history: state.history || [],
+        daily: state.daily || {}
+      };
+    }
+    var block = byGame(state, gameId);
+    return {
+      games: Number(block.games || 0),
+      best: Number(block.best || 0),
+      best_by_level: block.best_by_level,
+      history: block.history,
+      daily: block.daily
+    };
+  }
+
+  /**
+   * Daily bookkeeping for any game. One streak for the whole centre: playing a
+   * daily challenge in Market Rush keeps the same flame alive that Market Match
+   * started, and a second daily on the same day never counts twice.
+   */
+  function noteDaily(state, gameId, score) {
+    var key = today();
+    state.daily_runs = state.daily_runs || {};
+    var runKey = gameId + ":" + key;
+    var already = !!state.daily_runs[runKey];
+
+    if (already) {
+      state.daily_runs[runKey].score = Math.max(Number(state.daily_runs[runKey].score || 0), Number(score || 0));
+    } else {
+      state.daily_runs[runKey] = { score: Number(score || 0), at: Date.now(), game: gameId };
+    }
+
+    if (!already && state.daily_claimed !== key) {
+      var yesterday = dayBefore(key);
+      var playedYesterday = Object.keys(state.daily_runs).some(function (rowKey) {
+        return rowKey.indexOf(":" + yesterday) === rowKey.length - yesterday.length - 1;
+      }) || !!(state.daily && state.daily[yesterday]);
+      state.daily_streak = playedYesterday ? Number(state.daily_streak || 0) + 1 : 1;
+      state.daily_best_streak = Math.max(Number(state.daily_best_streak || 0), Number(state.daily_streak || 0));
+      state.daily_claimed = key;
+    }
+
+    /* Market Match's summary cell still reads the legacy map. */
+    if (gameId === "market-match") {
+      state.daily[key] = state.daily[key] || { score: 0, at: Date.now() };
+      state.daily[key].score = Math.max(Number(state.daily[key].score || 0), Number(score || 0));
+    }
+
+    var block = byGame(state, gameId);
+    block.daily[key] = block.daily[key] || { score: 0, at: Date.now() };
+    block.daily[key].score = Math.max(Number(block.daily[key].score || 0), Number(score || 0));
+
+    return Number(state.daily_streak || 0);
+  }
+
+  /** Lives on the Game Centre page — the panels are only there. */
+  function hasPanels() {
+    return !!document.getElementById("game-summary");
+  }
+
+  /* =======================================================================
+     SHARED PANELS — streaks, scores, weekly board, history and achievements.
+     Every panel renders the game you are looking at, so two games never appear
+     to share one score.
+     ======================================================================= */
+
+  /*
+   * Games register how they start. Panel buttons stay dumb: they name a game
+   * and say whether it was the daily run, and whoever owns that game deals it.
+   */
+  var STARTERS = {};
+
+  function registerStarter(gameId, starter) {
+    if (gameId && typeof starter === "function") STARTERS[gameId] = starter;
+  }
+
+  /** Opens the right stage when a panel's own Play button is pressed. */
+  function wireStart(scope) {
+    function open(gameId, daily) {
+      var stage = document.querySelector('[data-game-stage="' + gameId + '"]');
+      if (stage && stage.hidden) {
+        if (window.MarketRush && window.MarketRush.select) window.MarketRush.select(gameId);
+        else stage.hidden = false;
+      }
+      if (STARTERS[gameId]) STARTERS[gameId](!!daily);
+      var panel = document.getElementById(gameId === "market-match" ? "game-board-panel" : "rush-panel");
+      if (panel && panel.scrollIntoView) panel.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "start" });
+      try {
+        window.dispatchEvent(new CustomEvent(daily ? "cm:memory-daily" : "cm:memory-start"));
+      } catch (e) { /* older browsers */ }
+    }
+    (scope || document).querySelectorAll("[data-start]").forEach(function (node) {
+      node.addEventListener("click", function () { open("market-match", false); });
+    });
+    (scope || document).querySelectorAll("[data-daily]").forEach(function (node) {
+      node.addEventListener("click", function () { open("market-match", true); });
+    });
+  }
+
+  /*
+   * Peer globals are guarded where the Game Centre touches them, the way the
+   * rest of the app guards `window.API` and `window.Shell`: a script that fails
+   * to load must never take the whole page down with it.
+   */
+  function esc(value) {
+    return window.UI ? UI.escapeHtml(value) : String(value === undefined || value === null ? "" : value);
+  }
+
+  function ago(value) {
+    return window.UI ? UI.timeAgo(value) : "";
+  }
+
+  function emptyState(icon, title, body, action) {
+    if (window.UI) return UI.emptyState(icon, title, body, action);
+    return '<div class="empty-state"><strong>' + esc(title) + "</strong><p>" + esc(body) + "</p>" +
+      (action || "") + "</div>";
+  }
+
+  function renderSummaryPanel(gameId) {
+    var host = document.getElementById("game-summary");
+    if (!host) return;
+    var state = load();
+    var stats = statsFor(state, gameId);
+    var streak = Number(state.daily_streak || 0);
+    var dailyKey = today();
+    var playedToday = !!(stats.daily && stats.daily[dailyKey]);
+    var rush = gameId === "market-rush";
+
+    host.innerHTML =
+      '<div class="game-stat"><span>High score</span><b>' + stats.best.toLocaleString() + '</b><small>' +
+        (rush ? "Best exact-change run" : "Across every level") + '</small></div>' +
+      '<div class="game-stat"><span>Games played</span><b>' + stats.games + '</b><small>Since you joined</small></div>' +
+      '<div class="game-stat"><span>Daily streak</span><b>' + streak + (streak === 1 ? " day" : " days") + '</b><small>Best: ' +
+        Number(state.daily_best_streak || 0) + '</small></div>' +
+      '<div class="game-stat"><span>Today</span><b>' + (playedToday ? Number(stats.daily[dailyKey].score).toLocaleString() : "Not yet") +
+        '</b><small>' + (playedToday ? "Daily challenge score" : "Daily challenge open") + '</small></div>';
+  }
+
+  /**
+   * Weekly board. A leaderboard is only meaningful with real players, so this
+   * renders the signed-in account's genuine weekly best for the selected game
+   * and states plainly that no other accounts have posted a score — it never
+   * invents a rival.
+   */
+  function renderLeaderboardPanel(gameId) {
+    var host = document.getElementById("game-leaderboard");
+    if (!host) return;
+    var user = currentUser();
+    var stats = statsFor(load(), gameId || "market-match");
+    var weekAgo = Date.now() - 7 * 86400000;
+    var mine = (stats.history || []).filter(function (row) { return row.at >= weekAgo; });
+    var best = mine.reduce(function (top, row) { return Math.max(top, Number(row.score || 0)); }, 0);
+
+    if (!best) {
+      host.innerHTML = emptyState(
+        "trophy", "No scores this week yet",
+        "Clear a board to put your name on the board. Scores reset every Monday.",
+        '<button class="btn btn-primary mt-2" type="button" data-start>Play now</button>'
+      );
+      wireStart(host);
+      return;
+    }
+
+    host.innerHTML =
+      '<div class="board-row is-me">' +
+        '<span class="board-row__rank">1</span>' +
+        "<span><strong>" + esc((user && user.name) || "You") + "</strong>" +
+          "<small>Your weekly best · " + mine.length + (mine.length === 1 ? " run" : " runs") + "</small></span>" +
+        '<span class="board-row__score">' + best.toLocaleString() + "</span>" +
+      "</div>" +
+      '<div class="board-row">' +
+        '<span class="board-row__rank">—</span>' +
+        "<span><strong>No other players yet</strong>" +
+          "<small>The weekly board fills as more accounts play. Rank is calculated from real scores only.</small></span>" +
+        '<span class="board-row__score">—</span>' +
+      "</div>";
+  }
+
+  function renderHistoryPanel(gameId) {
+    var host = document.getElementById("game-history");
+    if (!host) return;
+    var rows = (statsFor(load(), gameId || "market-match").history || []).slice(-7);
+    if (!rows.length) {
+      host.innerHTML = emptyState(
+        "chart", "No games logged yet",
+        "Your last seven results — score, level and time — will appear here."
+      );
+      return;
+    }
+    var peak = rows.reduce(function (top, row) { return Math.max(top, Number(row.score || 0)); }, 1);
+    host.innerHTML =
+      '<div class="histogram" role="img" aria-label="Scores from your last ' + rows.length + ' games">' +
+        rows.map(function (row) {
+          var height = Math.max(6, Math.round((Number(row.score || 0) / peak) * 100));
+          return '<span class="histogram__col">' +
+            '<span class="histogram__bar" style="height:' + height + '%" title="' +
+              esc(row.score.toLocaleString() + " · " + row.level + " · " + seconds(row.time)) + '"></span>' +
+            "<small>" + new Date(row.at).toLocaleDateString("en-NG", { day: "numeric", month: "short" }) + "</small>" +
+          "</span>";
+        }).join("") +
+      "</div>" +
+      /* Wrapped so a four-column table scrolls inside its card on a 390px
+         viewport instead of being clipped by the page-level overflow guard. */
+      '<div class="table-wrap mt-3"><table><thead><tr><th scope="col">When</th><th scope="col">Level</th>' +
+        '<th scope="col">Time</th><th scope="col">Score</th></tr></thead><tbody>' +
+        rows.slice().reverse().map(function (row) {
+          return "<tr><td>" + ago(new Date(row.at).toISOString()) + "</td>" +
+            "<td>" + esc(String(row.level).replace(/^\w/, function (c) { return c.toUpperCase(); })) +
+              (row.daily ? " · daily" : "") + "</td>" +
+            "<td>" + seconds(row.time) + "</td>" +
+            "<td>" + Number(row.score).toLocaleString() + "</td></tr>";
+        }).join("") +
+      "</tbody></table></div>";
+  }
+
+  function renderAchievementsPanel() {
+    var host = document.getElementById("game-achievements");
+    if (!host) return;
+    var have = load().achievements || [];
+    host.innerHTML = ACHIEVEMENTS.map(function (row) {
+      var earned = have.indexOf(row.id) !== -1;
+      return '<div class="ach ' + (earned ? "is-earned" : "is-locked") + '">' +
+        '<span class="ach__mark" aria-hidden="true">' + Shell.icon(earned ? row.icon : "block", 20) + "</span>" +
+        "<span><strong>" + row.label + "</strong><small>" + row.detail + "</small></span>" +
+      "</div>";
+    }).join("");
+  }
+
+  function renderPanels(gameId) {
+    if (!hasPanels()) return;
+    var id = gameId || activeGameId || "market-match";
+    activeGameId = id;
+    renderSummaryPanel(id);
+    renderLeaderboardPanel(id);
+    renderHistoryPanel(id);
+    renderAchievementsPanel();
+  }
+
+  /* Which game the shared panels are describing. */
+  var activeGameId = "market-match";
+
+  /**
+   * The single write path for every game in the catalogue.
+   *
+   * It records the run against that game, keeps the shared daily streak
+   * honest across games, awards achievements from the shared list, repaints the
+   * panels and tells the player what happened. Market Match still writes its own
+   * legacy record in finish(); this is the generic equivalent the newer games
+   * use, so no game needs to know how persistence works.
+   */
+  function record(result) {
+    var outcome = { earned: [], isBest: false, streak: 0, best: 0, games: 0 };
+    if (!result || !result.gameId) return outcome;
+
+    var gameId = result.gameId;
+    var score = Math.max(0, Math.round(Number(result.score || 0)));
+    var state = load();
+    var block = byGame(state, gameId);
+    var dailyClaimBefore = state.daily_claimed;
+
+    outcome.isBest = score > Number(block.best || 0);
+    block.games = Number(block.games || 0) + 1;
+    block.best = Math.max(Number(block.best || 0), score);
+    if (result.level) {
+      block.best_by_level[result.level] = Math.max(Number(block.best_by_level[result.level] || 0), score);
+    }
+    block.history = block.history.concat([{
+      at: Date.now(),
+      level: result.level || "run",
+      score: score,
+      time: Math.round(Number(result.time || 0)),
+      rounds: Number(result.rounds || 0),
+      daily: !!result.daily
+    }]).slice(-24);
+
+    state.sessions = Number(state.sessions || 0) + 1;
+    state.last_played = Date.now();
+    outcome.streak = result.daily ? noteDaily(state, gameId, score) : Number(state.daily_streak || 0);
+    var newDailyStreakDay = !!result.daily && dailyClaimBefore !== today() && state.daily_claimed === today();
+
+    var checks = {};
+    if (gameId === "market-rush") {
+      checks.first_game = true;
+      checks.rush_first = true;
+      checks.rush_combo5 = Number(result.bestCombo || 0) >= 5;
+      checks.rush_exact10 = Number(result.exacts || 0) >= 10;
+      checks.rush_1500 = score >= 1500;
+      checks.score_2000 = score >= 2000;
+    }
+
+    state.achievements = state.achievements || [];
+    Object.keys(checks).forEach(function (id) {
+      if (checks[id] && state.achievements.indexOf(id) === -1) {
+        state.achievements.push(id);
+        outcome.earned.push(id);
+      }
+    });
+
+    save(state);
+
+    outcome.best = Number(block.best || 0);
+    outcome.games = Number(block.games || 0);
+    outcome.sessions = Number(state.sessions || 0);
+
+    renderPanels(gameId);
+
+    /* A win deserves to be told twice: a toast for the moment, and a row in the
+       notification centre so the player can still find it tomorrow. */
+    function entry(href) {
+      return window.Shell && window.Shell.page ? Shell.page(href) : null;
+    }
+    var centre = window.Shell && window.Shell.pushNotification ? window.Shell.pushNotification : null;
+    var gameName = result.gameName || gameId;
+
+    if (window.UI) {
+      if (outcome.isBest && score > 0) {
+        UI.toast("New personal best — " + score.toLocaleString() + " points", "success", 4200);
+      }
+      if (newDailyStreakDay) {
+        UI.toast(outcome.streak === 1
+          ? "Daily streak started — 1 day"
+          : "Daily streak — " + outcome.streak + " days running", "success", 4200);
+      }
+      outcome.earned.forEach(function (id) {
+        var achievement = ACHIEVEMENTS.filter(function (row) { return row.id === id; })[0];
+        if (achievement) UI.toast("Achievement unlocked: " + achievement.label, "success", 5200);
+      });
+    }
+
+    if (centre) {
+      if (outcome.isBest && score > 0) {
+        centre({
+          id: "game:" + gameId + ":best:" + score,
+          title: "New personal best — " + gameName,
+          body: "You scored " + score.toLocaleString() + ". Open the Game Centre to beat it.",
+          icon: "trophy", href: entry("game-centre.html")
+        });
+      }
+      if (newDailyStreakDay) {
+        centre({
+          id: "game:streak:" + today(),
+          title: "Daily streak — " + outcome.streak + (outcome.streak === 1 ? " day" : " days"),
+          body: outcome.streak === 1
+            ? "You finished today's challenge. Play tomorrow to keep the flame alive."
+            : "Play tomorrow's daily challenge to keep the flame alive.",
+          icon: "flame", href: entry("game-centre.html")
+        });
+      }
+      outcome.earned.forEach(function (id) {
+        var achievement = ACHIEVEMENTS.filter(function (row) { return row.id === id; })[0];
+        if (!achievement) return;
+        centre({
+          id: "achievement:" + id,
+          title: "Achievement unlocked: " + achievement.label,
+          body: achievement.detail,
+          icon: achievement.icon, href: entry("game-centre.html")
+        });
+      });
+    }
+
+    return outcome;
+  }
+
+  /** Public shim so a game can ask for the panels without knowing the ids. */
+  function ensurePanels(gameId) {
+    renderPanels(gameId);
+  }
+
+  /* =======================================================================
      BOARD
      ======================================================================= */
   function initGameCentre() {
@@ -175,10 +609,6 @@
     var hudCombo = document.getElementById("hud-combo");
     var status = document.getElementById("game-status");
     var levelsHost = document.getElementById("game-levels");
-    var summaryHost = document.getElementById("game-summary");
-    var achHost = document.getElementById("game-achievements");
-    var boardHost = document.getElementById("game-leaderboard");
-    var historyHost = document.getElementById("game-history");
 
     function announce(message) {
       if (status) status.textContent = message;
@@ -378,10 +808,7 @@
       });
 
       save(state);
-      renderSummary();
-      renderAchievements();
-      renderLeaderboard();
-      renderHistory();
+      renderPanels("market-match");
       renderHud();
 
       announce("Board cleared in " + seconds(elapsed) + " with a score of " + finalScore.toLocaleString() + ".");
@@ -394,122 +821,6 @@
       });
     }
 
-    /* ------------------------------------------------------ side panels ---- */
-    function renderSummary() {
-      if (!summaryHost) return;
-      var streak = Number(state.daily_streak || 0);
-      var dailyKey = today();
-      var playedToday = !!(state.daily && state.daily[dailyKey]);
-
-      summaryHost.innerHTML =
-        '<div class="game-stat"><span>High score</span><b>' + Number(state.best || 0).toLocaleString() + '</b><small>Across every level</small></div>' +
-        '<div class="game-stat"><span>Games played</span><b>' + Number(state.games || 0) + '</b><small>Since you joined</small></div>' +
-        '<div class="game-stat"><span>Daily streak</span><b>' + streak + (streak === 1 ? " day" : " days") + '</b><small>Best: ' +
-          Number(state.daily_best_streak || 0) + '</small></div>' +
-        '<div class="game-stat"><span>Today</span><b>' + (playedToday ? Number(state.daily[dailyKey].score).toLocaleString() : "Not yet") +
-          '</b><small>' + (playedToday ? "Daily challenge score" : "Daily challenge open") + '</small></div>';
-    }
-
-    function renderAchievements() {
-      if (!achHost) return;
-      var have = state.achievements || [];
-      achHost.innerHTML = ACHIEVEMENTS.map(function (row) {
-        var earned = have.indexOf(row.id) !== -1;
-        return '<div class="ach ' + (earned ? "is-earned" : "is-locked") + '">' +
-          '<span class="ach__mark" aria-hidden="true">' + Shell.icon(earned ? row.icon : "block", 20) + "</span>" +
-          "<span><strong>" + row.label + "</strong><small>" + row.detail + "</small></span>" +
-        "</div>";
-      }).join("");
-    }
-
-    /**
-     * Weekly board. A leaderboard is only meaningful with real players, so this
-     * renders the signed-in account's genuine weekly best and states plainly
-     * that no other accounts have posted a score — it never invents a rival.
-     */
-    function renderLeaderboard() {
-      if (!boardHost) return;
-      var weekAgo = Date.now() - 7 * 86400000;
-      var mine = (state.history || []).filter(function (row) { return row.at >= weekAgo; });
-      var best = mine.reduce(function (top, row) { return Math.max(top, Number(row.score || 0)); }, 0);
-
-      if (!best) {
-        boardHost.innerHTML = UI.emptyState(
-          "trophy", "No scores this week yet",
-          "Clear a board to put your name on the board. Scores reset every Monday.",
-          '<button class="btn btn-primary mt-2" type="button" data-start>Play now</button>'
-        );
-        wireStart(boardHost);
-        return;
-      }
-
-      boardHost.innerHTML =
-        '<div class="board-row is-me">' +
-          '<span class="board-row__rank">1</span>' +
-          "<span><strong>" + UI.escapeHtml((user && user.name) || "You") + "</strong>" +
-            "<small>Your weekly best · " + mine.length + (mine.length === 1 ? " run" : " runs") + "</small></span>" +
-          '<span class="board-row__score">' + best.toLocaleString() + "</span>" +
-        "</div>" +
-        '<div class="board-row">' +
-          '<span class="board-row__rank">—</span>' +
-          "<span><strong>No other players yet</strong>" +
-            "<small>The weekly board fills as more accounts play. Rank is calculated from real scores only.</small></span>" +
-          '<span class="board-row__score">—</span>' +
-        "</div>";
-    }
-
-    function renderHistory() {
-      if (!historyHost) return;
-      var rows = (state.history || []).slice(-7);
-      if (!rows.length) {
-        historyHost.innerHTML = UI.emptyState(
-          "chart", "No games logged yet",
-          "Your last seven results — score, level and time — will appear here."
-        );
-        return;
-      }
-      var peak = rows.reduce(function (top, row) { return Math.max(top, Number(row.score || 0)); }, 1);
-      historyHost.innerHTML =
-        '<div class="histogram" role="img" aria-label="Scores from your last ' + rows.length + ' games">' +
-          rows.map(function (row) {
-            var height = Math.max(6, Math.round((Number(row.score || 0) / peak) * 100));
-            return '<span class="histogram__col">' +
-              '<span class="histogram__bar" style="height:' + height + '%" title="' +
-                UI.escapeHtml(row.score.toLocaleString() + " · " + row.level + " · " + seconds(row.time)) + '"></span>' +
-              "<small>" + new Date(row.at).toLocaleDateString("en-NG", { day: "numeric", month: "short" }) + "</small>" +
-            "</span>";
-          }).join("") +
-        "</div>" +
-        // Wrapped so a four-column table scrolls inside its card on a 390px
-        // viewport instead of being clipped by the page-level overflow guard.
-        '<div class="table-wrap mt-3"><table><thead><tr><th scope="col">When</th><th scope="col">Level</th>' +
-          '<th scope="col">Time</th><th scope="col">Score</th></tr></thead><tbody>' +
-          rows.slice().reverse().map(function (row) {
-            return "<tr><td>" + UI.timeAgo(new Date(row.at).toISOString()) + "</td>" +
-              "<td>" + UI.escapeHtml(String(row.level).replace(/^\w/, function (c) { return c.toUpperCase(); })) +
-                (row.daily ? " · daily" : "") + "</td>" +
-              "<td>" + seconds(row.time) + "</td>" +
-              "<td>" + Number(row.score).toLocaleString() + "</td></tr>";
-          }).join("") +
-        "</tbody></table></div>";
-    }
-
-    function wireStart(scope) {
-      (scope || document).querySelectorAll("[data-start]").forEach(function (node) {
-        node.addEventListener("click", function () {
-          var modal = document.getElementById("game-board-panel");
-          if (modal && modal.scrollIntoView) modal.scrollIntoView({ behavior: "smooth", block: "start" });
-          deal(false);
-        });
-      });
-      (scope || document).querySelectorAll("[data-daily]").forEach(function (node) {
-        node.addEventListener("click", function () {
-          var modal = document.getElementById("game-board-panel");
-          if (modal && modal.scrollIntoView) modal.scrollIntoView({ behavior: "smooth", block: "start" });
-          deal(true);
-        });
-      });
-    }
 
     /* ------------------------------------------------------------- listeners */
     if (tiles) {
@@ -534,6 +845,14 @@
       });
     }
 
+    /* The shared Play/Daily buttons on this page start this board. */
+    registerStarter("market-match", function (daily) {
+      var panel = document.getElementById("game-board-panel");
+      if (panel && panel.scrollIntoView) {
+        panel.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "start" });
+      }
+      deal(!!daily);
+    });
     wireStart(document);
 
     var restart = document.getElementById("game-restart");
@@ -544,10 +863,8 @@
     }
 
     renderLevels();
-    renderSummary();
-    renderAchievements();
-    renderLeaderboard();
-    renderHistory();
+    /* Whatever the catalogue has open wins — never clobber the selected game. */
+    renderPanels(activeGameId);
     deal(false);
   }
 
@@ -559,8 +876,9 @@
     var state = load();
     var streak = Number(state.daily_streak || 0);
     var dailyKey = today();
-    var playedToday = !!(state.daily && state.daily[dailyKey]);
     var game = GAMES[0];
+    var stats = statsFor(state, game.id);
+    var playedToday = !!(stats.daily && stats.daily[dailyKey]);
 
     host.innerHTML =
       '<div class="deep-surface game-module">' +
@@ -576,9 +894,9 @@
           "</div>" +
         "</div>" +
         '<div class="game-module__stats">' +
-          '<div class="game-module__stat"><b>' + Number(state.best || 0).toLocaleString() + "</b><span>High score</span></div>" +
+          '<div class="game-module__stat"><b>' + Number(stats.best || 0).toLocaleString() + "</b><span>High score</span></div>" +
           '<div class="game-module__stat"><b>' + streak + "</b><span>Day streak</span></div>" +
-          '<div class="game-module__stat"><b>' + Number(state.games || 0) + "</b><span>Games</span></div>" +
+          '<div class="game-module__stat"><b>' + Number(stats.games || 0) + "</b><span>Runs</span></div>" +
         "</div>" +
       "</div>";
   }
@@ -589,6 +907,11 @@
     LEVELS: LEVELS,
     init: initGameCentre,
     renderHomeModule: renderHomeModule,
+    renderPanels: renderPanels,
+    ensurePanels: ensurePanels,
+    statsFor: function (state, gameId) { return statsFor(state || load(), gameId); },
+    registerStarter: registerStarter,
+    record: record,
     state: load,
     today: today
   };

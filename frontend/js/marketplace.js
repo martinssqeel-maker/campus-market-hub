@@ -1,5 +1,5 @@
 /* ==========================================================================
-   marketplace.js – every public page of Lafia Marketplace.
+   marketplace.js – every public page of Campus Marketplace.
 
    The page is chosen by <body data-page="…"> and a dispatcher at the bottom
    runs only the initialiser that is relevant:
@@ -20,7 +20,7 @@
 (function (window, document) {
   "use strict";
 
-  var BRAND = "Lafia Marketplace";
+  var BRAND = "Campus Marketplace";
 
   /** Inline SVG from the shared icon set (never emoji as a UI control). */
   function svgi(name, size) {
@@ -2231,7 +2231,12 @@
     /* Loaded from engage.js / game.js — guarded so a missing script never
        takes the whole page down. */
     messages: function () { if (window.initEngage) window.initEngage(); },
-    game: function () { if (window.GameCentre) window.GameCentre.init(); }
+    game: function () {
+      /* The catalogue boots first so it owns the selected game; Market Match
+         then renders its own panels behind whatever the catalogue opened. */
+      if (window.MarketRush && window.MarketRush.init) window.MarketRush.init();
+      if (window.GameCentre) window.GameCentre.init();
+    }
   };
 
   document.addEventListener("DOMContentLoaded", function () {
@@ -2244,7 +2249,7 @@
         init();
       } catch (error) {
         // Never let a page-level failure blank the whole site.
-        window.console && window.console.error("[Lafia Marketplace]", error);
+        window.console && window.console.error("[Campus Marketplace]", error);
       }
     }
   });
