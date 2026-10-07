@@ -1,18 +1,23 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-zone="app">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0a0a0a">
-  <meta name="description" content="Administrator dashboard – moderate listings and manage users on Campus Marketplace.">
-  <title>Admin dashboard · Campus Marketplace</title>
+  <meta name="description" content="Administrator console — moderate listings and manage accounts on Lafia Marketplace.">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Admin console · Lafia Marketplace</title>
 
   <link rel="icon" type="image/svg+xml" href="../assets/images/logo.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
   <link rel="stylesheet" href="../css/responsive.css">
+  <link rel="stylesheet" href="../css/premium.css">
+
+  <!-- Route guard: the console is never rendered to a guest -->
+  <script src="../js/shell.js"></script>
 </head>
 <body data-page="admin">
 
@@ -25,9 +30,9 @@
     <aside class="dash-sidebar" id="dash-sidebar" aria-label="Dashboard navigation">
       <div class="dash-brand">
         <a class="dash-brand-link" href="../index.html">
-          <span class="dash-brand-logo" aria-hidden="true">CM</span>
+          <span class="dash-brand-logo" id="dash-brand-mark" aria-hidden="true">LM</span>
           <span class="dash-brand-text">
-            <strong>Campus Market</strong>
+            <strong>Lafia Marketplace</strong>
             <small>Admin console</small>
           </span>
         </a>
@@ -137,12 +142,11 @@
         <!-- Page heading -->
         <div class="dash-heading">
           <div>
-            <span class="dash-eyebrow">Control centre</span>
-            <h1>
-              Admin dashboard
-              <span class="badge badge-rejected hidden" id="pending-badge">0</span>
-            </h1>
-            <p>Review submissions, moderate listings and manage student accounts across the marketplace.</p>
+            <span class="dash-eyebrow">Control centre</span>              <h1>
+                Admin console
+                <span class="badge badge-rejected hidden" id="pending-badge">0</span>
+              </h1>
+              <p>Review submissions, moderate listings and manage accounts across Lafia Marketplace.</p>
           </div>
         </div>
 
@@ -326,8 +330,8 @@
         <section class="dash-panel hidden" data-panel="users">
           <div class="dash-panel-head">
             <div>
-              <h2>User management</h2>
-              <p>Verify students, suspend rule breakers or grant administrator rights.</p>
+              <h2>Account management</h2>
+              <p>Verify members, suspend rule breakers or grant administrator rights.</p>
             </div>
           </div>
 
@@ -371,7 +375,7 @@
           <div class="dash-panel-head">
             <div>
               <h2>Branding &amp; appearance</h2>
-              <p>Shape the identity students see. Changes preview instantly and are saved to this device.</p>
+              <p>Shape the identity people see. Changes preview instantly and are saved to this device.</p>
             </div>
           </div>
 
@@ -382,19 +386,19 @@
                 <div class="dash-field-grid">
                   <div class="form-group">
                     <label for="brand-site-name">Site name</label>
-                    <input id="brand-site-name" name="site_name" type="text" placeholder="Campus Marketplace" autocomplete="off">
+                    <input id="brand-site-name" name="site_name" type="text" placeholder="Lafia Marketplace" autocomplete="off">
                   </div>
                   <div class="form-group">
                     <label for="brand-tagline">Tagline</label>
-                    <input id="brand-tagline" name="tagline" type="text" placeholder="Buy, sell and rent around UNILAFIA" autocomplete="off">
+                    <input id="brand-tagline" name="tagline" type="text" placeholder="Buy, sell and rent across Lafia" autocomplete="off">
                   </div>
                 </div>
 
                 <div class="form-group">
                   <label for="brand-color">Brand colour</label>
                   <div class="dash-color-row">
-                    <input id="brand-color" name="brand_color" type="color" value="#2563eb" aria-label="Pick the brand colour">
-                    <input id="brand-color-hex" type="text" value="#2563eb" spellcheck="false" autocomplete="off" aria-label="Brand colour hex value">
+                    <input id="brand-color" name="brand_color" type="color" value="#0b8371" aria-label="Pick the brand colour">
+                    <input id="brand-color-hex" type="text" value="#0b8371" spellcheck="false" autocomplete="off" aria-label="Brand colour hex value">
                   </div>
                   <div class="dash-swatches" id="brand-swatches" role="group" aria-label="Suggested brand colours"></div>
                 </div>
@@ -402,9 +406,9 @@
                 <div class="form-group">
                   <label for="brand-accent">Accent treatment</label>
                   <select id="brand-accent" name="accent">
-                    <option value="blue">Electric blue (default)</option>
+                    <option value="emerald">Emerald teal (default)</option>
+                    <option value="blue">Electric blue</option>
                     <option value="violet">Violet</option>
-                    <option value="emerald">Emerald</option>
                     <option value="amber">Amber</option>
                   </select>
                 </div>
@@ -423,15 +427,15 @@
               <h3 style="margin-top:0">Live preview</h3>
               <div class="dash-preview">
                 <div class="dash-preview-brand">
-                  <span class="dash-preview-mark" id="preview-mark">CM</span>
+                  <span class="dash-preview-mark" id="preview-mark">LM</span>
                   <span>
-                    <strong id="preview-name">Campus Marketplace</strong>
-                    <small id="preview-tagline">Buy, sell and rent around UNILAFIA</small>
+                    <strong id="preview-name">Lafia Marketplace</strong>
+                    <small id="preview-tagline">Buy, sell and rent across Lafia</small>
                   </span>
                 </div>
                 <div class="dash-swatches" style="margin-top:16px">
-                  <span class="dash-swatch" id="preview-swatch" style="background:#2563eb"></span>
-                  <span class="dash-swatch" id="preview-swatch-soft" style="background:rgba(37,99,235,.25)"></span>
+                  <span class="dash-swatch" id="preview-swatch" style="background:#0b8371"></span>
+                  <span class="dash-swatch" id="preview-swatch-soft" style="background:rgba(11,131,113,.25)"></span>
                 </div>
               </div>
               <ul class="spec-list" style="margin-top:16px">

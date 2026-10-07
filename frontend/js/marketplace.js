@@ -1,5 +1,5 @@
 /* ==========================================================================
-   marketplace.js – every public page of Campus Marketplace.
+   marketplace.js – every public page of Lafia Marketplace.
 
    The page is chosen by <body data-page="…"> and a dispatcher at the bottom
    runs only the initialiser that is relevant:
@@ -19,6 +19,13 @@
 
 (function (window, document) {
   "use strict";
+
+  var BRAND = "Lafia Marketplace";
+
+  /** Inline SVG from the shared icon set (never emoji as a UI control). */
+  function svgi(name, size) {
+    return (window.Shell && window.Shell.icon) ? window.Shell.icon(name, size) : "";
+  }
 
   /* =======================================================================
      Shared pieces
@@ -53,7 +60,7 @@
 
         if (!items.length) {
           grid.innerHTML = UI.emptyState(
-            options.emptyIcon || "🔍",
+            options.emptyIcon || "search",
             options.emptyTitle || "Nothing here yet",
             options.emptyMessage || "Try changing your filters or check back later.",
             options.emptyAction || ""
@@ -81,7 +88,7 @@
         return items;
       }).catch(function (error) {
         state.loading = false;
-        grid.innerHTML = UI.emptyState("⚠️", "Could not load listings", error.message);
+        grid.innerHTML = UI.emptyState("info", "Could not load listings", error.message);
         return [];
       });
     }
@@ -161,11 +168,24 @@
       }).catch(function () { box.classList.add("hidden"); });
     }, 300);
 
+    function go() {
+      var term = input.value.trim();
+      window.location.href = UI.pageUrl("home.html") + (term ? "?q=" + encodeURIComponent(term) : "");
+    }
+
+    var form = input.form || document.getElementById("hero-search-form");
+    if (form) {
+      form.addEventListener("submit", function (event) {
+        event.preventDefault();
+        go();
+      });
+    }
+
     input.addEventListener("input", run);
     input.addEventListener("keydown", function (event) {
       if (event.key === "Enter") {
         event.preventDefault();
-        window.location.href = UI.pageUrl("home.html") + "?q=" + encodeURIComponent(input.value.trim());
+        go();
       }
       if (event.key === "Escape") box.classList.add("hidden");
     });
@@ -193,11 +213,12 @@
       var footer = "";
       if (item.creator && item.creator.phone && API.isLoggedIn()) {
         footer =
-          '<a class="btn btn-outline" href="tel:' + UI.escapeHtml(item.creator.phone) + '">📞 Call organiser</a>' +
+          '<a class="btn btn-outline" href="tel:' + UI.escapeHtml(item.creator.phone) + '">' +
+            svgi("phone", 16) + "Call organiser</a>" +
           '<a class="btn btn-primary" target="_blank" rel="noopener" href="https://wa.me/234' +
             UI.escapeHtml(String(item.creator.phone).replace(/^0/, "")) +
-            "?text=" + encodeURIComponent("Hello, I saw your event on Campus Marketplace: " + item.title) +
-          '">Contact WhatsApp</a>';
+            "?text=" + encodeURIComponent("Hello, I saw your event on " + BRAND + ": " + item.title) +
+          '">' + svgi("whatsapp", 16) + "WhatsApp</a>";
       } else if (!API.isLoggedIn()) {
         footer = '<a class="btn btn-primary" href="' + UI.pageUrl("login.html") + '">Log in for contact details</a>';
       }
@@ -224,11 +245,12 @@
       var footer = "";
       if (provider.phone && API.isLoggedIn()) {
         footer =
-          '<a class="btn btn-outline" href="tel:' + UI.escapeHtml(provider.phone) + '">📞 Call</a>' +
+          '<a class="btn btn-outline" href="tel:' + UI.escapeHtml(provider.phone) + '">' +
+            svgi("phone", 16) + "Call</a>" +
           '<a class="btn btn-primary" target="_blank" rel="noopener" href="https://wa.me/234' +
             UI.escapeHtml(String(provider.phone).replace(/^0/, "")) +
-            "?text=" + encodeURIComponent("Hello, I need your service from Campus Marketplace: " + item.title) +
-          '">Contact WhatsApp</a>';
+            "?text=" + encodeURIComponent("Hello, I need your service from " + BRAND + ": " + item.title) +
+          '">' + svgi("whatsapp", 16) + "WhatsApp</a>";
       } else if (!API.isLoggedIn()) {
         footer = '<a class="btn btn-primary" href="' + UI.pageUrl("login.html") + '">Log in for contact details</a>';
       }
@@ -251,11 +273,12 @@
       var phone = String(opts.phone);
       contact =
         '<div class="contact-actions">' +
-          '<a class="btn btn-outline" href="tel:' + UI.escapeHtml(phone) + '">📞 Call ' + UI.escapeHtml(phone) + "</a>" +
+          '<a class="btn btn-outline" href="tel:' + UI.escapeHtml(phone) + '">' +
+            svgi("phone", 16) + "Call " + UI.escapeHtml(phone) + "</a>" +
           '<a class="btn btn-success" target="_blank" rel="noopener" href="https://wa.me/234' +
             UI.escapeHtml(phone.replace(/^0/, "")) +
-            "?text=" + encodeURIComponent(opts.waText || "Hello, I am interested in your listing on Campus Marketplace") +
-          '">Contact WhatsApp</a>' +
+            "?text=" + encodeURIComponent(opts.waText || ("Hello, I am interested in your listing on " + BRAND)) +
+          '">' + svgi("whatsapp", 16) + "WhatsApp</a>" +
         "</div>";
     } else {
       contact = '<div class="contact-actions">' +
@@ -287,7 +310,7 @@
   function initLanding() {
     initGlobalSearch("hero-search", "hero-suggestions");
 
-    // Live counters
+    // Live counters — animated by shell.js so the hero numbers feel alive.
     API.misc.stats().then(function (payload) {
       var data = payload.data;
       var map = {
@@ -299,9 +322,24 @@
       };
       Object.keys(map).forEach(function (id) {
         var node = document.getElementById(id);
-        if (node) node.textContent = Number(map[id]).toLocaleString();
+        if (!node) return;
+        if (window.Shell && window.Shell.setCounter) window.Shell.setCounter(node, map[id]);
+        else node.textContent = Number(map[id] || 0).toLocaleString();
       });
-    }).catch(function () { /* the hero simply keeps its dashes */ });
+      document.querySelectorAll("[data-live-stat]").forEach(function (node) {
+        var key = node.dataset.liveStat;
+        if (data[key] === undefined) return;
+        if (window.Shell && window.Shell.setCounter) {
+          window.Shell.setCounter(node, data[key], node.dataset.countSuffix || "");
+        } else {
+          node.textContent = Number(data[key]).toLocaleString();
+        }
+      });
+    }).catch(function () {
+      // No API? Show honest zeros rather than misleading dashes.
+      document.querySelectorAll("[data-live-stat], #stat-products, #stat-accommodation, #stat-events, #stat-services")
+        .forEach(function (node) { node.textContent = "0" + (node.dataset.countSuffix || ""); });
+    });
 
     // Featured / latest products
     var featuredGrid = document.getElementById("featured-grid");
@@ -320,11 +358,13 @@
         .then(function (items) {
           featuredGrid.innerHTML = items.length
             ? items.map(function (item) { return UI.listingCard(item); }).join("")
-            : UI.emptyState("Products", "No listings yet", "Be the first to post an item on Campus Marketplace.",
+            : UI.emptyState("products", "No listings yet",
+                "Be the first to post something in Lafia — it takes about a minute.",
                 '<a class="btn btn-primary mt-2" href="' + UI.pageUrl("post-listing.html") + '">Post a listing</a>');
         })
         .catch(function (error) {
-          featuredGrid.innerHTML = UI.emptyState("⚠️", "Could not load listings", error.message);
+          featuredGrid.innerHTML = UI.emptyState("info", "Listings are loading slowly",
+            error.message || "We could not reach the marketplace right now. Try again in a moment.");
         });
     }
 
@@ -336,9 +376,13 @@
           var items = payload.data.items;
           roomsGrid.innerHTML = items.length
             ? items.map(function (item) { return UI.listingCard(item); }).join("")
-            : UI.emptyState("Rooms", "No rooms listed yet", "Accommodation listings will appear here.");
+            : UI.emptyState("rooms", "No rooms advertised yet",
+                "Landlords and agents will list rooms here as they become available.");
         })
-        .catch(function (error) { roomsGrid.innerHTML = UI.emptyState("⚠️", "Unavailable", error.message); });
+        .catch(function (error) {
+          roomsGrid.innerHTML = UI.emptyState("info", "Rooms are unavailable",
+            error.message || "We could not load accommodation right now.");
+        });
     }
 
     // Upcoming events
@@ -352,7 +396,7 @@
                 '<article class="card card-pad" data-event-id="' + item.id + '">' +
                   '<span class="badge badge-featured">' + UI.escapeHtml(item.category) + "</span>" +
                   '<h3 class="mt-1">' + UI.escapeHtml(item.title) + "</h3>" +
-                  '<p class="text-muted mb-1">Events ' + UI.formatDate(item.date, true) + "<br>" +
+                  '<p class="text-muted mb-1">' + UI.formatDate(item.date, true) + "<br>" +
                     UI.escapeHtml(item.location) + "</p>" +
                   '<div class="flex-between"><strong>' +
                     (Number(item.ticket_price) > 0 ? UI.money(item.ticket_price) : "Free entry") +
@@ -361,7 +405,8 @@
                 "</article>"
               );
             }).join("")
-          : UI.emptyState("Events", "No upcoming events", "Campus events will show up here.");
+          : UI.emptyState("events", "No upcoming events",
+              "Concerts, fairs and campus happenings will show up here.");
       }).catch(function () { eventsHost.innerHTML = ""; });
 
       eventsHost.addEventListener("click", function (event) {
@@ -375,9 +420,8 @@
     if (categoryHost) {
       API.products.categories().then(function (payload) {
         var categories = payload.data.categories.filter(function (row) { return row.count > 0; });
-        categoryHost.innerHTML = categories.map(function (row) {
-          return '<a class="chip" href="' + UI.pageUrl("home.html") + "?category=" + row.name + '">' +
-            UI.escapeHtml(row.name.replace(/-/g, " ")) + ' <span class="badge">' + row.count + "</span></a>";
+        categoryHost.innerHTML = categories.map(function (row) {            return '<a class="chip" href="' + UI.pageUrl("home.html") + "?category=" + row.name + '">' +
+              UI.escapeHtml(String(row.name).replace(/-/g, " ")) + ' <span class="badge">' + row.count + "</span></a>";
         }).join("");
       }).catch(function () { categoryHost.innerHTML = ""; });
     }
@@ -504,8 +548,8 @@
               return (
                 '<div class="side-event-item">' +
                   "<strong>" + UI.escapeHtml(item.title) + "</strong>" +
-                  '<div class="text-muted"><small>Events ' + UI.formatDate(item.date, true) + "</small></div>" +
-                  '<button class="btn btn-ghost btn-sm" data-event="' + item.id + '">View details View</button>' +
+                  '<div class="text-muted"><small>' + UI.formatDate(item.date, true) + "</small></div>" +
+                  '<button class="btn btn-ghost btn-sm" data-event="' + item.id + '">View details</button>' +
                 "</div>"
               );
             }).join("")
@@ -529,7 +573,7 @@
     if (!host) return;
 
     if (!id) {
-      host.innerHTML = UI.emptyState("❓", "No listing selected",
+      host.innerHTML = UI.emptyState("search", "No listing selected",
         "Open a listing from the marketplace to see its details.",
         '<a class="btn btn-primary mt-2" href="' + UI.pageUrl("home.html") + '">Browse listings</a>');
       return;
@@ -541,7 +585,7 @@
 
     call.then(function (payload) {
       var item = payload.data;
-      document.title = item.title + " · Campus Marketplace";
+      document.title = item.title + " · " + BRAND;
 
       var owner = item.type === "accommodation" ? item.landlord : item.seller;
       var isOwner = !!(API.currentUser() && owner && API.currentUser().id === owner.id);
@@ -584,8 +628,9 @@
         '<div class="detail-grid">' +
           "<div>" +
             '<div class="detail-media">' + (item.image_url
-              ? '<img src="' + UI.imageFor(item) + '" alt="' + UI.escapeHtml(item.title) + '">'
-              : '<div class="detail-placeholder"><strong>No photo available</strong><span>The owner did not add an image to this listing.</span></div>') + '</div>' +
+              ? '<img src="' + UI.imageFor(item) + '" alt="' + UI.escapeHtml(item.title) + '" loading="lazy">'
+              : '<div class="detail-placeholder">' + svgi("image", 34) +
+                '<strong>No photo yet</strong><span>The owner has not added an image to this listing.</span></div>') + '</div>' +
             '<div class="card card-pad mt-2">' +
               "<h2>Description</h2>" +
               "<p>" + UI.escapeHtml(item.description || "No description provided.") + "</p>" +
@@ -610,21 +655,22 @@
                 Number(item.views || 0) + " views</p>" +
               '<div class="flex gap-1 wrap">' +
                 '<button class="btn btn-outline btn-sm" data-detail-fav="' + item.type + '" data-id="' + item.id +
-                  '">' + (UI.wishlist.has(item.type, item.id) ? "Saved Saved" : "Save Save") + "</button>" +
-                '<button class="btn btn-outline btn-sm" data-action="share">🔗 Share</button>' +
+                  '">' + UI.heartSvg(UI.wishlist.has(item.type, item.id)) +
+                  (UI.wishlist.has(item.type, item.id) ? "Saved" : "Save") + "</button>" +
+                '<button class="btn btn-outline btn-sm" data-action="share">' + svgi("share", 16) + "Share</button>" +
                 (isOwner ? '<a class="btn btn-outline btn-sm" href="' + UI.pageUrl("profile.html") +
                   '">Edit in profile</a>' : "") +
               "</div>" +
             "</div>" +
             '<div class="mt-2">' + sellerBlock(owner, {
               phone: owner && owner.phone,
-              waText: "Hello " + (owner ? owner.name : "") + ", I saw your listing on Campus Marketplace: " + item.title
+              waText: "Hello " + (owner ? owner.name : "") + ", I saw your listing on " + BRAND + ": " + item.title
             }) + "</div>" +
             '<div class="card card-pad mt-2">' +
               "<h3>Safety tips</h3>" +
-              '<ul class="spec-list"><li><span class="k">Meet in public</span><span class="v">Campus gate / hostel</span></li>' +
+              '<ul class="spec-list"><li><span class="k">Meet in public</span><span class="v">Busy, well-lit place</span></li>' +
               '<li><span class="k">Inspect before paying</span><span class="v">Always</span></li>' +
-              '<li><span class="k">Report suspicious ads</span><span class="v">Use the admin contact</span></li></ul>' +
+              '<li><span class="k">Report suspicious ads</span><span class="v">Contact an admin</span></li></ul>' +
             "</div>" +
           "</div>" +
         "</div>" +
@@ -634,7 +680,8 @@
           '<div class="grid grid-cards" id="similar-grid">' +
             (item.similar && item.similar.length
               ? item.similar.map(function (row) { return UI.listingCard(row); }).join("")
-              : UI.emptyState("🔍", "Nothing similar yet", "Check back later for more listings.", "", true)) +
+              : UI.emptyState("search", "Nothing similar yet",
+                  "We will suggest related listings here as more items are posted.")) +
           "</div>" +
         "</section>";
 
@@ -643,14 +690,14 @@
       if (favButton) {
         favButton.addEventListener("click", function () {
           UI.wishlist.toggle(item.type, item.id, favButton).then(function (saved) {
-            favButton.innerHTML = saved ? "Saved Saved" : "Save Save";
+            favButton.innerHTML = UI.heartSvg(saved) + (saved ? "Saved" : "Save");
           });
         });
       }
       var shareButton = host.querySelector('[data-action="share"]');
       if (shareButton) {
         shareButton.addEventListener("click", function () {
-          var shareData = { title: item.title, text: item.title + " on Campus Marketplace", url: window.location.href };
+          var shareData = { title: item.title, text: item.title + " on " + BRAND, url: window.location.href };
           if (navigator.share) {
             navigator.share(shareData).catch(function () { /* dismissed */ });
           } else if (navigator.clipboard) {
@@ -663,7 +710,7 @@
         });
       }
     }).catch(function (error) {
-      host.innerHTML = UI.emptyState("⚠️", "Listing unavailable", error.message,
+      host.innerHTML = UI.emptyState("info", "Listing unavailable", error.message,
         '<a class="btn btn-primary mt-2" href="' + UI.pageUrl("home.html") + '">Back to marketplace</a>');
     });
   }
@@ -880,8 +927,7 @@
 
     // --- dynamic category options per listing type -------------------------
     var CATEGORY_SETS = {
-      product: ["books", "electronics", "phones", "laptops", "furniture",
-                "hostel-essentials", "clothing", "food", "sports", "others"],
+      product: ["phones", "laptops", "electronics", "accessories"],
       accommodation: ["single", "self-contain", "hostel", "flat", "shared"],
       event: ["academic", "social", "sports", "religious", "career", "entertainment", "advert", "others"],
       service: ["laundry", "printing", "tutoring", "barbing", "cleaning", "delivery",
@@ -900,7 +946,8 @@
       var categorySelect = form.querySelector("#category-select");
       if (categorySelect) {
         categorySelect.innerHTML = CATEGORY_SETS[type].map(function (value) {
-          return '<option value="' + value + '">' + value.replace(/-/g, " ") + "</option>";
+          var text = value.replace(/-/g, " ").replace(/\w/g, function (c) { return c.toUpperCase(); });
+          return '<option value="' + value + '">' + text + "</option>";
         }).join("");
       }
       var label = document.getElementById("category-label");
@@ -920,6 +967,12 @@
 
     if (uploadZone && imageInput) {
       uploadZone.addEventListener("click", function () { imageInput.click(); });
+      uploadZone.addEventListener("keydown", function (event) {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          imageInput.click();
+        }
+      });
       ["dragenter", "dragover"].forEach(function (eventName) {
         uploadZone.addEventListener(eventName, function (event) {
           event.preventDefault();
@@ -1165,16 +1218,20 @@
         '<div class="ud-card-top">' +
           '<a class="ud-card-media" href="' + url + '" aria-label="' + UI.escapeHtml(item.title) + '">' +
             (image
-              ? '<img src="' + UI.escapeHtml(image) + '" alt="' + UI.escapeHtml(item.title) + '" loading="lazy">'
-              : '<span class="ud-card-fallback">No photo</span>') +
+              ? '<img src="' + UI.escapeHtml(image) + '" alt="' + UI.escapeHtml(item.title) + '" loading="lazy" ' +
+                'onerror="this.onerror=null;this.remove();">'
+              : '<span class="ud-card-fallback">' + svgi("image", 24) +
+                '<em>' + UI.escapeHtml(String(item.type || "listing").toUpperCase()) + '</em></span>') +
             '<span class="ud-card-flags">' +
               (condition ? '<span class="ud-cond is-' + conditionSlug + '">' + UI.escapeHtml(condition) + "</span>" : "") +
               flags +
             "</span>" +
           "</a>" +
           '<button class="fav-btn' + (saved ? " active" : "") + '" data-fav="' + UI.escapeHtml(item.type) +
-            '" data-fav-id="' + item.id + '" aria-label="Save to wishlist" title="Save to wishlist">' +
-            (saved ? "♥" : "♡") + "</button>" +
+            '" data-fav-id="' + item.id + '" aria-label="' +
+            (saved ? "Remove from saved" : "Save to wishlist") + '" title="' +
+            (saved ? "Remove from saved" : "Save to wishlist") + '">' +
+            UI.heartSvg(saved) + "</button>" +
         "</div>" +
         '<div class="ud-card-body">' +
           '<h3 class="ud-card-title"><a href="' + url + '">' + UI.escapeHtml(item.title) + "</a></h3>" +
@@ -1196,7 +1253,7 @@
     if (!host) return;
     renderProfileTopbar(me);
     if (!userId) {
-      host.innerHTML = UI.emptyState("Secure", "Please log in",
+      host.innerHTML = UI.emptyState("secure", "Please log in",
         "Log in to view your profile, listings and reviews.",
         '<a class="btn btn-primary mt-2" href="' + UI.pageUrl("login.html") + '">Log in</a>');
       return;
@@ -1217,7 +1274,7 @@
       var stats = results[3].data;
       var counts = listings.counts || {};
 
-      document.title = profile.name + " · Campus Marketplace";
+      document.title = profile.name + " · " + BRAND;
 
       var ic = {
         check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" ' +
@@ -1347,7 +1404,8 @@
                   "</div>"
                 );
               }).join("")
-            : UI.emptyState("Reviews", "No reviews yet", "Reviews from other students will appear here.", "", true);
+            : UI.emptyState("reviews", "No reviews yet",
+                "Reviews from people who traded with this account will appear here.");
           return;
         }
 
@@ -1356,10 +1414,9 @@
           ? '<div class="ud-grid-listings">' + items.map(function (item) {
               return dashListingCard(item, { showStatus: isMe });
             }).join("") + "</div>"
-          : UI.emptyState("Empty", "Nothing here yet",
-              isMe ? "Use the “Post a listing” button to add your first advert." : "This user has no published listings here.",
-              isMe ? '<a class="btn btn-primary mt-2" href="' + UI.pageUrl("post-listing.html") + '">Post a listing</a>' : "",
-              true);
+          : UI.emptyState("empty", "Nothing here yet",
+              isMe ? "Use the “Post a listing” button to add your first advert." : "This account has no published listings here.",
+              isMe ? '<a class="btn btn-primary mt-2" href="' + UI.pageUrl("post-listing.html") + '">Post a listing</a>' : "");
       }
 
       tabsHost.addEventListener("click", function (event) {
@@ -1468,7 +1525,8 @@
         });
       }
     }).catch(function (error) {
-      host.innerHTML = UI.emptyState("⚠️", "Profile unavailable", error.message);
+      host.innerHTML = UI.emptyState("info", "Profile unavailable",
+        error.message || "We could not load this profile right now.");
     });
   }
 
@@ -1488,7 +1546,7 @@
       API.favorites.list(currentFilter || undefined).then(function (payload) {
         var items = payload.data.items || [];
         if (!items.length) {
-          host.innerHTML = UI.emptyState("💔", "Your wishlist is empty",
+          host.innerHTML = UI.emptyState("heart", "Your wishlist is empty",
             "Tap the heart on any listing to save it here for later.",
             '<a class="btn btn-primary mt-2" href="' + UI.pageUrl("home.html") + '">Browse listings</a>');
           return;
@@ -1501,7 +1559,8 @@
           "</div>";
         UI.wishlist.load();
       }).catch(function (error) {
-        host.innerHTML = UI.emptyState("⚠️", "Could not load your wishlist", error.message);
+        host.innerHTML = UI.emptyState("info", "Could not load your wishlist",
+          error.message || "Please try again in a moment.");
       });
     }
 
@@ -1530,6 +1589,8 @@
   };
 
   document.addEventListener("DOMContentLoaded", function () {
+    // A guest bound for the landing page must not run any app initialiser.
+    if (document.documentElement.classList.contains("cm-locked")) return;
     var page = (document.body && document.body.dataset.page) || "landing";
     var init = INITIALISERS[page];
     if (typeof init === "function") {
@@ -1537,7 +1598,7 @@
         init();
       } catch (error) {
         // Never let a page-level failure blank the whole site.
-        window.console && window.console.error("[Campus Marketplace]", error);
+        window.console && window.console.error("[Lafia Marketplace]", error);
       }
     }
   });

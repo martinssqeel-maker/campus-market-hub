@@ -1,79 +1,107 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-zone="marketing">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0f766e">
-  <meta name="description" content="Log in to Campus Marketplace – Federal University of Lafia student marketplace.">
-  <title>Log in · Campus Marketplace</title>
+  <meta name="theme-color" content="#0b8371">
+  <title>Log in · Lafia Marketplace</title>
+  <meta name="description" content="Log in to your Lafia Marketplace account to manage listings, saved items and messages.">
+  <meta name="robots" content="noindex, follow">
 
   <link rel="icon" type="image/svg+xml" href="../assets/images/logo.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
   <link rel="stylesheet" href="../css/responsive.css">
+  <link rel="stylesheet" href="../css/premium.css">
+
+  <script src="../js/shell.js"></script>
 </head>
 <body data-page="login">
 
-  <header id="site-header"></header>
+  <main class="auth-page">
+    <div class="auth-page__bg" aria-hidden="true">
+      <div class="mk-hero__mesh"></div>
+      <div class="mk-hero__grid"></div>
+      <span class="mk-orb mk-orb--1"></span>
+      <span class="mk-orb mk-orb--2"></span>
+    </div>
 
-  <main>
-    <div class="container">
-      <div class="auth-shell">
-        <!-- Marketing column (desktop only) -->
-        <aside class="auth-side">
-          <h2>Welcome back to Campus Marketplace</h2>
-          <p>Everything you need to buy, sell and live better on campus.</p>
-          <ul>
-            <li><span class="feature-mark" aria-hidden="true">01</span><span>Trade books, gadgets and hostel essentials with verified students</span></li>
-            <li><span class="feature-mark" aria-hidden="true">02</span><span>Compare hostel and self-contain prices around Lafia</span></li>
-            <li><span class="feature-mark" aria-hidden="true">03</span><span>Never miss a career fair, match or campus party</span></li>
-            <li><span class="feature-mark" aria-hidden="true">04</span><span>Every listing is reviewed by an administrator before it goes live</span></li>
-          </ul>
-        </aside>
+    <a class="auth-back" href="../index.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+      Back to home
+    </a>
 
-        <!-- Login form -->
-        <section class="auth-card form-card">
-          <div class="auth-head">
-            <img class="logo" src="../assets/images/logo.svg" alt="Campus Marketplace">
-            <h1>Log in</h1>
-            <p class="text-muted mb-0">Access your listings, wishlist and messages.</p>
+    <div class="auth-shell">
+      <!-- Marketing column (desktop only) -->
+      <aside class="auth-side">
+        <span class="mk-kicker">Welcome back</span>
+        <h2>Pick up right where you left off.</h2>
+        <p>Your listings, saved items and conversations are waiting. Log in to keep trading across Lafia.</p>
+        <ul>
+          <li>
+            <span class="feature-mark" aria-hidden="true">01</span>
+            <span>Track the moderation status of everything you have posted</span>
+          </li>
+          <li>
+            <span class="feature-mark" aria-hidden="true">02</span>
+            <span>Keep a wishlist of items, rooms and services you are considering</span>
+          </li>
+          <li>
+            <span class="feature-mark" aria-hidden="true">03</span>
+            <span>Build a reputation with reviews from people you trade with</span>
+          </li>
+          <li>
+            <span class="feature-mark" aria-hidden="true">04</span>
+            <span>Message sellers directly — no agents, no commission</span>
+          </li>
+        </ul>
+      </aside>
+
+      <!-- Login form -->
+      <section class="auth-card">
+        <div class="auth-head">
+          <span class="mk-brand__mark" aria-hidden="true" style="width:46px;height:46px;border-radius:14px;font-size:1.05rem">LM</span>
+          <h1>Log in to your account</h1>
+          <p>Use the email and password you signed up with.</p>
+        </div>
+
+        <form id="login-form" novalidate>
+          <div class="form-group">
+            <label for="login-email">Email address <span class="req">*</span></label>
+            <input id="login-email" name="email" type="email" autocomplete="email"
+                   placeholder="you@example.com" required>
+            <span class="field-error" role="alert"></span>
           </div>
 
-          <form id="login-form" novalidate>
-            <div class="form-group">
-              <label for="login-email">Email address <span class="req">*</span></label>
-              <input id="login-email" name="email" type="email" autocomplete="email"
-                     placeholder="you@unilafia.edu.ng" required>
-              <span class="field-error"></span>
+          <div class="form-group">
+            <label for="login-password">Password <span class="req">*</span></label>
+            <div class="password-wrap">
+              <input id="login-password" name="password" type="password"
+                     autocomplete="current-password" placeholder="Your password" required>
+              <button class="password-toggle" type="button" data-toggle-password="login-password"
+                      aria-label="Show password">Show</button>
             </div>
+            <span class="field-error" role="alert"></span>
+          </div>
 
-            <div class="form-group">
-              <label for="login-password">Password <span class="req">*</span></label>
-              <div class="password-wrap">
-                <input id="login-password" name="password" type="password"
-                       autocomplete="current-password" placeholder="Your password" required>
-                <button class="password-toggle" type="button" data-toggle-password="login-password">Show</button>
-              </div>
-              <span class="field-error"></span>
-            </div>
+          <button class="btn btn-primary btn-block btn-lg" type="submit">Log in</button>
+        </form>
 
-            <button class="btn btn-primary btn-block btn-lg" type="submit">Log in</button>
-          </form>
+        <div class="divider">or</div>
 
-          <div class="divider">or</div>
+        <p class="auth-switch">
+          New to Lafia Marketplace?
+          <a href="signup.html" data-next-preserve><strong>Create a free account</strong></a>
+        </p>
 
-          <p class="text-center mb-2">
-            New to Campus Marketplace?
-            <a href="signup.html"><strong>Create a free account</strong></a>
-          </p>
-
-          <p class="form-note">Use the email and password you registered with. If you do not have an account, create one to get started.</p>
-        </section>
-      </div>
+        <p class="form-note text-center mt-2">
+          Trouble signing in? Make sure you are using the same email you registered with, then try again.
+        </p>
+      </section>
     </div>
   </main>
-
-  <footer id="site-footer"></footer>
-  <nav id="bottom-nav" aria-label="Mobile navigation"></nav>
 
   <script src="../js/api.js"></script>
   <script src="../js/ui.js"></script>

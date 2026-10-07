@@ -40,16 +40,13 @@ from utils.validators import (
 products_bp = Blueprint("products", __name__)
 
 #: Canonical category list used by the post-listing form and filters.
+#: Canonical category list used by the post-listing form and filters.
+#: Gadgets only — phones, laptops, electronics and accessories.
 PRODUCT_CATEGORIES = [
-    "books",
-    "electronics",
     "phones",
     "laptops",
-    "furniture",
-    "hostel-essentials",
-    "clothing",
-    "food",
-    "sports",
+    "electronics",
+    "accessories",
     "others",
 ]
 
@@ -219,9 +216,9 @@ def create_product():
     payload = request_data()
     try:
         data = validate_listing_payload(payload, "product")
-        category = clean_text(payload.get("category"), 60).lower() or "others"
+        category = clean_text(payload.get("category"), 60).lower() or "accessories"
         if category not in PRODUCT_CATEGORIES:
-            category = "others"
+            category = "accessories"
 
         product = Product(
             seller_id=user.id,

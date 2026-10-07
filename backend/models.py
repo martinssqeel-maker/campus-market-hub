@@ -190,7 +190,7 @@ class Product(db.Model):
     description = db.Column(db.Text, nullable=False)
     price = db.Column(db.Float, nullable=False, default=0.0)
     image_url = db.Column(db.String(500))
-    category = db.Column(db.String(60), nullable=False, default="others", index=True)
+    category = db.Column(db.String(60), nullable=False, default="accessories", index=True)
     location = db.Column(db.String(160), default="UNILAFIA Campus")
     condition = db.Column(db.String(30), default="used")   # new | used | refurbished
     status = db.Column(db.String(20), nullable=False, default="pending", index=True)

@@ -1,133 +1,132 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-zone="app">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0f766e">
-  <meta name="description" content="Accommodation around Federal University of Lafia – self-contains, hostels, flats and shared rooms with verified landlords.">
-  <title>Accommodation · Campus Marketplace</title>
+  <meta name="theme-color" content="#0b8371">
+  <title>Hostels &amp; Lodges · Lafia Marketplace</title>
+  <meta name="description" content="Hostels, lodges, self-contains and single rooms around FULAFIA and across Lafia. Compare prices and amenities, then contact the landlord or caretaker directly.">
 
   <link rel="icon" type="image/svg+xml" href="../assets/images/logo.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
   <link rel="stylesheet" href="../css/responsive.css">
+  <link rel="stylesheet" href="../css/premium.css">
+
+  <script src="../js/shell.js"></script>
 </head>
 <body data-page="accommodation">
 
   <header id="site-header"></header>
 
   <main>
-    <!-- Page header -->
-    <section class="hero">
-      <div class="container">
-        <span class="hero-badge">Rooms Verified landlords · No agent fees surprises</span>
-        <h1>Find your next room near campus</h1>
-        <p class="lead">
-          Self-contains, single rooms, hostels and flats in Angwan Rimi, Bukan Sidi,
-          Mararaba, Tudun Amba, Akun and more. Compare prices, see amenities, then call or
-          WhatsApp the landlord directly.
-        </p>
-      </div>
-    </section>
-
-    <!-- Room type chips -->
-    <section>
-      <div class="container">
-        <div class="chip-row" id="room-type-chips">
-          <button class="chip active" data-value="all">All rooms</button>
-          <button class="chip" data-value="single">Single room Single room</button>
-          <button class="chip" data-value="self-contain">Self-contain Self-contain</button>
-          <button class="chip" data-value="hostel">Hostel Hostel space</button>
-          <button class="chip" data-value="flat">Flat Flat / apartment</button>
-          <button class="chip" data-value="shared">Shared Shared room</button>
+    <div class="page-head">
+      <div class="container page-head__inner">
+        <div>
+          <span class="mk-kicker">Hostels &amp; Lodges</span>
+          <h1>Find your next room in Lafia</h1>
+          <p>Hostels, lodges, self-contains and single rooms in Angwan Rimi, Bukan Sidi, Mararaba,
+             Tudun Amba, Akun and beyond. Real prices, real amenities, direct contact.</p>
+        </div>
+        <div class="page-head__actions">
+          <a class="btn btn-primary" href="post-listing.html#accommodation">Advertise a room</a>
         </div>
       </div>
-    </section>
+    </div>
 
-    <section class="section">
-      <div class="container">
-        <div class="grid grid-sidebar">
-          <!-- Filters -->
-          <aside>
-            <div class="filter-panel">
-              <h4>Filter rooms</h4>
-              <form id="room-filter-form">
-                <div class="form-group">
-                  <label for="room-min">Minimum price (₦ / year)</label>
-                  <input id="room-min" name="min_price" type="number" min="0" placeholder="e.g. 60000">
-                </div>
-                <div class="form-group">
-                  <label for="room-max">Maximum price (₦ / year)</label>
-                  <input id="room-max" name="max_price" type="number" min="0" placeholder="e.g. 250000">
-                </div>
-                <div class="form-group">
-                  <label for="room-location">Area around campus</label>
-                  <select id="room-location" name="location">
-                    <option value="">Any area</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label for="room-gender">Preferred gender</label>
-                  <select id="room-gender" name="gender">
-                    <option value="any">Any</option>
-                    <option value="male">Male only</option>
-                    <option value="female">Female only</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label for="room-rooms">Minimum bedrooms / spaces</label>
-                  <select id="room-rooms" name="rooms">
-                    <option value="">Any</option>
-                    <option value="1">1+</option>
-                    <option value="2">2+</option>
-                    <option value="3">3+</option>
-                    <option value="4">4+</option>
-                  </select>
-                </div>
-                <div class="checkbox-row form-group">
-                  <input id="room-furnished" name="furnished" type="checkbox" value="true">
-                  <label for="room-furnished">Furnished rooms only</label>
-                </div>
-                <div class="filter-actions">
-                  <button class="btn btn-primary" type="submit">Apply filters</button>
-                  <button class="btn btn-outline" type="button" data-action="reset">Reset</button>
-                </div>
-              </form>
-            </div>
+    <div class="container" style="padding-bottom:var(--sp-10)">
 
-            <div class="card card-pad mt-2">
-              <h4>Safety Renting safely</h4>
-              <ul class="spec-list">
-                <li><span class="k">Inspect first</span><span class="v">Always</span></li>
-                <li><span class="k">Never pay twice</span><span class="v">Get a receipt</span></li>
-                <li><span class="k">Report a scam</span><span class="v">Contact admin</span></li>
-              </ul>
-            </div>
-          </aside>
+      <div class="chip-row mb-3" id="room-type-chips">
+        <button class="chip active" data-value="all" type="button">All rooms</button>
+        <button class="chip" data-value="single" type="button">Single room</button>
+        <button class="chip" data-value="self-contain" type="button">Self-contain</button>
+        <button class="chip" data-value="hostel" type="button">Hostel space</button>
+        <button class="chip" data-value="flat" type="button">Flat / apartment</button>
+        <button class="chip" data-value="shared" type="button">Shared room</button>
+      </div>
 
-          <!-- Listings -->
-          <div>
-            <div class="section-head">
-              <div>
-                <h2 class="mb-0">Available rooms</h2>
-                <p class="mb-0"><span id="room-count">Loading…</span></p>
+      <div class="grid grid-sidebar">
+        <!-- Filters -->
+        <aside>
+          <div class="filter-panel">
+            <h4>Filter rooms</h4>
+            <form id="room-filter-form">
+              <div class="form-group">
+                <label for="room-min">Minimum rent (₦ / year)</label>
+                <input id="room-min" name="min_price" type="number" min="0" placeholder="e.g. 60000">
               </div>
-              <a class="btn btn-primary btn-sm" href="post-listing.html#accommodation">Post Advertise a room</a>
-            </div>
-
-            <div class="grid grid-cards" id="room-grid">
-              <div class="skeleton skeleton-card"></div>
-              <div class="skeleton skeleton-card"></div>
-              <div class="skeleton skeleton-card"></div>
-            </div>
-            <div class="pagination" id="room-pagination"></div>
+              <div class="form-group">
+                <label for="room-max">Maximum rent (₦ / year)</label>
+                <input id="room-max" name="max_price" type="number" min="0" placeholder="e.g. 250000">
+              </div>
+              <div class="form-group">
+                <label for="room-location">Area</label>
+                <select id="room-location" name="location">
+                  <option value="">Any area</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="room-gender">Preferred gender</label>
+                <select id="room-gender" name="gender">
+                  <option value="any">Any</option>
+                  <option value="male">Male only</option>
+                  <option value="female">Female only</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="room-rooms">Minimum bedrooms / spaces</label>
+                <select id="room-rooms" name="rooms">
+                  <option value="">Any</option>
+                  <option value="1">1+</option>
+                  <option value="2">2+</option>
+                  <option value="3">3+</option>
+                  <option value="4">4+</option>
+                </select>
+              </div>
+              <div class="checkbox-row form-group">
+                <input id="room-furnished" name="furnished" type="checkbox" value="true">
+                <label for="room-furnished">Furnished rooms only</label>
+              </div>
+              <div class="filter-actions">
+                <button class="btn btn-primary" type="submit">Apply filters</button>
+                <button class="btn btn-outline" type="button" data-action="reset">Reset</button>
+              </div>
+            </form>
           </div>
+
+          <div class="card card-pad mt-2">
+            <h4>Renting safely</h4>
+            <ul class="spec-list">
+              <li><span class="k">Inspect in person</span><span class="v">Always</span></li>
+              <li><span class="k">Get a receipt</span><span class="v">Every payment</span></li>
+              <li><span class="k">Report a scam</span><span class="v">Contact an admin</span></li>
+            </ul>
+          </div>
+        </aside>
+
+        <!-- Listings -->
+        <div>
+          <div class="section-head">
+            <div>
+              <h2 class="mb-0">Available rooms</h2>
+              <p class="mb-0"><span id="room-count">Loading…</span></p>
+            </div>
+          </div>
+
+          <div class="grid grid-cards" id="room-grid">
+            <div class="skeleton skeleton-card"></div>
+            <div class="skeleton skeleton-card"></div>
+            <div class="skeleton skeleton-card"></div>
+          </div>
+          <div class="pagination" id="room-pagination"></div>
         </div>
       </div>
-    </section>
+    </div>
   </main>
 
-  <footer id="site-footer"></footer>
-  <nav id="bottom-nav" aria-label="Mobile navigation"></nav>
+  <nav id="bottom-nav" aria-label="App navigation"></nav>
 
   <script src="../js/api.js"></script>
   <script src="../js/ui.js"></script>

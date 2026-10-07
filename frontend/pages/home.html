@@ -1,46 +1,54 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-zone="app">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0f766e">
-  <meta name="description" content="Browse items for sale on Campus Marketplace – Federal University of Lafia. Filter by category, price and location.">
-  <title>Marketplace · Campus Marketplace</title>
+  <meta name="theme-color" content="#0b8371">
+  <title>Marketplace · Lafia Marketplace</title>
+  <meta name="description" content="Browse items for sale across Lafia — filter by category, price, condition and area, then message the seller directly.">
 
   <link rel="icon" type="image/svg+xml" href="../assets/images/logo.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
   <link rel="stylesheet" href="../css/responsive.css">
+  <link rel="stylesheet" href="../css/premium.css">
+
+  <script src="../js/shell.js"></script>
 </head>
 <body data-page="home">
 
   <header id="site-header"></header>
 
   <main>
-    <!-- ===================== BROWSE HEADER ========================= -->
-    <section>
-      <div class="container">
-        <div class="flex-between wrap">
-          <div>
-            <h1 class="mb-0">Marketplace</h1>
-            <p class="text-muted mb-0">
-              <span id="listing-count">Loading…</span> · every listing is admin-approved
-            </p>
-          </div>
-          <div class="flex gap-1 wrap">
-            <a class="btn btn-primary" href="post-listing.html">Post Post a listing</a>
-            <a class="btn btn-outline" href="accommodation.html">Rooms Rooms</a>
-          </div>
+    <!-- ===================== PAGE HEADER ===================== -->
+    <div class="page-head">
+      <div class="container page-head__inner">
+        <div>
+          <span class="mk-kicker">Marketplace</span>
+          <h1>Everything for sale in Lafia</h1>
+          <p><span id="listing-count">Loading…</span> · every listing is reviewed before it goes live</p>
         </div>
+        <div class="page-head__actions">
+          <a class="btn btn-primary" href="post-listing.html">Post a listing</a>
+          <a class="btn btn-outline" href="accommodation.html">Find a room</a>
+        </div>
+      </div>
+    </div>
 
-        <!-- Mobile-friendly search + sort -->
-        <div class="toolbar mt-2">
-          <div class="search-wrap">
-            <label class="sr-only" for="market-search">Search listings</label>
+    <div class="container" style="padding-bottom:var(--sp-10)">
+
+      <!-- ===================== TOOLBAR ======================= -->
+      <div class="filter-panel mb-3">
+        <div class="form-row form-row-2" style="align-items:end">
+          <div class="form-group" style="margin-bottom:0">
+            <label for="market-search">Search listings</label>
             <input id="market-search" type="search" name="q" form="filter-form"
-                   placeholder="Search items, e.g. “laptop”, “textbook”, “fan”…">
+                   placeholder="iPhone, laptop, JBL speaker, power bank…">
           </div>
-          <div>
-            <label class="sr-only" for="market-sort">Sort listings</label>
+          <div class="form-group" style="margin-bottom:0">
+            <label for="market-sort">Sort by</label>
             <select id="market-sort">
               <option value="-created_at">Newest first</option>
               <option value="price">Price: low to high</option>
@@ -50,126 +58,110 @@
           </div>
         </div>
       </div>
-    </section>
 
-    <!-- ===================== CATEGORY CHIPS ======================== -->
-    <section>
-      <div class="container">
-        <div class="chip-row" id="category-chips">
-          <button class="chip active" data-value="all">All items</button>
-          <button class="chip" data-value="books">📚 Books</button>
-          <button class="chip" data-value="electronics">🔌 Electronics</button>
-          <button class="chip" data-value="phones">📱 Phones</button>
-          <button class="chip" data-value="laptops">💻 Laptops</button>
-          <button class="chip" data-value="furniture">🪑 Furniture</button>
-          <button class="chip" data-value="hostel-essentials">Single room Hostel essentials</button>
-          <button class="chip" data-value="clothing">👕 Clothing</button>
-          <button class="chip" data-value="food">🍲 Food</button>
-          <button class="chip" data-value="sports">Sports Sports</button>
-          <button class="chip" data-value="others">Other Others</button>
-        </div>
+      <!-- ===================== CATEGORY CHIPS ================= -->
+      <div class="chip-row mb-3" id="category-chips">
+        <button class="chip active" data-value="all" type="button">All gadgets</button>
+        <button class="chip" data-value="phones" type="button">Phones &amp; tablets</button>
+        <button class="chip" data-value="laptops" type="button">Laptops</button>
+        <button class="chip" data-value="electronics" type="button">Electronics</button>
+        <button class="chip" data-value="accessories" type="button">Accessories</button>
       </div>
-    </section>
 
-    <!-- ====================== MAIN CONTENT ========================= -->
-    <section class="section">
-      <div class="container">
-        <div class="grid grid-sidebar">
+      <!-- ====================== MAIN CONTENT ================== -->
+      <div class="grid grid-sidebar">
+        <!-- Sidebar: filters + quick links -->
+        <aside>
+          <button class="btn btn-outline btn-block mb-2" id="toggle-filters"
+                  type="button" aria-expanded="false" aria-controls="filter-panel">Filters</button>
 
-          <!-- Sidebar: filters + quick links -->
-          <aside>
-            <button class="btn btn-outline btn-block mb-2" id="toggle-filters"
-                    aria-expanded="false">Filters</button>
+          <div class="filter-panel" id="filter-panel">
+            <form id="filter-form">
+              <input type="hidden" name="category" id="filter-category" value="">
 
-            <div class="filter-panel" id="filter-panel">
-              <form id="filter-form">
-                <input type="hidden" name="category" id="filter-category" value="">
-
-                <h4 class="mb-1">Price range (₦)</h4>
-                <div class="filter-grid">
-                  <div class="form-group">
-                    <label class="sr-only" for="min-price">Minimum price</label>
-                    <input id="min-price" name="min_price" type="number" min="0" placeholder="Min">
-                  </div>
-                  <div class="form-group">
-                    <label class="sr-only" for="max-price">Maximum price</label>
-                    <input id="max-price" name="max_price" type="number" min="0" placeholder="Max">
-                  </div>
-                </div>
-
-                <h4 class="mb-1 mt-2">Details</h4>
+              <h4 class="mb-1">Price range (₦)</h4>
+              <div class="form-row form-row-2">
                 <div class="form-group">
-                  <label for="filter-location">Location</label>
-                  <input id="filter-location" name="location" type="text" placeholder="e.g. Angwan Rimi">
+                  <label class="sr-only" for="min-price">Minimum price</label>
+                  <input id="min-price" name="min_price" type="number" min="0" placeholder="Min">
                 </div>
                 <div class="form-group">
-                  <label for="filter-condition">Condition</label>
-                  <select id="filter-condition" name="condition">
-                    <option value="">Any condition</option>
-                    <option value="new">Brand new</option>
-                    <option value="used">Used</option>
-                    <option value="refurbished">Refurbished</option>
-                  </select>
+                  <label class="sr-only" for="max-price">Maximum price</label>
+                  <input id="max-price" name="max_price" type="number" min="0" placeholder="Max">
                 </div>
-                <div class="form-group">
-                  <label for="filter-sort">Sort by</label>
-                  <select id="filter-sort" name="sort">
-                    <option value="-created_at">Newest first</option>
-                    <option value="price">Price: low to high</option>
-                    <option value="-price">Price: high to low</option>
-                    <option value="title">Title A–Z</option>
-                  </select>
-                </div>
-
-                <div class="filter-actions">
-                  <button class="btn btn-primary" type="submit">Apply filters</button>
-                  <button class="btn btn-outline" type="button" data-action="reset">Reset</button>
-                </div>
-                <div class="active-filters" id="active-filters"></div>
-              </form>
-            </div>
-
-            <!-- Accommodation teaser -->
-            <div class="card card-pad mt-2">
-              <h4>Rooms Accommodation</h4>
-              <p class="text-muted"><small>Latest rooms around campus</small></p>
-              <div id="side-rooms"><div class="skeleton"></div></div>
-              <a class="btn btn-outline btn-block btn-sm mt-1" href="accommodation.html">Browse all rooms</a>
-            </div>
-
-            <!-- Events teaser -->
-            <div class="card card-pad mt-2">
-              <h4>Events Upcoming events</h4>
-              <div id="side-events" class="mt-1"><div class="skeleton"></div></div>
-              <a class="btn btn-outline btn-block btn-sm" href="events.html">See all events</a>
-            </div>
-          </aside>
-
-          <!-- Listings -->
-          <div>
-            <div class="section-head">
-              <div>
-                <h2 class="mb-0">Browse listings</h2>
-                <p class="mb-0">Contact sellers directly by call or WhatsApp</p>
               </div>
-              <a class="btn btn-ghost btn-sm" href="favorites.html">Saved My wishlist</a>
-            </div>
 
-            <div class="grid grid-cards" id="listing-grid">
-              <div class="skeleton skeleton-card"></div>
-              <div class="skeleton skeleton-card"></div>
-              <div class="skeleton skeleton-card"></div>
-              <div class="skeleton skeleton-card"></div>
-            </div>
-            <div class="pagination" id="listing-pagination"></div>
+              <h4 class="mb-1 mt-2">Details</h4>
+              <div class="form-group">
+                <label for="filter-location">Area</label>
+                <input id="filter-location" name="location" type="text" placeholder="e.g. Angwan Rimi">
+              </div>
+              <div class="form-group">
+                <label for="filter-condition">Condition</label>
+                <select id="filter-condition" name="condition">
+                  <option value="">Any condition</option>
+                  <option value="new">Brand new</option>
+                  <option value="used">Used</option>
+                  <option value="refurbished">Refurbished</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="filter-sort">Sort by</label>
+                <select id="filter-sort" name="sort">
+                  <option value="-created_at">Newest first</option>
+                  <option value="price">Price: low to high</option>
+                  <option value="-price">Price: high to low</option>
+                  <option value="title">Title A–Z</option>
+                </select>
+              </div>
+
+              <div class="filter-actions">
+                <button class="btn btn-primary" type="submit">Apply filters</button>
+                <button class="btn btn-outline" type="button" data-action="reset">Reset</button>
+              </div>
+              <div class="active-filters" id="active-filters"></div>
+            </form>
           </div>
+
+          <!-- Accommodation teaser -->
+          <div class="card card-pad mt-2">
+            <h4>Accommodation</h4>
+            <p class="text-muted"><small>Latest rooms around Lafia</small></p>
+            <div id="side-rooms"><div class="skeleton" style="height:72px"></div></div>
+            <a class="btn btn-outline btn-block btn-sm mt-1" href="accommodation.html">Browse all rooms</a>
+          </div>
+
+          <!-- Events teaser -->
+          <div class="card card-pad mt-2">
+            <h4>Upcoming events</h4>
+            <div id="side-events" class="mt-1"><div class="skeleton" style="height:72px"></div></div>
+            <a class="btn btn-outline btn-block btn-sm" href="events.html">See all events</a>
+          </div>
+        </aside>
+
+        <!-- Listings -->
+        <div>
+          <div class="section-head">
+            <div>
+              <h2 class="mb-0">Browse listings</h2>
+              <p class="mb-0">Contact sellers directly by call or WhatsApp</p>
+            </div>
+            <a class="btn btn-ghost btn-sm" href="favorites.html">My saved items</a>
+          </div>
+
+          <div class="grid grid-cards" id="listing-grid">
+            <div class="skeleton skeleton-card"></div>
+            <div class="skeleton skeleton-card"></div>
+            <div class="skeleton skeleton-card"></div>
+            <div class="skeleton skeleton-card"></div>
+          </div>
+          <div class="pagination" id="listing-pagination"></div>
         </div>
       </div>
-    </section>
+    </div>
   </main>
 
-  <footer id="site-footer"></footer>
-  <nav id="bottom-nav" aria-label="Mobile navigation"></nav>
+  <nav id="bottom-nav" aria-label="App navigation"></nav>
 
   <script src="../js/api.js"></script>
   <script src="../js/ui.js"></script>

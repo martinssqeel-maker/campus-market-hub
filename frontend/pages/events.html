@@ -1,103 +1,105 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-zone="app">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0f766e">
-  <meta name="description" content="Campus events and adverts at Federal University of Lafia – career fairs, sports, concerts, workshops and student announcements.">
-  <title>Events & adverts · Campus Marketplace</title>
+  <meta name="theme-color" content="#0b8371">
+  <title>Events &amp; adverts · Lafia Marketplace</title>
+  <meta name="description" content="Campus happenings, career fairs, concerts, workshops and local adverts in Lafia — posted by organisers and reviewed by moderators.">
 
   <link rel="icon" type="image/svg+xml" href="../assets/images/logo.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
   <link rel="stylesheet" href="../css/responsive.css">
+  <link rel="stylesheet" href="../css/premium.css">
+
+  <script src="../js/shell.js"></script>
 </head>
 <body data-page="events">
 
   <header id="site-header"></header>
 
   <main>
-    <section>
-      <div class="container">
-        <h1>Campus events &amp; adverts</h1>
-        <p class="mb-0">
-          Career fairs, inter-faculty matches, concerts, workshops and student announcements –
-          all posted by students and reviewed by admins.
-        </p>
-      </div>
-    </section>
-
-    <!-- Category chips -->
-    <section>
-      <div class="container">
-        <div class="chip-row" id="event-category-chips">
-          <button class="chip active" data-value="all">All events</button>
-          <button class="chip" data-value="academic">Academic Academic</button>
-          <button class="chip" data-value="career">Career Career</button>
-          <button class="chip" data-value="social">Social Social</button>
-          <button class="chip" data-value="sports">Sports Sports</button>
-          <button class="chip" data-value="religious">Religious Religious</button>
-          <button class="chip" data-value="entertainment">Entertainment Entertainment</button>
-          <button class="chip" data-value="advert">Adverts Adverts</button>
-          <button class="chip" data-value="others">Other Others</button>
+    <div class="page-head">
+      <div class="container page-head__inner">
+        <div>
+          <span class="mk-kicker">Events &amp; adverts</span>
+          <h1>What's happening in Lafia</h1>
+          <p>Career fairs, inter-faculty matches, concerts, workshops and local announcements —
+             all posted by organisers and reviewed by moderators.</p>
+        </div>
+        <div class="page-head__actions">
+          <a class="btn btn-primary" href="post-listing.html#event">Post an event</a>
         </div>
       </div>
-    </section>
+    </div>
 
-    <section class="section">
-      <div class="container">
-        <div class="filter-panel mb-3">
-          <form id="event-filter-form" class="filter-grid">
-            <div class="form-group">
-              <label for="ev-q">Search events</label>
-              <input id="ev-q" name="q" type="search" placeholder="e.g. career fair">
-            </div>
-            <div class="form-group">
-              <label for="ev-from">From date</label>
-              <input id="ev-from" name="date_from" type="date">
-            </div>
-            <div class="form-group">
-              <label for="ev-to">To date</label>
-              <input id="ev-to" name="date_to" type="date">
-            </div>
-            <div class="form-group">
-              <label for="ev-location">Location</label>
-              <input id="ev-location" name="location" type="text" placeholder="e.g. Auditorium">
-            </div>
-            <div class="form-group">
-              <label class="checkbox-row" for="events-upcoming">
-                <input id="events-upcoming" type="checkbox">
-                <span>Upcoming only</span>
-              </label>
-            </div>
-            <div class="form-group">
-              <div class="filter-actions">
-                <button class="btn btn-primary" type="submit">Apply</button>
-                <button class="btn btn-outline" type="button" data-action="reset">Reset</button>
-              </div>
-            </div>
-          </form>
-        </div>
+    <div class="container" style="padding-bottom:var(--sp-10)">
 
-        <div class="section-head">
-          <div>
-            <h2 class="mb-0">All events</h2>
-            <p class="mb-0"><span id="event-count">Loading…</span></p>
+      <div class="chip-row mb-3" id="event-category-chips">
+        <button class="chip active" data-value="all" type="button">All events</button>
+        <button class="chip" data-value="academic" type="button">Academic</button>
+        <button class="chip" data-value="career" type="button">Career</button>
+        <button class="chip" data-value="social" type="button">Social</button>
+        <button class="chip" data-value="sports" type="button">Sports</button>
+        <button class="chip" data-value="religious" type="button">Religious</button>
+        <button class="chip" data-value="entertainment" type="button">Entertainment</button>
+        <button class="chip" data-value="advert" type="button">Adverts</button>
+        <button class="chip" data-value="others" type="button">Other</button>
+      </div>
+
+      <div class="filter-panel mb-3">
+        <form id="event-filter-form" class="filter-grid">
+          <div class="form-group">
+            <label for="ev-q">Search events</label>
+            <input id="ev-q" name="q" type="search" placeholder="e.g. career fair">
           </div>
-          <a class="btn btn-primary btn-sm" href="post-listing.html#event">Post Post an event</a>
-        </div>
-
-        <div class="grid grid-cards" id="event-grid">
-          <div class="skeleton skeleton-card"></div>
-          <div class="skeleton skeleton-card"></div>
-          <div class="skeleton skeleton-card"></div>
-        </div>
-        <div class="pagination" id="event-pagination"></div>
+          <div class="form-group">
+            <label for="ev-from">From date</label>
+            <input id="ev-from" name="date_from" type="date">
+          </div>
+          <div class="form-group">
+            <label for="ev-to">To date</label>
+            <input id="ev-to" name="date_to" type="date">
+          </div>
+          <div class="form-group">
+            <label for="ev-location">Location</label>
+            <input id="ev-location" name="location" type="text" placeholder="e.g. Auditorium">
+          </div>
+          <div class="form-group" style="display:flex;align-items:flex-end">
+            <label class="checkbox-row" for="events-upcoming" style="margin-bottom:11px">
+              <input id="events-upcoming" type="checkbox">
+              <span>Upcoming only</span>
+            </label>
+          </div>
+          <div class="form-group" style="display:flex;align-items:flex-end">
+            <div class="filter-actions" style="margin-bottom:11px">
+              <button class="btn btn-primary" type="submit">Apply</button>
+              <button class="btn btn-outline" type="button" data-action="reset">Reset</button>
+            </div>
+          </div>
+        </form>
       </div>
-    </section>
+
+      <div class="section-head">
+        <div>
+          <h2 class="mb-0">All events</h2>
+          <p class="mb-0"><span id="event-count">Loading…</span></p>
+        </div>
+      </div>
+
+      <div class="grid grid-cards" id="event-grid">
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-card"></div>
+      </div>
+      <div class="pagination" id="event-pagination"></div>
+    </div>
   </main>
 
-  <footer id="site-footer"></footer>
-  <nav id="bottom-nav" aria-label="Mobile navigation"></nav>
+  <nav id="bottom-nav" aria-label="App navigation"></nav>
 
   <script src="../js/api.js"></script>
   <script src="../js/ui.js"></script>

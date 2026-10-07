@@ -101,15 +101,11 @@
      Placeholder artwork – generated inline so the site works offline
      ----------------------------------------------------------------------- */
   var CATEGORY_COLORS = {
-    books: ["#0f766e", "#14b8a6"],
+    gadgets: ["#0f766e", "#2dd4bf"],
     electronics: ["#1d4ed8", "#60a5fa"],
     phones: ["#7c3aed", "#a78bfa"],
     laptops: ["#0e7490", "#22d3ee"],
-    furniture: ["#92400e", "#f59e0b"],
-    "hostel-essentials": ["#be123c", "#fb7185"],
-    clothing: ["#7c2d12", "#fb923c"],
-    food: ["#15803d", "#4ade80"],
-    sports: ["#1e3a8a", "#38bdf8"],
+    accessories: ["#92400e", "#f59e0b"],
     laundry: ["#0369a1", "#38bdf8"],
     printing: ["#4c1d95", "#c084fc"],
     tutoring: ["#065f46", "#34d399"],
@@ -130,8 +126,29 @@
 
   var TYPE_GLYPH = { product: "ITEM", accommodation: "ROOM", event: "EVENT", service: "SERVICE" };
 
-  function placeholder(type, category, label) {
-    return "";
+  /**
+   * Designed "no photo" artwork. Replaces the raw "No photo" text that used to
+   * leak into listing cards and detail pages.
+   */
+  function placeholder(type, label) {
+    var caption = label || TYPE_GLYPH[type] || "LISTING";
+    return (
+      '<span class="listing-placeholder">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" ' +
+          'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+          '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/>' +
+          '<path d="m21 16-5-5-6 6"/></svg>' +
+        '<span>' + escapeHtml(caption) + '</span>' +
+        '<small>Photo coming soon</small>' +
+      "</span>"
+    );
+  }
+
+  /** Heart glyph as an SVG so the save control matches the rest of the icons. */
+  function heartSvg(filled) {
+    var svg = (window.Shell && window.Shell.icon) ? window.Shell.icon("heart", 18) : "";
+    if (!svg) return filled ? "♥" : "♡";
+    return filled ? svg.replace('fill="none"', 'fill="currentColor"') : svg;
   }
 
   function imageFor(item) {
@@ -246,6 +263,10 @@
   }
 
   function renderHeader() {
+    // shell.js (loaded in <head>) owns all chrome. This legacy renderer is kept
+    // as a graceful fallback for environments where shell.js never loaded.
+    if (window.Shell && window.Shell.renderHeader) { window.Shell.renderHeader(); return; }
+
     var host = document.getElementById("site-header");
     if (!host) return;
 
@@ -279,9 +300,9 @@
     host.innerHTML =
       '<div class="container header-inner">' +
         '<a class="brand" href="' + url("index.html") + '">' +
-          '<img src="' + url("assets/images/logo.svg") + '" alt="Campus Marketplace logo">' +
-          '<span class="brand-text"><strong>Campus Marketplace</strong>' +
-          "<small>Federal University of Lafia</small></span>" +
+          '<img src="' + url("assets/images/logo.svg") + '" alt="Lafia Marketplace logo">' +
+          '<span class="brand-text"><strong>Lafia Marketplace</strong>' +
+          "<small>Buy, sell and rent across Lafia</small></span>" +
         "</a>" +
         '<div class="header-shell">' +
           '<button class="nav-toggle" aria-label="Toggle menu" aria-expanded="false">' +
@@ -307,6 +328,8 @@
   }
 
   function renderBottomNav() {
+    if (window.Shell && window.Shell.renderBottomNav) { window.Shell.renderBottomNav(); return; }
+
     var host = document.getElementById("bottom-nav");
     if (!host) return;
     var active = currentPage();
@@ -329,6 +352,8 @@
   }
 
   function renderFooter() {
+    if (window.Shell && window.Shell.renderFooter) { window.Shell.renderFooter(); return; }
+
     var host = document.getElementById("site-footer");
     if (!host) return;
     var user = API.currentUser();
@@ -341,7 +366,7 @@
     host.className = "site-footer";
     host.innerHTML =
       '<div class="container"><div class="footer-grid">' +
-        '<div><h4>Campus Marketplace</h4><p>Browse student listings, accommodation, events and services around Lafia.</p></div>' +
+        '<div><h4>Lafia Marketplace</h4><p>Buy, sell and rent across Lafia — products, hostels, events and services in one place.</p></div>' +
         '<div><h4>Explore</h4><ul class="footer-list">' +
           '<li><a href="' + url("pages/home.html") + '">Marketplace</a></li>' +
           '<li><a href="' + url("pages/accommodation.html") + '">Accommodation</a></li>' +
@@ -349,7 +374,7 @@
           '<li><a href="' + url("pages/services.html") + '">Services</a></li></ul></div>' +
         '<div><h4>Account</h4><ul class="footer-list">' + accountLinks + '</ul></div>' +
         '</div><div class="footer-bottom">© ' + new Date().getFullYear() +
-        ' Campus Marketplace · A student marketplace for Lafia</div></div>';
+        ' Lafia Marketplace · Built for Lafia</div></div>';
     var logout = host.querySelector('[data-action="logout"]');
     if (logout) logout.addEventListener("click", function () { Auth.logout(); });
   }
@@ -359,7 +384,9 @@
      ----------------------------------------------------------------------- */
   function statusBadge(status) {
     if (!status) return "";
-    return '<span class="badge badge-' + escapeHtml(status) + '">' + escapeHtml(status) + "</span>";
+    var label = String(status).replace(/_/g, " ");
+    if (status === "published") label = "live";
+    return '<span class="badge badge-' + escapeHtml(status) + '">' + escapeHtml(label) + "</span>";
   }
 
   function priceLabel(item) {
@@ -397,8 +424,9 @@
       '<article class="listing-card" data-type="' + escapeHtml(item.type) + '" data-id="' + item.id + '">' +
         '<a class="listing-thumb" href="' + listingUrl(item) + '" aria-label="' + escapeHtml(item.title) + '">' +
           (item.image_url
-            ? '<img src="' + imageFor(item) + '" alt="' + escapeHtml(item.title) + '" loading="lazy">'
-            : '<span class="listing-placeholder"><span>No photo</span><small>Image not provided</small></span>') +
+            ? '<img src="' + imageFor(item) + '" alt="' + escapeHtml(item.title) + '" loading="lazy" ' +
+              'onerror="this.onerror=null;this.closest(\'.listing-thumb\').classList.add(\'is-broken\');this.remove();">'
+            : placeholder(item.type)) +
           '<span class="listing-flags">' +
             (item.featured ? '<span class="badge badge-featured">Featured</span>' : "") +
             (opts.showStatus ? statusBadge(item.status) : "") +
@@ -406,8 +434,10 @@
         "</a>" +
         (opts.showFavorite === false ? "" :
           '<button class="fav-btn' + (saved ? " active" : "") + '" data-fav="' + escapeHtml(item.type) +
-          '" data-fav-id="' + item.id + '" aria-label="Save to wishlist" title="Save to wishlist">' +
-          (saved ? "♥" : "♡") + "</button>") +
+          '" data-fav-id="' + item.id + '" aria-label="' +
+          (saved ? "Remove from saved" : "Save to wishlist") + '" title="' +
+          (saved ? "Remove from saved" : "Save to wishlist") + '">' +
+          heartSvg(saved) + "</button>") +
         '<div class="listing-body">' +
           '<h3 class="listing-title"><a href="' + listingUrl(item) + '">' + escapeHtml(item.title) + "</a></h3>" +
           '<div class="listing-price">' + priceLabel(item) + "</div>" +
@@ -427,9 +457,34 @@
     return out;
   }
 
+  /* Icons for empty states: callers still pass legacy labels/emoji, so map them
+     onto the one consistent SVG set instead of printing the raw text. */
+  var EMPTY_ICONS = {
+    products: "tag", product: "tag", marketplace: "tag", items: "tag",
+    rooms: "bed", room: "bed", accommodation: "bed",
+    events: "calendar", event: "calendar",
+    services: "tools", service: "tools",
+    secure: "shieldCheck", shield: "shieldCheck",
+    reviews: "quote", review: "quote",
+    search: "search", filter: "filter",
+    clean: "check", empty: "sparkle", plus: "plus", warning: "info",
+    alert: "info", error: "info", info: "info"
+  };
+
+  function emptyIcon(name) {
+    var key = String(name || "empty").toLowerCase().replace(/[^a-z]/g, "");
+    var svg = window.Shell && window.Shell.icon ? window.Shell.icon : null;
+    if (!svg) return "";
+    return '<span class="empty-mark" aria-hidden="true">' + svg(EMPTY_ICONS[key] || EMPTY_ICONS.info, 24) + "</span>";
+  }
+
+  /**
+   * Empty / error state. `raw` is the 5th argument admin.js already passes.
+   */
   function emptyState(icon, title, message, actionHtml) {
     return (
-      '<div class="empty-state"><span class="empty-mark" aria-hidden="true">' + escapeHtml(icon || "") + "</span><h3>" + escapeHtml(title) + "</h3>" +
+      '<div class="empty-state">' + emptyIcon(icon) +
+      "<h3>" + escapeHtml(title) + "</h3>" +
       "<p>" + escapeHtml(message) + "</p>" + (actionHtml || "") + "</div>"
     );
   }
@@ -518,7 +573,8 @@
         }
         document.querySelectorAll('[data-fav="' + type + '"][data-fav-id="' + id + '"]').forEach(function (btn) {
           btn.classList.toggle("active", saved);
-          btn.innerHTML = saved ? "♥" : "♡";
+          btn.innerHTML = heartSvg(saved);
+          btn.setAttribute("aria-label", saved ? "Remove from saved" : "Save to wishlist");
           btn.disabled = false;
         });
         toast(payload.message || (saved ? "Saved to wishlist" : "Removed from wishlist"), "success");
@@ -549,6 +605,8 @@
      Page shell – wires the shared chrome on DOMContentLoaded
      ----------------------------------------------------------------------- */
   function renderShell() {
+    // Guests on an app page are on their way to the landing page — build nothing.
+    if (document.documentElement.classList.contains("cm-locked")) return;
     renderHeader();
     renderBottomNav();
     renderFooter();
@@ -594,6 +652,7 @@
     priceLabel: priceLabel,
     listingUrl: listingUrl,
     stars: stars,
+    heartSvg: heartSvg,
     skeletonGrid: skeletonGrid,
     emptyState: emptyState,
     renderPagination: renderPagination,

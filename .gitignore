@@ -69,3 +69,6 @@ package-lock.json
 # frontend/ stays the source of truth.
 public/
 .vercel/
+
+# --- QA screenshots (test artefacts, not source) ---------------------------
+backend/tests/__screens__/

@@ -1,40 +1,46 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-zone="app">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0f766e">
-  <meta name="description" content="Listing details, seller contact and safety tips on Campus Marketplace.">
-  <title>Listing details · Campus Marketplace</title>
+  <meta name="theme-color" content="#0b8371">
+  <title>Listing details · Lafia Marketplace</title>
+  <meta name="description" content="Full details, seller contact and safety guidance for a listing on Lafia Marketplace.">
 
   <link rel="icon" type="image/svg+xml" href="../assets/images/logo.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
   <link rel="stylesheet" href="../css/responsive.css">
+  <link rel="stylesheet" href="../css/premium.css">
+
+  <script src="../js/shell.js"></script>
 </head>
 <body data-page="product">
 
   <header id="site-header"></header>
 
   <main>
-    <section class="section">
-      <div class="container">
-        <!-- Breadcrumb -->
-        <nav class="mb-2 text-muted" aria-label="Breadcrumb">
-          <a href="home.html">Marketplace</a> ·
-          <a href="accommodation.html">Accommodation</a> ·
-          <span>Listing details</span>
-        </nav>
+    <div class="container" style="padding-top:var(--sp-5);padding-bottom:var(--sp-5)">
+      <nav class="crumbs" aria-label="Breadcrumb">
+        <a href="home.html">Marketplace</a>
+        <span aria-hidden="true">/</span>
+        <a href="accommodation.html">Accommodation</a>
+        <span aria-hidden="true">/</span>
+        <span>Listing details</span>
+      </nav>
+    </div>
 
-        <!-- Everything on this page is rendered from the API -->
-        <div id="detail-root">
-          <div class="skeleton"></div>
-        </div>
+    <div class="container" style="padding-bottom:var(--sp-10)">
+      <!-- Everything on this page is rendered from the API -->
+      <div id="detail-root">
+        <div class="skeleton" style="height:320px"></div>
       </div>
-    </section>
+    </div>
   </main>
 
-  <footer id="site-footer"></footer>
-  <nav id="bottom-nav" aria-label="Mobile navigation"></nav>
+  <nav id="bottom-nav" aria-label="App navigation"></nav>
 
   <script src="../js/api.js"></script>
   <script src="../js/ui.js"></script>

@@ -1,98 +1,101 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-zone="app">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0f766e">
-  <meta name="description" content="Student services at UNILAFIA – laundry, printing, tutoring, repairs, cleaning and more, offered by fellow students.">
-  <title>Student services · Campus Marketplace</title>
+  <meta name="theme-color" content="#0b8371">
+  <title>Services · Lafia Marketplace</title>
+  <meta name="description" content="Laundry, printing, tutoring, device repair, cleaning, barbing, delivery and more — services offered by people across Lafia.">
 
   <link rel="icon" type="image/svg+xml" href="../assets/images/logo.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
   <link rel="stylesheet" href="../css/responsive.css">
+  <link rel="stylesheet" href="../css/premium.css">
+
+  <script src="../js/shell.js"></script>
 </head>
 <body data-page="services">
 
   <header id="site-header"></header>
 
   <main>
-    <section>
-      <div class="container">
-        <h1>Student services</h1>
-        <p class="mb-0">
-          Laundry, printing, project typing, phone repair, tutorials and more –
-          hire a fellow student and keep money within the campus community.
-        </p>
-      </div>
-    </section>
-
-    <section>
-      <div class="container">
-        <div class="chip-row" id="service-category-chips">
-          <button class="chip active" data-value="all">All services</button>
-          <button class="chip" data-value="laundry">👕 Laundry</button>
-          <button class="chip" data-value="printing">🖨 Printing &amp; typing</button>
-          <button class="chip" data-value="tutoring">📖 Tutoring</button>
-          <button class="chip" data-value="tech-repair">🔧 Device repair</button>
-          <button class="chip" data-value="cleaning">🧹 Cleaning</button>
-          <button class="chip" data-value="barbing">💈 Barbing &amp; styling</button>
-          <button class="chip" data-value="delivery">🛵 Delivery</button>
-          <button class="chip" data-value="photography">📸 Photography</button>
-          <button class="chip" data-value="catering">🍲 Catering</button>
-          <button class="chip" data-value="others">Other Others</button>
+    <div class="page-head">
+      <div class="container page-head__inner">
+        <div>
+          <span class="mk-kicker">Services</span>
+          <h1>Hire someone local</h1>
+          <p>Laundry, printing, project typing, phone repair, tutorials, cleaning and more —
+             keep the money inside the Lafia community.</p>
+        </div>
+        <div class="page-head__actions">
+          <a class="btn btn-primary" href="post-listing.html#service">Offer a service</a>
         </div>
       </div>
-    </section>
+    </div>
 
-    <section class="section">
-      <div class="container">
-        <div class="filter-panel mb-3">
-          <form id="service-filter-form" class="filter-grid">
-            <div class="form-group">
-              <label for="sv-q">Search services</label>
-              <input id="sv-q" name="q" type="search" placeholder="e.g. laundry, typing">
-            </div>
-            <div class="form-group">
-              <label for="sv-min">Min price (₦)</label>
-              <input id="sv-min" name="min_price" type="number" min="0" placeholder="0">
-            </div>
-            <div class="form-group">
-              <label for="sv-max">Max price (₦)</label>
-              <input id="sv-max" name="max_price" type="number" min="0" placeholder="10000">
-            </div>
-            <div class="form-group">
-              <label for="sv-location">Location</label>
-              <input id="sv-location" name="location" type="text" placeholder="e.g. Hostel">
-            </div>
-            <div class="form-group">
-              <div class="filter-actions">
-                <button class="btn btn-primary" type="submit">Apply</button>
-                <button class="btn btn-outline" type="button" data-action="reset">Reset</button>
-              </div>
-            </div>
-          </form>
-        </div>
+    <div class="container" style="padding-bottom:var(--sp-10)">
 
-        <div class="section-head">
-          <div>
-            <h2 class="mb-0">Available services</h2>
-            <p class="mb-0"><span id="service-count">Loading…</span></p>
+      <div class="chip-row mb-3" id="service-category-chips">
+        <button class="chip active" data-value="all" type="button">All services</button>
+        <button class="chip" data-value="laundry" type="button">Laundry</button>
+        <button class="chip" data-value="printing" type="button">Printing &amp; typing</button>
+        <button class="chip" data-value="tutoring" type="button">Tutoring</button>
+        <button class="chip" data-value="tech-repair" type="button">Device repair</button>
+        <button class="chip" data-value="cleaning" type="button">Cleaning</button>
+        <button class="chip" data-value="barbing" type="button">Barbing &amp; styling</button>
+        <button class="chip" data-value="delivery" type="button">Delivery</button>
+        <button class="chip" data-value="photography" type="button">Photography</button>
+        <button class="chip" data-value="catering" type="button">Catering</button>
+        <button class="chip" data-value="others" type="button">Other</button>
+      </div>
+
+      <div class="filter-panel mb-3">
+        <form id="service-filter-form" class="filter-grid">
+          <div class="form-group">
+            <label for="sv-q">Search services</label>
+            <input id="sv-q" name="q" type="search" placeholder="e.g. laundry, typing">
           </div>
-          <a class="btn btn-primary btn-sm" href="post-listing.html">Post Offer a service</a>
-        </div>
-
-        <div class="grid grid-cards" id="service-grid">
-          <div class="skeleton skeleton-card"></div>
-          <div class="skeleton skeleton-card"></div>
-          <div class="skeleton skeleton-card"></div>
-        </div>
-        <div class="pagination" id="service-pagination"></div>
+          <div class="form-group">
+            <label for="sv-min">Min price (₦)</label>
+            <input id="sv-min" name="min_price" type="number" min="0" placeholder="0">
+          </div>
+          <div class="form-group">
+            <label for="sv-max">Max price (₦)</label>
+            <input id="sv-max" name="max_price" type="number" min="0" placeholder="10000">
+          </div>
+          <div class="form-group">
+            <label for="sv-location">Location</label>
+            <input id="sv-location" name="location" type="text" placeholder="e.g. Hostel">
+          </div>
+          <div class="form-group" style="display:flex;align-items:flex-end">
+            <div class="filter-actions" style="margin-bottom:11px">
+              <button class="btn btn-primary" type="submit">Apply</button>
+              <button class="btn btn-outline" type="button" data-action="reset">Reset</button>
+            </div>
+          </div>
+        </form>
       </div>
-    </section>
+
+      <div class="section-head">
+        <div>
+          <h2 class="mb-0">Available services</h2>
+          <p class="mb-0"><span id="service-count">Loading…</span></p>
+        </div>
+      </div>
+
+      <div class="grid grid-cards" id="service-grid">
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-card"></div>
+      </div>
+      <div class="pagination" id="service-pagination"></div>
+    </div>
   </main>
 
-  <footer id="site-footer"></footer>
-  <nav id="bottom-nav" aria-label="Mobile navigation"></nav>
+  <nav id="bottom-nav" aria-label="App navigation"></nav>
 
   <script src="../js/api.js"></script>
   <script src="../js/ui.js"></script>

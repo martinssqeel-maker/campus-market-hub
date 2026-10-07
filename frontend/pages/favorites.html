@@ -1,48 +1,60 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-zone="app">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0f766e">
-  <meta name="description" content="Your saved listings and wishlist on Campus Marketplace.">
-  <title>My wishlist · Campus Marketplace</title>
+  <meta name="theme-color" content="#0b8371">
+  <title>Saved items · Lafia Marketplace</title>
+  <meta name="description" content="Items, rooms, events and services you saved for later on Lafia Marketplace.">
 
   <link rel="icon" type="image/svg+xml" href="../assets/images/logo.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
   <link rel="stylesheet" href="../css/responsive.css">
+  <link rel="stylesheet" href="../css/premium.css">
+
+  <script src="../js/shell.js"></script>
 </head>
 <body data-page="favorites">
 
   <header id="site-header"></header>
 
   <main>
-    <section class="section">
-      <div class="container">
-        <div class="section-head">
-          <div>
-            <h1 class="mb-0">My wishlist</h1>
-            <p class="mb-0">Items, rooms, events and services you saved for later</p>
-          </div>
-          <a class="btn btn-outline btn-sm" href="home.html">Back Continue browsing</a>
+    <div class="page-head">
+      <div class="container page-head__inner">
+        <div>
+          <span class="mk-kicker">Saved</span>
+          <h1>Your wishlist</h1>
+          <p>Items, rooms, events and services you saved for later</p>
         </div>
-
-        <div class="chip-row mb-3" id="favorite-chips">
-          <button class="chip active" data-value="all">All saved</button>
-          <button class="chip" data-value="product">Products Products</button>
-          <button class="chip" data-value="accommodation">Rooms Rooms</button>
-          <button class="chip" data-value="event">Events Events</button>
-          <button class="chip" data-value="service">Services Services</button>
+        <div class="page-head__actions">
+          <a class="btn btn-outline" href="home.html">Continue browsing</a>
         </div>
+      </div>
+    </div>
 
-        <div id="favorites-root">
+    <div class="container" style="padding-bottom:var(--sp-10)">
+      <div class="chip-row mb-3" id="favorite-chips">
+        <button class="chip active" data-value="all" type="button">All saved</button>
+        <button class="chip" data-value="product" type="button">Items</button>
+        <button class="chip" data-value="accommodation" type="button">Rooms</button>
+        <button class="chip" data-value="event" type="button">Events</button>
+        <button class="chip" data-value="service" type="button">Services</button>
+      </div>
+
+      <div id="favorites-root">
+        <div class="grid grid-cards">
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
           <div class="skeleton skeleton-card"></div>
         </div>
       </div>
-    </section>
+    </div>
   </main>
 
-  <footer id="site-footer"></footer>
-  <nav id="bottom-nav" aria-label="Mobile navigation"></nav>
+  <nav id="bottom-nav" aria-label="App navigation"></nav>
 
   <script src="../js/api.js"></script>
   <script src="../js/ui.js"></script>

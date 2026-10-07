@@ -220,7 +220,7 @@ class ApiTestCase(unittest.TestCase):
         headers = self.auth(self.student_token)
         update = self.client.put(
             "/api/auth/me",
-            json={"bio": "I sell textbooks.", "department": "Computer Science",
+            json={"bio": "I sell phones and accessories.", "department": "Computer Science",
                   "level": "300 Level"},
             headers=headers,
         )
@@ -389,11 +389,11 @@ class ApiTestCase(unittest.TestCase):
     def test_product_filters_search_sort_and_pagination(self):
         # build 5 published products with distinct attributes
         samples = [
-            ("Calculus Textbook", "books", 3000, "Angwan Rimi"),
-            ("Physics Textbook", "books", 5000, "Akun"),
+            ("Calculus Textbook", "accessories", 3000, "Angwan Rimi"),
+            ("Physics Textbook", "accessories", 5000, "Akun"),
             ("Bluetooth Speaker", "electronics", 25000, "Mararaba"),
             ("Android Phone", "phones", 60000, "Tudun Amba"),
-            ("Study Desk", "furniture", 12000, "Bukan Sidi"),
+            ("Study Desk", "electronics", 12000, "Bukan Sidi"),
         ]
         ids = []
         for title, category, price, location in samples:
@@ -414,9 +414,9 @@ class ApiTestCase(unittest.TestCase):
             )
 
         # category filter
-        books = self.client.get("/api/products?category=books").get_json()["data"]
+        books = self.client.get("/api/products?category=accessories").get_json()["data"]
         self.assertEqual(len(books["items"]), 2)
-        self.assertTrue(all(item["category"] == "books" for item in books["items"]))
+        self.assertTrue(all(item["category"] == "accessories" for item in books["items"]))
 
         # price range
         cheap = self.client.get("/api/products?min_price=4000&max_price=26000").get_json()["data"]
@@ -446,12 +446,12 @@ class ApiTestCase(unittest.TestCase):
         # categories endpoint
         categories = self.client.get("/api/products/categories").get_json()["data"]
         counts = {row["name"]: row["count"] for row in categories["categories"]}
-        self.assertEqual(counts["books"], 2)
+        self.assertEqual(counts["accessories"], 2)
 
         # similar products
-        first_book = self.client.get("/api/products?category=books").get_json()["data"]["items"][0]
+        first_book = self.client.get("/api/products?category=accessories").get_json()["data"]["items"][0]
         similar = self.client.get(f"/api/products/{first_book['id']}/similar").get_json()["data"]
-        self.assertTrue(all(item["category"] == "books" for item in similar))
+        self.assertTrue(all(item["category"] == "accessories" for item in similar))
 
         # view counter increments on public detail view
         before = self.client.get(f"/api/products/{first_book['id']}").get_json()["data"]["views"]
@@ -876,8 +876,8 @@ class ApiTestCase(unittest.TestCase):
     # Search, uploads
     # ------------------------------------------------------------------
     def test_global_search(self):
-        product_id = self.create_product(self.student_token, title="Unique Calculus Textbook",
-                                         description="Rare calculus textbook for science students.").get_json()["data"]["id"]
+        product_id = self.create_product(self.student_token, title="Unique Calculus Power Bank",
+                                         description="Rare 20000mAh power bank for science students.").get_json()["data"]["id"]
         self.client.post(f"/api/admin/approve/{product_id}",
                          json={"item_type": "product"},
                          headers=self.auth(self.admin_token))

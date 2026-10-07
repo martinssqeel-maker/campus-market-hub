@@ -112,11 +112,28 @@
       if (loading) {
         button.dataset.original = button.dataset.original || button.innerHTML;
         button.disabled = true;
+        button.classList.add("is-loading");
+        button.setAttribute("aria-busy", "true");
         button.innerHTML = label || "Please wait…";
       } else {
         button.disabled = false;
+        button.classList.remove("is-loading");
+        button.removeAttribute("aria-busy");
         if (button.dataset.original) button.innerHTML = button.dataset.original;
       }
+    },
+
+    /**
+     * Carry the "where you were heading" intent across the login ↔ signup
+     * links, so someone bounced from an app page lands back there afterwards.
+     */
+    preserveNext: function () {
+      var next = UI.queryParam("next");
+      if (!next) return;
+      document.querySelectorAll("[data-next-preserve]").forEach(function (link) {
+        var base = String(link.getAttribute("href") || "").split("?")[0];
+        link.setAttribute("href", base + "?next=" + encodeURIComponent(next));
+      });
     },
 
     /** Client-side validation rules shared by the login & signup forms. */
@@ -239,6 +256,12 @@
           return;
         }
 
+        var terms = form.querySelector("#su-terms");
+        if (terms && !terms.checked) {
+          UI.toast("Please confirm you will trade responsibly", "error");
+          return;
+        }
+
         Auth.setLoading(submit, true, "Creating your account…");
         Auth.signup({
           name: nameInput.value.trim(),
@@ -251,8 +274,13 @@
           level: (form.querySelector('[name="level"]') || {}).value || ""
         })
           .then(function (user) {
-            UI.toast("Welcome to Campus Marketplace, " + user.name.split(" ")[0] + "!", "success");
-            window.setTimeout(function () { window.location.href = UI.pageUrl("home.html"); }, 900);
+            UI.toast("Welcome to Lafia Marketplace, " + user.name.split(" ")[0] + "!", "success");
+            var nextSignup = UI.queryParam("next");
+            window.setTimeout(function () {
+              window.location.href = nextSignup
+                ? decodeURIComponent(nextSignup)
+                : UI.pageUrl("home.html");
+            }, 900);
           })
           .catch(function (error) {
             Auth.setLoading(submit, false);
@@ -279,6 +307,7 @@
       Auth.initLoginPage();
       Auth.initSignupPage();
       Auth.initPasswordToggles();
+      Auth.preserveNext();
     }
   };
 

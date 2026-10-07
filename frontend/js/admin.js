@@ -1,5 +1,5 @@
 /* ==========================================================================
-   admin.js – premium moderation console for Campus Marketplace.
+   admin.js – premium moderation console for Lafia Marketplace.
 
    What this file owns
    -------------------
@@ -23,10 +23,10 @@
   var BRAND_KEY = "cm_admin_branding";
 
   var BRAND_DEFAULTS = {
-    site_name: "Campus Marketplace",
-    tagline: "Buy, sell and rent around UNILAFIA",
-    brand_color: "#2563eb",
-    accent: "blue"
+    site_name: "Lafia Marketplace",
+    tagline: "Buy, sell and rent across Lafia",
+    brand_color: "#0b8371",
+    accent: "emerald"
   };
 
   var ACCENTS = {
@@ -36,7 +36,7 @@
     amber: "#f59e0b"
   };
 
-  var SWATCHES = ["#2563eb", "#7c3aed", "#0ea5e9", "#10b981", "#f59e0b", "#ef4444", "#ec4899", "#f5f5f5"];
+  var SWATCHES = ["#0b8371", "#12a48a", "#2563eb", "#7c3aed", "#f59e0b", "#ef4444", "#ec4899", "#f5f5f5"];
 
   var TYPE_LABELS = {
     product: "Product",
@@ -742,19 +742,23 @@
       shell.style.setProperty("--brand-dark", shade(color, -0.12));
       shell.style.setProperty("--brand-light", hexToRgba(color, 0.16));
     }
+    var siteName = settings.site_name || BRAND_DEFAULTS.site_name;
+    var mark = UI.initials(siteName);
     var previewMark = document.getElementById("preview-mark");
     if (previewMark) {
       previewMark.style.background = color;
-      previewMark.textContent = UI.initials(settings.site_name || BRAND_DEFAULTS.site_name);
+      previewMark.textContent = mark;
     }
-    setText("preview-name", settings.site_name || BRAND_DEFAULTS.site_name, true);
+    // Keep the sidebar mark in step when the site is renamed in Branding.
+    setText("dash-brand-mark", mark, true);
+    setText("preview-name", siteName, true);
     setText("preview-tagline", settings.tagline || BRAND_DEFAULTS.tagline, true);
     var swatch = document.getElementById("preview-swatch");
     if (swatch) swatch.style.background = color;
     var swatchSoft = document.getElementById("preview-swatch-soft");
     if (swatchSoft) swatchSoft.style.background = hexToRgba(color, 0.25);
     var brandText = document.querySelector("#dash-sidebar .dash-brand-text strong");
-    if (brandText) brandText.textContent = settings.site_name || BRAND_DEFAULTS.site_name;
+    if (brandText) brandText.textContent = siteName;
   }
 
   function initBranding() {

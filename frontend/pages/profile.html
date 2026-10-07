@@ -1,45 +1,52 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-zone="app">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0a0a0a">
-  <meta name="description" content="Your Campus Marketplace dashboard – your listings, favourites, reviews and reputation.">
-  <title>My dashboard · Campus Marketplace</title>
+  <meta name="theme-color" content="#0b8371">
+  <title>My dashboard · Lafia Marketplace</title>
+  <meta name="description" content="Your listings, saved items, reviews and reputation on Lafia Marketplace.">
 
   <link rel="icon" type="image/svg+xml" href="../assets/images/logo.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
   <link rel="stylesheet" href="../css/responsive.css">
+  <link rel="stylesheet" href="../css/premium.css">
+
+  <script src="../js/shell.js"></script>
 </head>
 <body data-page="profile">
 
-  <div class="user-dashboard">
+  <header id="site-header"></header>
 
-    <!-- Compact glass top bar -->
-    <header class="dash-topbar">
-      <a class="dash-brand-link" href="../index.html" style="flex:0 0 auto">
-        <span class="dash-brand-logo" aria-hidden="true">CM</span>
-        <span class="dash-brand-text">
-          <strong>Campus Market</strong>
-          <small>My dashboard</small>
-        </span>
-      </a>
-
-      <span class="dash-topbar-spacer"></span>
-
-      <div class="dash-topbar-actions" id="ud-topbar-actions"></div>
-    </header>
-
-    <div class="ud-content">
-      <!-- Profile card, tabs and grids are rendered by marketplace.js -->
-      <div id="profile-root">
-        <div class="dash-skeleton" style="height:280px"></div>
+  <main>
+    <div class="page-head">
+      <div class="container page-head__inner">
+        <div>
+          <span class="mk-kicker">My account</span>
+          <h1>My dashboard</h1>
+          <p>Your listings, saved items, reviews and reputation in one place</p>
+        </div>
+        <div class="page-head__actions">
+          <a class="btn btn-primary" href="post-listing.html">Post a listing</a>
+          <a class="btn btn-outline" href="favorites.html">Saved items</a>
+        </div>
       </div>
     </div>
-  </div>
+
+    <!-- Profile card, tabs and listing grids are rendered by marketplace.js -->
+    <div class="user-dashboard">
+      <div class="ud-content">
+        <div id="profile-root">
+          <div class="dash-skeleton" style="height:280px"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <nav id="bottom-nav" aria-label="App navigation"></nav>
 
   <script src="../js/api.js"></script>
   <script src="../js/ui.js"></script>
