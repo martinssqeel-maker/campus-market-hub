@@ -274,7 +274,7 @@
           level: (form.querySelector('[name="level"]') || {}).value || ""
         })
           .then(function (user) {
-            UI.toast("Welcome to Lafia Marketplace, " + user.name.split(" ")[0] + "!", "success");
+            UI.toast("Welcome to Campus Marketplace, " + user.name.split(" ")[0] + "!", "success");
             var nextSignup = UI.queryParam("next");
             window.setTimeout(function () {
               window.location.href = nextSignup

@@ -1,4 +1,4 @@
-# Lafia Marketplace — robots.txt
+# Campus Marketplace — robots.txt
 #
 # Public and indexable: the marketing landing page and the two auth screens.
 # Those three are the only pages served with data-zone="marketing" (index.html,

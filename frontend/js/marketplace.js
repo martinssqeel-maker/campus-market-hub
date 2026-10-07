@@ -269,7 +269,9 @@
       : '<small class="text-muted">No ratings yet</small>';
 
     var contact = "";
-    if (opts.phone) {
+    if (opts.showContact === false) {
+      contact = "";
+    } else if (opts.phone) {
       var phone = String(opts.phone);
       contact =
         '<div class="contact-actions">' +
@@ -416,6 +418,7 @@
       if (reset) {
         reset.addEventListener("click", function () {
           filterForm.reset();
+          if (sortSelect) sortSelect.value = "-created_at";
           document.querySelectorAll("#category-chips .chip").forEach(function (node, index) {
             node.classList.toggle("active", index === 0);
           });
@@ -781,22 +784,7 @@
       host.innerHTML =
         statusNote +
         '<div class="detail-grid">' +
-          "<div>" +
-            galleryHtml +
-            '<div class="card card-pad mt-2">' +
-              "<h2>Description</h2>" +
-              "<p>" + UI.escapeHtml(item.description || "The owner has not written a description yet.") + "</p>" +
-              '<h3 class="mt-3">Specifications</h3>' +
-              '<ul class="spec-list">' +
-                specs.map(function (row) {
-                  return '<li><span class="k">' + UI.escapeHtml(row[0]) + '</span><span class="v">' +
-                    UI.escapeHtml(row[1]) + "</span></li>";
-                }).join("") +
-              "</ul>" +
-            "</div>" +
-          "</div>" +
-          "<div>" +
-            '<div class="card card-pad">' +
+          '<section class="detail-summary card card-pad" aria-label="Listing summary">' +
               '<div class="flex-between">' +
                 '<span class="badge badge-published">' + UI.escapeHtml(String(item.category || item.room_type || item.type).replace(/-/g, " ")) + "</span>" +
                 (item.featured ? '<span class="badge badge-featured">Promoted</span>' : "") +
@@ -815,10 +803,8 @@
                 (isOwner ? '<a class="btn btn-outline btn-sm" href="' + UI.pageUrl("profile.html") +
                   '">Edit in profile</a>' : "") +
               "</div>" +
-            "</div>" +
-
             (isOwner ? "" :
-              '<div class="mt-2">' +
+              '<div class="detail-primary-actions">' +
                 '<div class="contact-actions">' +
                   '<button class="btn btn-primary btn-block" type="button" data-action="message">' +
                     svgi("message", 17) + "Message " + UI.escapeHtml(owner && owner.name ? String(owner.name).split(" ")[0] : "the owner") + "</button>" +
@@ -828,13 +814,27 @@
                 '<div id="offer-slot"></div>' +
                 contactHtml +
               "</div>") +
-
-            '<div class="mt-2">' + sellerBlock(owner, {
+          "</section>" +
+          '<div class="detail-gallery-column">' + galleryHtml + "</div>" +
+          '<section class="detail-description card card-pad">' +
+            "<h2>Description</h2>" +
+            "<p>" + UI.escapeHtml(item.description || "The owner has not written a description yet.") + "</p>" +
+            '<h3 class="mt-3">Specifications</h3>' +
+            '<ul class="spec-list">' +
+              specs.map(function (row) {
+                return '<li><span class="k">' + UI.escapeHtml(row[0]) + '</span><span class="v">' +
+                  UI.escapeHtml(row[1]) + "</span></li>";
+              }).join("") +
+            "</ul>" +
+          "</section>" +
+          '<aside class="detail-seller-column" aria-label="Seller and safety information">' +
+            '<div class="detail-seller-card">' + sellerBlock(owner, {
+              showContact: false,
               phone: phone,
               waText: "Hello " + (owner ? owner.name : "") + ", I saw your listing on " + BRAND + ": " + item.title
             }) + "</div>" +
 
-            '<div class="card card-pad mt-2">' +
+            '<div class="card card-pad detail-safety-card">' +
               "<h2 class=\"h3\">Trust and safety</h2>" +
               '<ul class="spec-list">' +
                 '<li><span class="k">Listing review</span><span class="v">Moderated before going live</span></li>' +
@@ -846,7 +846,7 @@
               '<button class="btn btn-ghost btn-sm mt-2" type="button" data-action="report">' +
                 svgi("info", 15) + "Report this listing</button>" +
             "</div>" +
-          "</div>" +
+          "</aside>" +
         "</div>" +
         '<section class="section">' +
           '<div class="section-head"><div><h2>Similar listings</h2>' +

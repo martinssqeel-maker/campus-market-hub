@@ -1,5 +1,5 @@
 /* ==========================================================================
-   admin.js – premium moderation console for Lafia Marketplace.
+   admin.js – premium moderation console for Campus Marketplace.
 
    What this file owns
    -------------------
@@ -23,8 +23,8 @@
   var BRAND_KEY = "cm_admin_branding";
 
   var BRAND_DEFAULTS = {
-    site_name: "Lafia Marketplace",
-    tagline: "Buy, sell and rent across Lafia",
+    site_name: "Campus Marketplace",
+    tagline: "Buy. Sell. Connect.",
     brand_color: "#0b8371",
     accent: "emerald"
   };
@@ -743,14 +743,11 @@
       shell.style.setProperty("--brand-light", hexToRgba(color, 0.16));
     }
     var siteName = settings.site_name || BRAND_DEFAULTS.site_name;
-    var mark = UI.initials(siteName);
-    var previewMark = document.getElementById("preview-mark");
-    if (previewMark) {
-      previewMark.style.background = color;
-      previewMark.textContent = mark;
-    }
-    // Keep the sidebar mark in step when the site is renamed in Branding.
-    setText("dash-brand-mark", mark, true);
+    // The official supplied logo is the mark on every surface. Renaming the
+    // site updates the wordmark beside it — never the mark itself, and never a
+    // text-only substitute. The brand colour re-tints the plate behind it.
+    tintMark("dash-brand-mark", color);
+    tintMark("preview-mark", color);
     setText("preview-name", siteName, true);
     setText("preview-tagline", settings.tagline || BRAND_DEFAULTS.tagline, true);
     var swatch = document.getElementById("preview-swatch");
@@ -759,6 +756,15 @@
     if (swatchSoft) swatchSoft.style.background = hexToRgba(color, 0.25);
     var brandText = document.querySelector("#dash-sidebar .dash-brand-text strong");
     if (brandText) brandText.textContent = siteName;
+  }
+
+  /* The logo plate: an <img> the markup owns, so a failed image never leaves
+     an empty coloured tile claiming to be the brand. */
+  function tintMark(id, color) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.style.setProperty("--mark-plate", color);
+    el.style.setProperty("--mark-shadow", hexToRgba(color, 0.32));
   }
 
   function initBranding() {

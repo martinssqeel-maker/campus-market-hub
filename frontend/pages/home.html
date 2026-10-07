@@ -4,16 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0b8371">
-  <title>Marketplace · Lafia Marketplace</title>
+  <title>Marketplace · Campus Marketplace</title>
   <meta name="description" content="Browse items for sale across Lafia — filter by category, price, condition and area, then message the seller directly.">
 
-  <link rel="icon" type="image/svg+xml" href="../assets/images/logo.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/images/favicon-32.png">
+  <link rel="apple-touch-icon" href="../assets/images/campus-marketplace-icon-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
   <link rel="stylesheet" href="../css/responsive.css">
   <link rel="stylesheet" href="../css/premium.css">
+  <link rel="stylesheet" href="../css/commerce.css">
 
   <script src="../js/shell.js"></script>
 </head>
@@ -21,66 +23,139 @@
 
   <header id="site-header"></header>
 
-  <main>
-    <!-- ===================== PAGE HEADER ===================== -->
-    <div class="page-head">
+  <main class="marketplace-home" id="marketplace">
+    <div class="page-head marketplace-intro">
       <div class="container page-head__inner">
         <div>
-          <span class="mk-kicker">Near <span id="home-location">Lafia</span></span>
+          <span class="mk-kicker">Marketplace · <span id="home-location">Lafia</span></span>
           <h1>Everything for sale in Lafia</h1>
-          <p><span id="listing-count">Loading…</span> · every listing is reviewed before it goes live</p>
+          <p><span id="listing-count">Loading…</span> · reviewed before going live</p>
         </div>
         <div class="page-head__actions">
           <a class="btn btn-primary" href="post-listing.html">Post a listing</a>
-          <a class="btn btn-outline" href="game-centre.html">Game Centre</a>
         </div>
       </div>
     </div>
 
-    <div class="container" style="padding-bottom:var(--sp-10)">
-
-      <!-- ============== GAME CENTRE (prominent, up top) ============== -->
-      <section aria-labelledby="home-game-heading" class="mb-3">
-        <h2 id="home-game-heading" class="sr-only">Game Centre</h2>
-        <div id="home-game">
-          <div class="skeleton skeleton-pane" style="height:200px"></div>
+    <div class="container marketplace-content">
+      <div class="market-toolbar">
+        <div class="market-search" role="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg>
+          <label class="sr-only" for="market-search">Search listings</label>
+          <input id="market-search" type="search" name="q" form="filter-form"
+                 placeholder="Search gadgets, rooms and local services">
+          <button class="btn btn-primary btn-sm" type="submit" form="filter-form">Search</button>
         </div>
-      </section>
+        <label class="market-sort-control" for="market-sort">
+          <span>Sort</span>
+          <select id="market-sort">
+            <option value="-created_at">Newest</option>
+            <option value="price">Price: low to high</option>
+            <option value="-price">Price: high to low</option>
+            <option value="title">Title A–Z</option>
+          </select>
+        </label>
+        <button class="btn btn-outline market-filter-toggle" id="toggle-filters"
+                type="button" aria-expanded="false" aria-controls="filter-panel">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M7 12h10m-7 5h4"/></svg>
+          Filters
+        </button>
+      </div>
 
-      <!-- ==================== FOUR PILLARS ==================== -->
-      <nav class="pillar-row" aria-label="Marketplace pillars" id="home-pillars">
+      <div class="filter-panel market-filter-panel" id="filter-panel">
+        <form id="filter-form">
+          <input type="hidden" name="category" id="filter-category" value="">
+          <div class="market-filter-fields">
+            <fieldset class="market-filter-group">
+              <legend>Price range <span>(₦)</span></legend>
+              <div class="market-price-fields">
+                <label class="sr-only" for="min-price">Minimum price</label>
+                <input id="min-price" name="min_price" type="number" min="0" placeholder="Min">
+                <label class="sr-only" for="max-price">Maximum price</label>
+                <input id="max-price" name="max_price" type="number" min="0" placeholder="Max">
+              </div>
+            </fieldset>
+            <div class="form-group">
+              <label for="filter-location">Area</label>
+              <input id="filter-location" name="location" type="text" placeholder="e.g. Angwan Rimi">
+            </div>
+            <div class="form-group">
+              <label for="filter-condition">Condition</label>
+              <select id="filter-condition" name="condition">
+                <option value="">Any condition</option>
+                <option value="new">Brand new</option>
+                <option value="used">Used</option>
+                <option value="refurbished">Refurbished</option>
+              </select>
+            </div>
+          </div>
+          <div class="filter-actions">
+            <button class="btn btn-primary btn-sm" type="submit">Apply filters</button>
+            <button class="btn btn-ghost btn-sm" type="button" data-action="reset">Clear</button>
+          </div>
+          <div class="active-filters" id="active-filters"></div>
+        </form>
+      </div>
+
+      <nav class="pillar-row" aria-label="Browse marketplace categories" id="home-pillars">
         <a class="pillar-tile" href="home.html">
-          <span class="pillar-tile__icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg>
-          </span>
-          <strong>Gadgets</strong>
-          <small>Phones, laptops, power banks</small>
+          <span class="pillar-tile__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg></span>
+          <span><strong>Gadgets</strong><small>Phones, laptops, tech</small></span>
         </a>
         <a class="pillar-tile" href="accommodation.html">
-          <span class="pillar-tile__icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20V9"/><path d="M3 12h16a2 2 0 0 1 2 2v6"/><path d="M3 18h18"/><path d="M7 12V8h6l2 4"/></svg>
-          </span>
-          <strong>Accommodation</strong>
-          <small>Hostels, lodges, self-contains</small>
+          <span class="pillar-tile__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20V9"/><path d="M3 12h16a2 2 0 0 1 2 2v6"/><path d="M3 18h18"/><path d="M7 12V8h6l2 4"/></svg></span>
+          <span><strong>Accommodation</strong><small>Rooms and lodges</small></span>
         </a>
         <a class="pillar-tile" href="events.html">
-          <span class="pillar-tile__icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M8 3v4"/><path d="M16 3v4"/></svg>
-          </span>
-          <strong>Events</strong>
-          <small>Concerts, seminars, gatherings</small>
+          <span class="pillar-tile__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M8 3v4"/><path d="M16 3v4"/></svg></span>
+          <span><strong>Events</strong><small>What's on in Lafia</small></span>
         </a>
         <a class="pillar-tile" href="services.html">
-          <span class="pillar-tile__icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 5.5a4 4 0 0 1 0 5.6l-6.6 6.6a2 2 0 0 1-2.8 0l-1.3-1.3a2 2 0 0 1 0-2.8l6.6-6.6a4 4 0 0 1 5.6 0Z"/><path d="M15 9h5"/><path d="M18 6v6"/></svg>
-          </span>
-          <strong>Service providers</strong>
-          <small>Repairs, printing, tutoring</small>
+          <span class="pillar-tile__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 5.5a4 4 0 0 1 0 5.6l-6.6 6.6a2 2 0 0 1-2.8 0l-1.3-1.3a2 2 0 0 1 0-2.8l6.6-6.6a4 4 0 0 1 5.6 0Z"/><path d="M15 9h5"/><path d="M18 6v6"/></svg></span>
+          <span><strong>Services</strong><small>Find local help</small></span>
         </a>
       </nav>
 
-      <!-- =============== ADAPTIVE DISCOVERY ROWS =============== -->
-      <div id="home-discovery">
+      <div class="chip-row market-category-chips" id="category-chips" aria-label="Filter gadgets by category">
+        <button class="chip active" data-value="all" type="button">All gadgets</button>
+        <button class="chip" data-value="phones" type="button">Phones &amp; tablets</button>
+        <button class="chip" data-value="laptops" type="button">Laptops</button>
+        <button class="chip" data-value="electronics" type="button">Electronics</button>
+        <button class="chip" data-value="accessories" type="button">Accessories</button>
+      </div>
+
+      <div class="grid grid-sidebar home-market-layout">
+        <section class="home-results" aria-labelledby="browse-listings-heading">
+          <div class="section-head">
+            <div>
+              <h2 class="mb-0" id="browse-listings-heading">Browse listings</h2>
+              <p class="mb-0">Contact sellers directly by message or call.</p>
+            </div>
+            <a class="btn btn-ghost btn-sm" href="favorites.html">Saved items</a>
+          </div>
+          <div class="grid grid-cards" id="listing-grid">
+            <div class="skeleton skeleton-card"></div>
+            <div class="skeleton skeleton-card"></div>
+            <div class="skeleton skeleton-card"></div>
+            <div class="skeleton skeleton-card"></div>
+          </div>
+          <div class="pagination" id="listing-pagination"></div>
+        </section>
+
+        <aside class="home-aside" aria-label="More around Lafia">
+          <section class="home-aside-block">
+            <div class="home-aside-heading"><h2>Accommodation</h2><a href="accommodation.html">All rooms</a></div>
+            <p class="text-muted">Latest rooms around Lafia</p>
+            <div id="side-rooms"><div class="skeleton skeleton-row"></div></div>
+          </section>
+          <section class="home-aside-block">
+            <div class="home-aside-heading"><h2>Upcoming events</h2><a href="events.html">All events</a></div>
+            <div id="side-events"><div class="skeleton skeleton-row"></div></div>
+          </section>
+        </aside>
+      </div>
+
+      <div class="home-discovery" id="home-discovery">
         <div class="skeleton skeleton-line" style="width:220px;height:20px;margin:var(--sp-6) 0 var(--sp-4)"></div>
         <div class="grid grid-cards">
           <div class="skeleton skeleton-card"></div>
@@ -90,125 +165,13 @@
         </div>
       </div>
 
-      <!-- ===================== TOOLBAR ======================= -->
-      <div class="filter-panel mb-3">
-        <div class="form-row form-row-2" style="align-items:end">
-          <div class="form-group" style="margin-bottom:0">
-            <label for="market-search">Search listings</label>
-            <input id="market-search" type="search" name="q" form="filter-form"
-                   placeholder="iPhone, laptop, JBL speaker, power bank…">
-          </div>
-          <div class="form-group" style="margin-bottom:0">
-            <label for="market-sort">Sort by</label>
-            <select id="market-sort">
-              <option value="-created_at">Newest first</option>
-              <option value="price">Price: low to high</option>
-              <option value="-price">Price: high to low</option>
-              <option value="title">Title A–Z</option>
-            </select>
-          </div>
+      <section class="home-game-section" aria-labelledby="home-game-heading">
+        <div class="home-secondary-heading">
+          <h2 id="home-game-heading">Take a short break</h2>
+          <p>Market Rush is here when you want to play.</p>
         </div>
-      </div>
-
-      <!-- ===================== CATEGORY CHIPS ================= -->
-      <div class="chip-row mb-3" id="category-chips">
-        <button class="chip active" data-value="all" type="button">All gadgets</button>
-        <button class="chip" data-value="phones" type="button">Phones &amp; tablets</button>
-        <button class="chip" data-value="laptops" type="button">Laptops</button>
-        <button class="chip" data-value="electronics" type="button">Electronics</button>
-        <button class="chip" data-value="accessories" type="button">Accessories</button>
-      </div>
-
-      <!-- ====================== MAIN CONTENT ================== -->
-      <div class="grid grid-sidebar">
-        <!-- Sidebar: filters + quick links -->
-        <aside>
-          <button class="btn btn-outline btn-block mb-2" id="toggle-filters"
-                  type="button" aria-expanded="false" aria-controls="filter-panel">Filters</button>
-
-          <div class="filter-panel" id="filter-panel">
-            <form id="filter-form">
-              <input type="hidden" name="category" id="filter-category" value="">
-
-              <h4 class="mb-1">Price range (₦)</h4>
-              <div class="form-row form-row-2">
-                <div class="form-group">
-                  <label class="sr-only" for="min-price">Minimum price</label>
-                  <input id="min-price" name="min_price" type="number" min="0" placeholder="Min">
-                </div>
-                <div class="form-group">
-                  <label class="sr-only" for="max-price">Maximum price</label>
-                  <input id="max-price" name="max_price" type="number" min="0" placeholder="Max">
-                </div>
-              </div>
-
-              <h4 class="mb-1 mt-2">Details</h4>
-              <div class="form-group">
-                <label for="filter-location">Area</label>
-                <input id="filter-location" name="location" type="text" placeholder="e.g. Angwan Rimi">
-              </div>
-              <div class="form-group">
-                <label for="filter-condition">Condition</label>
-                <select id="filter-condition" name="condition">
-                  <option value="">Any condition</option>
-                  <option value="new">Brand new</option>
-                  <option value="used">Used</option>
-                  <option value="refurbished">Refurbished</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label for="filter-sort">Sort by</label>
-                <select id="filter-sort" name="sort">
-                  <option value="-created_at">Newest first</option>
-                  <option value="price">Price: low to high</option>
-                  <option value="-price">Price: high to low</option>
-                  <option value="title">Title A–Z</option>
-                </select>
-              </div>
-
-              <div class="filter-actions">
-                <button class="btn btn-primary" type="submit">Apply filters</button>
-                <button class="btn btn-outline" type="button" data-action="reset">Reset</button>
-              </div>
-              <div class="active-filters" id="active-filters"></div>
-            </form>
-          </div>
-
-          <!-- Accommodation teaser -->
-          <div class="card card-pad mt-2">
-            <h4>Accommodation</h4>
-            <p class="text-muted"><small>Latest rooms around Lafia</small></p>
-            <div id="side-rooms"><div class="skeleton" style="height:72px"></div></div>
-            <a class="btn btn-outline btn-block btn-sm mt-1" href="accommodation.html">Browse all rooms</a>
-          </div>
-
-          <!-- Events teaser -->
-          <div class="card card-pad mt-2">
-            <h4>Upcoming events</h4>
-            <div id="side-events" class="mt-1"><div class="skeleton" style="height:72px"></div></div>
-            <a class="btn btn-outline btn-block btn-sm" href="events.html">See all events</a>
-          </div>
-        </aside>
-
-        <!-- Listings -->
-        <div>
-          <div class="section-head">
-            <div>
-              <h2 class="mb-0">Browse listings</h2>
-              <p class="mb-0">Contact sellers directly by call or WhatsApp</p>
-            </div>
-            <a class="btn btn-ghost btn-sm" href="favorites.html">My saved items</a>
-          </div>
-
-          <div class="grid grid-cards" id="listing-grid">
-            <div class="skeleton skeleton-card"></div>
-            <div class="skeleton skeleton-card"></div>
-            <div class="skeleton skeleton-card"></div>
-            <div class="skeleton skeleton-card"></div>
-          </div>
-          <div class="pagination" id="listing-pagination"></div>
-        </div>
-      </div>
+        <div id="home-game"><div class="skeleton skeleton-pane" style="height:120px"></div></div>
+      </section>
     </div>
   </main>
 

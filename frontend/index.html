@@ -4,34 +4,35 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0b8371">
-  <title>Lafia Marketplace — Buy, sell, rent and connect across Lafia</title>
-  <meta name="description" content="Lafia Marketplace is the local platform for Lafia, Nasarawa State. Find gadgets, hostels and lodges, hire trusted service providers and discover events — with every listing reviewed before it goes live.">
+  <title>Campus Marketplace — Buy, sell, rent and connect across Lafia</title>
+  <meta name="description" content="Campus Marketplace is the local platform for Lafia, Nasarawa State. Find gadgets, hostels and lodges, hire trusted service providers and discover events — with every listing reviewed before it goes live.">
   <!-- Canonical + og:url are filled in by shell.js from the live origin so the
        tags stay correct on any deploy (Vercel preview, custom domain, local). -->
   <link rel="canonical" href="./">
 
   <!-- Open Graph / social -->
   <meta property="og:type" content="website">
-  <meta property="og:site_name" content="Lafia Marketplace">
-  <meta property="og:title" content="Lafia Marketplace — Your city, one platform">
+  <meta property="og:site_name" content="Campus Marketplace">
+  <meta property="og:title" content="Campus Marketplace — Your city, one platform">
   <meta property="og:description" content="Gadgets, accommodation, events and trusted local services in one place. Post in minutes and reach people across Lafia.">
   <meta property="og:url" content="./">
-  <meta property="og:image" content="assets/logo.png">
-  <meta property="og:image:alt" content="Lafia Marketplace">
+  <meta property="og:image" content="assets/images/campus-marketplace-logo.jpg">
+  <meta property="og:image:alt" content="Campus Marketplace">
   <meta property="og:locale" content="en_NG">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Lafia Marketplace — Your city, one platform">
+  <meta name="twitter:title" content="Campus Marketplace — Your city, one platform">
   <meta name="twitter:description" content="Buy, sell, rent and connect across Lafia. Every listing reviewed before it goes live.">
-  <meta name="twitter:image" content="assets/logo.png">
+  <meta name="twitter:image" content="assets/images/campus-marketplace-logo.jpg">
 
-  <link rel="icon" type="image/svg+xml" href="assets/images/logo.svg">
-  <link rel="apple-touch-icon" href="assets/logo.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
+  <link rel="apple-touch-icon" href="assets/images/campus-marketplace-icon-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/responsive.css">
   <link rel="stylesheet" href="css/premium.css">
+  <link rel="stylesheet" href="css/commerce.css">
 
   <!-- shell.js runs the route guard and renders the navbar before first paint -->
   <script src="js/shell.js"></script>
@@ -44,92 +45,35 @@
   <main id="top">
 
     <!-- ============================== HERO ============================== -->
-    <section class="mk-hero">
-      <div class="mk-hero__bg" aria-hidden="true">
-        <div class="mk-hero__mesh"></div>
-        <div class="mk-hero__grid"></div>
-        <span class="mk-orb mk-orb--1"></span>
-        <span class="mk-orb mk-orb--2"></span>
-        <span class="mk-orb mk-orb--3"></span>
-      </div>
-
+    <section class="mk-hero" aria-labelledby="landing-title">
       <div class="container mk-hero__inner">
         <div class="mk-hero__copy">
-          <span class="mk-hero__pill">
-            <b>Live now</b>
-            Serving Lafia, Nasarawa State
-          </span>
-
-          <h1>Everything Lafia — <em>in one place.</em></h1>
-
+          <span class="mk-hero__pill"><b>Lafia</b> Buy, sell and find local services</span>
+          <h1 id="landing-title">Everything Lafia — <em>in one place.</em></h1>
           <p class="mk-lede">
-            Gadgets, accommodation, events and trusted local professionals.
-            Post in minutes, talk to the person directly, and meet in person.
-            No middlemen, no commission, no guesswork.
+            Browse gadgets, rooms, events and services around Lafia. Search what you need,
+            or post a listing and speak with people directly.
           </p>
 
           <div class="mk-search" role="search">
             <form class="mk-search__field" id="hero-search-form" role="search">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg>
-              <label class="sr-only" for="hero-search">Search Lafia Marketplace</label>
+              <label class="sr-only" for="hero-search">Search Campus Marketplace</label>
               <input id="hero-search" type="search" autocomplete="off"
-                     placeholder="Laptop, self-contain, phone repair, weekend event…">
+                     placeholder="Search phones, rooms, repairs…">
               <button class="btn btn-primary btn-sm" type="submit">Search</button>
             </form>
             <div id="hero-suggestions" class="suggestions hidden" role="listbox" aria-label="Search suggestions"></div>
           </div>
 
           <div class="mk-cta-row">
-            <a class="btn btn-primary btn-lg" href="pages/signup.html">Get started</a>
-            <a class="btn btn-outline btn-lg" href="pages/login.html">Sign in</a>
+            <a class="btn btn-primary" href="pages/signup.html">Get started</a>
+            <a class="btn btn-outline" href="pages/home.html">Explore listings</a>
           </div>
 
           <p class="form-note mt-2">
-            Free to join. Free to post. Every listing is reviewed by a moderator before it goes live.
+            Free to join. Free to post. Listings are reviewed before they go live.
           </p>
-        </div>
-
-        <!-- Floating glass product mock — an illustration of the interface,
-             never a live listing feed. -->
-        <div class="mk-hero__art" aria-hidden="true">
-          <div class="mk-mock">
-            <div class="mk-mock__bar"><i></i><i></i><i></i><span>lafia.marketplace</span></div>
-            <div class="mk-mock__grid">
-              <div class="mk-mock__card">
-                <div class="mk-mock__thumb t1"></div>
-                <div class="mk-mock__line w70"></div>
-                <div class="mk-mock__line price"></div>
-              </div>
-              <div class="mk-mock__card">
-                <div class="mk-mock__thumb t2"></div>
-                <div class="mk-mock__line w45"></div>
-                <div class="mk-mock__line price"></div>
-              </div>
-              <div class="mk-mock__card">
-                <div class="mk-mock__thumb t3"></div>
-                <div class="mk-mock__line w70"></div>
-                <div class="mk-mock__line price"></div>
-              </div>
-              <div class="mk-mock__card">
-                <div class="mk-mock__thumb t4"></div>
-                <div class="mk-mock__line w45"></div>
-                <div class="mk-mock__line price"></div>
-              </div>
-            </div>
-          </div>
-
-          <span class="mk-float mk-float--a">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#0b8371" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-            Moderated listings <em>· reviewed first</em>
-          </span>
-          <span class="mk-float mk-float--b">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.2-2.9 7.4-7 9-4.1-1.6-7-4.8-7-9V6z"/></svg>
-            Verified accounts <em>· clearer trust</em>
-          </span>
-          <span class="mk-float mk-float--c">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg>
-            Location-aware <em>· near you first</em>
-          </span>
         </div>
       </div>
     </section>
@@ -139,7 +83,7 @@
       <div class="container">
         <div class="text-center reveal" style="margin-bottom:var(--sp-5)">
           <span class="mk-kicker">Built in Lafia, for Lafia</span>
-          <h2 id="stats-heading" style="margin-bottom:var(--sp-2)">A living local platform, not a landing-page mock-up</h2>
+          <h2 id="stats-heading" style="margin-bottom:var(--sp-2)">What people are listing in Lafia</h2>
           <p class="text-muted" style="max-width:64ch;margin-inline:auto">
             Four pillars, one city. Every counter below is read live from the marketplace database.
           </p>
@@ -171,7 +115,7 @@
       <div class="container">
         <div class="text-center reveal" style="margin-bottom:var(--sp-7)">
           <span class="mk-kicker">Four pillars</span>
-          <h2 id="pillars-heading">Four things Lafia actually needs</h2>
+          <h2 id="pillars-heading">Browse the local market</h2>
           <p class="text-muted" style="max-width:60ch;margin-inline:auto">
             The platform stays deliberately focused. No fashion, no groceries, no random
             general merchandise — only the four things people in Lafia search for every day.
@@ -337,7 +281,7 @@
         </div>
 
         <p class="form-note text-center mt-3" style="max-width:70ch;margin-inline:auto">
-          No platform can guarantee a transaction. Lafia Marketplace gives you verified process,
+          No platform can guarantee a transaction. Campus Marketplace gives you verified process,
           visible history and clear safety guidance — the judgement is always yours.
         </p>
       </div>
@@ -351,7 +295,7 @@
             <span class="deep-kicker">Game Centre</span>
             <h2 id="game-heading" style="margin:var(--sp-3) 0">A five-minute break, built into the platform</h2>
             <p style="max-width:56ch">
-              Gaming sits alongside trading in Lafia Marketplace. One genuinely polished game,
+              Gaming sits alongside trading in Campus Marketplace. One genuinely polished game,
               a new challenge every day, streaks to protect and a weekly board — because a
               platform people open for fun is a platform they come back to.
             </p>
@@ -424,7 +368,7 @@
         </h2>
         <p style="font-size:1.02rem">
           Today, buying and selling in Lafia depends on word of mouth, screenshots and luck.
-          Lafia Marketplace replaces that with structured listings, honest reputation, real
+          Campus Marketplace replaces that with structured listings, honest reputation, real
           moderation and location-aware discovery — built for Nigerian devices, Nigerian
           networks and Nigerian trust concerns, starting with one city done properly.
         </p>
@@ -445,7 +389,7 @@
 
         <div class="stack reveal" style="display:grid;gap:var(--sp-3)">
           <details class="card card-pad">
-            <summary style="cursor:pointer;font-weight:700;color:var(--ink)">Is Lafia Marketplace free to use?</summary>
+            <summary style="cursor:pointer;font-weight:700;color:var(--ink)">Is Campus Marketplace free to use?</summary>
             <p class="text-muted mt-2">Yes. Creating an account and posting listings is free, and there is no commission on any sale. Optional paid promotion exists purely to give a listing more visibility for a fixed period — it never affects whether a listing is allowed on the platform.</p>
           </details>
           <details class="card card-pad">
@@ -454,7 +398,7 @@
           </details>
           <details class="card card-pad">
             <summary style="cursor:pointer;font-weight:700;color:var(--ink)">Do I have to be a student to use it?</summary>
-            <p class="text-muted mt-2">No. Lafia Marketplace is open to everyone in Lafia — students, residents, traders, landlords, agents, organisers and service providers. Students are simply a large part of the community.</p>
+            <p class="text-muted mt-2">No. Campus Marketplace is open to everyone in Lafia — students, residents, traders, landlords, agents, organisers and service providers. Students are simply a large part of the community.</p>
           </details>
           <details class="card card-pad">
             <summary style="cursor:pointer;font-weight:700;color:var(--ink)">How do service providers get listed?</summary>

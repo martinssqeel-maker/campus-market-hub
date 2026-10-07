@@ -4,17 +4,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0a0a0a">
-  <meta name="description" content="Administrator console — moderate listings and manage accounts on Lafia Marketplace.">
+  <meta name="description" content="Administrator console — moderate listings and manage accounts on Campus Marketplace.">
   <meta name="robots" content="noindex, nofollow">
-  <title>Admin console · Lafia Marketplace</title>
+  <title>Admin console · Campus Marketplace</title>
 
-  <link rel="icon" type="image/svg+xml" href="../assets/images/logo.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/images/favicon-32.png">
+  <link rel="apple-touch-icon" href="../assets/images/campus-marketplace-icon-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
   <link rel="stylesheet" href="../css/responsive.css">
   <link rel="stylesheet" href="../css/premium.css">
+  <link rel="stylesheet" href="../css/commerce.css">
 
   <!-- Route guard: the console is never rendered to a guest -->
   <script src="../js/shell.js"></script>
@@ -30,9 +32,11 @@
     <aside class="dash-sidebar" id="dash-sidebar" aria-label="Dashboard navigation">
       <div class="dash-brand">
         <a class="dash-brand-link" href="../index.html">
-          <span class="dash-brand-logo" id="dash-brand-mark" aria-hidden="true">LM</span>
+          <span class="dash-brand-logo" id="dash-brand-mark">
+            <img src="../assets/images/campus-marketplace-icon-192.png" alt="Campus Marketplace logo" width="38" height="38" loading="lazy" decoding="async">
+          </span>
           <span class="dash-brand-text">
-            <strong>Lafia Marketplace</strong>
+            <strong>Campus Marketplace</strong>
             <small>Admin console</small>
           </span>
         </a>
@@ -146,7 +150,7 @@
                 Admin console
                 <span class="badge badge-rejected hidden" id="pending-badge">0</span>
               </h1>
-              <p>Review submissions, moderate listings and manage accounts across Lafia Marketplace.</p>
+              <p>Review submissions, moderate listings and manage accounts across Campus Marketplace.</p>
           </div>
         </div>
 
@@ -386,11 +390,11 @@
                 <div class="dash-field-grid">
                   <div class="form-group">
                     <label for="brand-site-name">Site name</label>
-                    <input id="brand-site-name" name="site_name" type="text" placeholder="Lafia Marketplace" autocomplete="off">
+                    <input id="brand-site-name" name="site_name" type="text" placeholder="Campus Marketplace" autocomplete="off">
                   </div>
                   <div class="form-group">
                     <label for="brand-tagline">Tagline</label>
-                    <input id="brand-tagline" name="tagline" type="text" placeholder="Buy, sell and rent across Lafia" autocomplete="off">
+                    <input id="brand-tagline" name="tagline" type="text" placeholder="Buy. Sell. Connect." autocomplete="off">
                   </div>
                 </div>
 
@@ -427,10 +431,12 @@
               <h2 class="h3" style="margin-top:0">Live preview</h2>
               <div class="dash-preview">
                 <div class="dash-preview-brand">
-                  <span class="dash-preview-mark" id="preview-mark">LM</span>
+                  <span class="dash-preview-mark" id="preview-mark">
+                    <img src="../assets/images/campus-marketplace-icon-192.png" alt="" width="42" height="42" loading="lazy" decoding="async">
+                  </span>
                   <span>
-                    <strong id="preview-name">Lafia Marketplace</strong>
-                    <small id="preview-tagline">Buy, sell and rent across Lafia</small>
+                    <strong id="preview-name">Campus Marketplace</strong>
+                    <small id="preview-tagline">Buy. Sell. Connect.</small>
                   </span>
                 </div>
                 <div class="dash-swatches" style="margin-top:16px">
